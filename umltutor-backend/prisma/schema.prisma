@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  role          String    @default("student") // teacher | student
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  managedClasses  Class[]        @relation("TeacherClasses")
+  memberships     ClassStudent[]
+  submissions     Submission[]
+  evaluations     Evaluation[]   @relation("EvaluatedBy")
+  notifications   Notification[] @relation("UserNotifications")
+}
+
+model Class {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  code        String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  teacherId   Int
+  teacher     User     @relation("TeacherClasses", fields: [teacherId], references: [id])
+  
+  // Relations
+  students    ClassStudent[]
+  assignments Assignment[]
+}
+
+model ClassStudent {
+  id        Int      @id @default(autoincrement())
+  classId   Int
+  studentId Int
+  joinedAt  DateTime @default(now())
+
+  class     Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student   User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+}
+
+model Assignment {
+  id                 Int      @id @default(autoincrement())
+  title              String
+  description        String?
+  dueDate            DateTime
+  releaseDate        DateTime? @default(now())
+  textContent        String?
+  instructions       String?
+  assignmentFileUrl  String?
+  assignmentFileName String?
+  assignmentFileType String?
+  maxScore           Int?
+  type               String?   // TEXT | FILE | etc.
+  classId            Int
+  createdBy          Int      // Linked to User.id (teacher)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  class              Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  submissions        Submission[]
+}
+
+model Submission {
+  id            Int       @id @default(autoincrement())
+  assignmentId  Int
+  studentId     Int
+  status        String    @default("draft") // draft | submitted
+  submittedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tutorialRequested Boolean @default(false)
+  tutorialApproved  Boolean @default(false)
+
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student       User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  useCaseDiagram      UseCaseDiagram?
+  useCaseDescriptions UseCaseDescription[]
+  ssdDiagrams         SSDDiagram[]
+  evaluation          Evaluation?
+
+  @@unique([assignmentId, studentId])
+}
+
+model UseCaseDiagram {
+  id           Int      @id @default(autoincrement())
+  submissionId Int      @unique
+  data         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model UseCaseDescription {
+  id           Int      @id @default(autoincrement())
+  submissionId Int
+  relatedId    String   // ID of the use case symbol in the diagram
+  data         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, relatedId])
+}
+
+model SSDDiagram {
+  id           Int      @id @default(autoincrement())
+  submissionId Int
+  relatedId    String   // ID of the use case symbol in the diagram
+  data         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, relatedId])
+}
+
+model Evaluation {
+  id                 Int       @id @default(autoincrement())
+  submissionId       Int       @unique
+  totalScore         Int?
+  remarks            String?
+  validationReport   String?
+  evaluatedBy        Int
+  evaluatedAt        DateTime? @default(now())
+
+  submission         Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  evaluator          User       @relation("EvaluatedBy", fields: [evaluatedBy], references: [id])
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  type        String   // CLASS_ENROLLMENT, ASSIGNMENT, etc.
+  relatedId   String?  // ID of related entity
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

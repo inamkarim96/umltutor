@@ -1,0 +1,32 @@
+{
+    "name": "new-folder",
+    "private": true,
+    "workspaces": [
+        "umltutor-frontend",
+        "umltutor-backend"
+    ],
+    "scripts": {
+        "dev": "npx concurrently \"npm run dev -w umltutor-backend\" \"npm run dev -w umltutor-frontend\"",
+        "dev:frontend": "npm run dev -w umltutor-frontend",
+        "dev:backend": "npm run dev -w umltutor-backend",
+        "build": "npm run build --workspaces --if-present",
+        "build:frontend": "npm run build -w umltutor-frontend",
+        "build:backend": "npm run build -w umltutor-backend",
+        "test": "npm run test --workspaces --if-present",
+        "test:frontend": "npm run test -w umltutor-frontend",
+        "test:backend": "npm run test -w umltutor-backend",
+        "test:coverage": "npm run test:coverage -w umltutor-backend",
+        "test:watch": "npm run test:watch -w umltutor-backend",
+        "test:run": "npm run test:run -w umltutor-frontend",
+        "test:ui": "npm run test:ui -w umltutor-frontend",
+        "test:init": "npm run test:init -w umltutor-backend",
+        "lint": "npm run lint --workspaces --if-present",
+        "start": "npm run start -w umltutor-backend",
+        "prisma:generate": "npm run prisma:generate -w umltutor-backend",
+        "prisma:migrate": "npm run prisma:migrate -w umltutor-backend",
+        "prisma:push": "npm run prisma:push -w umltutor-backend",
+        "prisma:studio": "npm run prisma:studio -w umltutor-backend",
+        "prisma:status": "npm run prisma:status -w umltutor-backend",
+        "db:check": "npm run db:check -w umltutor-backend"
+    }
+}
