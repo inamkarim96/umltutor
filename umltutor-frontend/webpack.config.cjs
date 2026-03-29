@@ -1,19 +1,16 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
-require('dotenv').config({ path: './.env' });
-
-const isProduction = process.env.NODE_ENV === 'production';
 
 module.exports = {
-    mode: isProduction ? 'production' : 'development',
+    mode: 'development',
     entry: './src/main.jsx',
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'bundle.js',
         publicPath: '/',
     },
-    stats: 'minimal',
+    stats: 'minimal', // Minimal stats only
     module: {
         rules: [
             {
@@ -26,7 +23,7 @@ module.exports = {
                             '@babel/preset-env',
                             '@babel/preset-react'
                         ],
-                        cacheDirectory: false,
+                        cacheDirectory: false, // Cache disable  temporarily
                     },
                 },
             },
@@ -50,12 +47,6 @@ module.exports = {
         new webpack.ProvidePlugin({
             React: 'react',
         }),
-        // Inject environment variables into the bundle
-        new webpack.DefinePlugin({
-            'process.env.REACT_APP_API_URL': JSON.stringify(
-                process.env.REACT_APP_API_URL || 'http://localhost:3000'
-            ),
-        }),
     ],
     devServer: {
         historyApiFallback: true,
@@ -64,6 +55,6 @@ module.exports = {
         },
         hot: true,
         port: 5173,
-        open: true,
+        open: true, // Auto-open browser enable
     },
 };

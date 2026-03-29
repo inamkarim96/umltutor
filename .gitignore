@@ -45,7 +45,6 @@ build/
 *.db
 *.sqlite
 *.sqlite3
-prisma/test.db
 
 # Coverage reports
 coverage/
