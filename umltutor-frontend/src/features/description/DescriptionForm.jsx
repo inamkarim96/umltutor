@@ -245,6 +245,7 @@ const MainSuccessScenarioCard = ({ isReadOnly, onFieldBlur }) => {
                                 disabled={isReadOnly}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-gray-900 transition-all font-medium"
                                 placeholder="Action step content..."
+                                autoComplete="off"
                                 onBlur={onFieldBlur}
                             />
                         </div>
@@ -307,6 +308,7 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                                         {...register(`alternativeFlows.${index}.condition`)}
                                         className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:bg-gray-800 text-sm font-medium"
                                         placeholder="If this condition is met..."
+                                        autoComplete="off"
                                         onBlur={onFieldBlur}
                                     />
                                 </div>
@@ -316,6 +318,7 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                                         {...register(`alternativeFlows.${index}.response`)}
                                         className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:bg-gray-800 text-sm font-medium"
                                         placeholder="Then the system performs this action..."
+                                        autoComplete="off"
                                         onBlur={onFieldBlur}
                                     />
                                 </div>
