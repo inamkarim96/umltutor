@@ -469,8 +469,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                 dispatch(clearModeState(currentMode));
               }}
               className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 ${currentMode === 'tutorial'
-                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
-                  : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
+                : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'
                 }`}
             >
               {currentMode === 'tutorial' ? <Database size={16} /> : <BookOpen size={16} />}
@@ -719,42 +719,31 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             </div>
             {/* Professional Navigation Bar */}
             <div className="p-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] bg-slate-50/50 backdrop-blur-sm">
-              <button
-                onClick={handleBack}
-                className="px-8 py-3 bg-[#6B7280] hover:bg-gray-600 active:bg-gray-700 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-sm min-w-[140px] justify-center"
-              >
-                <ArrowLeft size={20} /> Back
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleBack}
+                  className="px-8 py-3 bg-[#6B7280] hover:bg-gray-600 active:bg-gray-700 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-sm min-w-[140px] justify-center"
+                >
+                  <ArrowLeft size={20} /> Back
+                </button>
+
+                {/* Save button only in Development Mode before submission */}
+                {!isTutorialActive && (!isStudentWork || (!currentSubmission?.status || !['submitted', 'graded', 'reviewed', 'completed'].includes(currentSubmission?.status?.toLowerCase()))) && (
+                  <button
+                    onClick={handleSave}
+                    disabled={isSubmitting || isSaving}
+                    className="px-8 py-3 bg-[#4F46E5] hover:bg-indigo-700 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-sm min-w-[140px] justify-center"
+                  >
+                    {isSubmitting || isSaving ? 'Saving...' : 'Save'}
+                  </button>
+                )}
+              </div>
 
               <div className="flex items-center gap-4">
-                {/* Student Workflow Controls - Show Save/Submit if it's a draft and NOT in tutorial mode */}
-                {(currentSubmission?.status === 'draft' || !currentSubmission?.status) && !isTutorialActive && !currentSubmission?.tutorialApproved && (
+                {/* Student Workflow Controls - Show Submit if it's not submitted/graded and NOT in tutorial mode */}
+                {!isTutorialActive && isStudentWork && (!currentSubmission?.status || !['submitted', 'graded', 'reviewed', 'completed'].includes(currentSubmission?.status?.toLowerCase())) && !currentSubmission?.tutorialApproved && (
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleSave}
-                      disabled={isSubmitting || isSaving}
-                      className="px-8 py-3 bg-[#4F46E5] hover:bg-indigo-700 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center shadow-sm min-w-[140px]"
-                    >
-                      {isSubmitting || isSaving ? 'Saving...' : 'Save Draft'}
-                    </button>
 
-                    <button
-                      onClick={async () => {
-                        try {
-                          const confirmed = window.confirm("Are you sure you want to submit? This will lock your diagrams until a teacher approves a tutorial request.");
-                          if (!confirmed) return;
-                          await handleSave();
-                          await dispatch(submitAssignmentData({ assignmentId, data: { status: 'submitted' } })).unwrap();
-                          successToast("Assignment submitted successfully! You can now request Tutorial Mode.");
-                        } catch (err) {
-                          errorToast(err || "Failed to submit assignment.");
-                        }
-                      }}
-                      disabled={isSubmitting || isSaving}
-                      className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center shadow-sm min-w-[140px]"
-                    >
-                      Submit Task
-                    </button>
                   </div>
                 )}
 
