@@ -79,6 +79,23 @@ const updateAssignmentDefinition = async (req, res, next) => {
         const updateData = { ...req.body };
         if (req.body.releaseDate) updateData.releaseDate = new Date(req.body.releaseDate);
         if (req.body.dueDate || req.body.deadline) updateData.dueDate = new Date(req.body.dueDate || req.body.deadline);
+        
+        // Clean up frontend specific properties and map type correctly
+        delete updateData.deadline;
+        
+        if (updateData.assignmentType) {
+            updateData.type = updateData.assignmentType;
+            delete updateData.assignmentType;
+        }
+        
+        if (updateData.maxScore !== undefined) {
+            updateData.maxScore = Number(updateData.maxScore);
+        }
+        
+        if (updateData.classId !== undefined) {
+            updateData.classId = Number(updateData.classId);
+        }
+
         if (req.file) {
             const fileInfo = fileUpload.getFileInfo(req.file);
             updateData.assignmentFileUrl = fileInfo.url;
