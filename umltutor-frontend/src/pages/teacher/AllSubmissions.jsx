@@ -37,7 +37,7 @@ const AllSubmissions = () => {
     }, [dispatch]);
 
     const filteredSubmissions = submissions.filter(sub => {
-        if (!sub) return false;
+        if (!sub || sub.status?.toLowerCase() === 'draft') return false;
         const studentName = sub.studentName?.toLowerCase() || '';
         const assignmentTitle = (assignments.find(a => a.id === sub.assignmentId)?.title || sub.assignmentTitle || '').toLowerCase();
         return studentName.includes(searchTerm.toLowerCase()) || assignmentTitle.includes(searchTerm.toLowerCase());

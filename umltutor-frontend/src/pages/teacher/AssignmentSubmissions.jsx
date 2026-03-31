@@ -193,18 +193,26 @@ const AssignmentSubmissions = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {submissionsForThisAsgn.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" className="px-10 py-32 text-center">
-                                            <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-gray-300">
-                                                <FileText size={40} />
-                                            </div>
-                                            <h3 className="text-xl font-black text-gray-900 mb-2">No Submissions Yet</h3>
-                                            <p className="text-gray-400 font-medium">Wait for students to turn in their assignments.</p>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    submissionsForThisAsgn.map((sub) => (
+                                {(() => {
+                                    const visibleSubmissions = submissionsForThisAsgn.filter(sub => 
+                                        sub.status && sub.status.toLowerCase() !== 'pending' && sub.status.toLowerCase() !== 'not_submitted'
+                                    );
+                                    
+                                    if (visibleSubmissions.length === 0) {
+                                        return (
+                                            <tr>
+                                                <td colSpan="5" className="px-10 py-32 text-center">
+                                                    <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-gray-300">
+                                                        <FileText size={40} />
+                                                    </div>
+                                                    <h3 className="text-xl font-black text-gray-900 mb-2">No Submissions Yet</h3>
+                                                    <p className="text-gray-400 font-medium">Wait for students to turn in their assignments.</p>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+                                    
+                                    return visibleSubmissions.map((sub) => (
                                         <tr key={sub.studentId} className="group hover:bg-indigo-50/30 transition-all duration-300">
                                             <td className="px-10 py-8">
                                                 <div className="flex items-center gap-5">
@@ -290,7 +298,7 @@ const AssignmentSubmissions = () => {
                                             </td>
                                         </tr>
                                     ))
-                                )}
+                                })()}
                             </tbody>
                         </table>
                     </div>

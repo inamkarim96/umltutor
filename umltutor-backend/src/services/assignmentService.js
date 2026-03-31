@@ -430,11 +430,12 @@ class AssignmentService {
   async getAllSubmissionsForTeacher(teacherId, filters = {}) {
     const tid = Number(teacherId);
     const where = {
-        assignment: { createdBy: tid }
+        assignment: { createdBy: tid },
+        status: { not: 'draft' }
     };
 
     if (filters.studentId) where.studentId = Number(filters.studentId);
-    if (filters.status && filters.status !== 'all') {
+    if (filters.status && filters.status !== 'all' && filters.status.toLowerCase() !== 'draft') {
         where.status = filters.status.toLowerCase();
     }
 

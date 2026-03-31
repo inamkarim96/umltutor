@@ -108,12 +108,6 @@ const AssignmentsDashboard = () => {
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight">Assignments Management</h1>
                     <p className="text-gray-500 font-medium">Create and track assignments across all your classes.</p>
                 </div>
-                <button
-                    onClick={() => { setEditingAssignment(null); setIsModalOpen(true); }}
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
-                >
-                    <Plus size={20} /> New Assignment
-                </button>
             </div>
             
             {/* Status Messages */}
