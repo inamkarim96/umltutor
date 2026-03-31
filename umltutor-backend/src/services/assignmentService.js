@@ -430,8 +430,7 @@ class AssignmentService {
   async getAllSubmissionsForTeacher(teacherId, filters = {}) {
     const tid = Number(teacherId);
     const where = {
-        assignment: { createdBy: tid },
-        status: { not: 'draft' }
+        assignment: { createdBy: tid }
     };
 
     if (filters.studentId) where.studentId = Number(filters.studentId);
@@ -470,7 +469,7 @@ class AssignmentService {
 
     assignments.forEach(a => {
         a.submissions.forEach(s => {
-            if (s.status !== 'draft') totalSubmissions++;
+            totalSubmissions++;
             if (s.status === 'submitted') pendingReview++;
             if (s.status === 'graded') {
                 totalScore += s.evaluation?.totalScore || 0;

@@ -498,8 +498,7 @@ class SubmissionService {
 
     const submissions = await submissionRepository.findMany({
       where: { 
-        assignmentId: Number(assignmentId),
-        status: { not: 'draft' }
+        assignmentId: Number(assignmentId)
       },
       include: {
         student: { select: { id: true, email: true, firstName: true, lastName: true } },
