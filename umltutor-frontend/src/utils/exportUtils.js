@@ -119,11 +119,20 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
         pdf.line(20, yPos, pageWidth - 20, yPos);
         yPos += 15;
 
-        // Use the background renderer for high-quality database-linked capture
-        const renderer = document.querySelector('#full-model-export-renderer');
-        if (!renderer) throw new Error("Export renderer not found. Please ensure export mode is active.");
+        // HELPER: Wait for dynamic components to mount
+        const waitForElement = async (selector, maxWaitMs = 5000) => {
+            const start = Date.now();
+            while (Date.now() - start < maxWaitMs) {
+                const el = document.querySelector(selector);
+                if (el) return el;
+                await new Promise(r => setTimeout(r, 100));
+            }
+            throw new Error(`Export renderer not found (${selector}). Please ensure export mode is active.`);
+        };
 
-        // Function to add a captured section to PDF
+        const renderer = await waitForElement('#full-model-export-renderer', 3000);
+
+        // HELPER: Add captured UI section to PDF
         const addSectionToPdf = async (element, title, newPage = true) => {
             if (newPage) {
                 pdf.addPage();
@@ -132,38 +141,61 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
 
             pdf.setFont('helvetica', 'bold');
             pdf.setTextColor(79, 70, 229);
+            pdf.setFontSize(14);
             pdf.text(title, 20, yPos);
             yPos += 10;
 
-            const canvas = await html2canvas(element, { scale: 1.5, backgroundColor: '#ffffff' });
-            const imgData = canvas.toDataURL('image/jpeg', 0.75); // Higher compression for full model
+            // Give diagrams like React Flow time to stabilize in the hidden div
+            await new Promise(r => setTimeout(r, 600));
 
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                logging: false,
+                useCORS: true,
+                onclone: (clonedDoc) => {
+                    // Optional: remove any unwanted UI from the capture if needed
+                    const el = clonedDoc.querySelector('.opacity-0');
+                    if (el) el.style.opacity = '1';
+                }
+            });
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.85);
             const imgWidth = pageWidth - 40;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-            // If it's too tall, split it or scale it (here we scale to fit one page for simplicity)
-            const finalHeight = Math.min(imgHeight, pageHeight - yPos - 20);
+            // If image is too tall for one page, we might need simple scaling
+            const finalHeight = Math.min(imgHeight, pageHeight - yPos - 10);
             pdf.addImage(imgData, 'JPEG', 20, yPos, imgWidth, finalHeight);
-            yPos += finalHeight + 20;
+            yPos += finalHeight + 10;
         };
 
-        // --- SECTION 1: USE CASE DIAGRAM ---
+        // --- SECTION 1: USE CASE DIAGRAM & REPORT ---
         const step1 = renderer.querySelector('[data-export-section="usecase"]');
-        if (step1) await addSectionToPdf(step1, '1. Use Case Diagram & Report', false);
-
-        // --- SECTION 2: USE CASE DESCRIPTIONS ---
-        const step2Cards = Array.from(renderer.querySelectorAll('[data-description-id]'));
-        for (let i = 0; i < step2Cards.length; i++) {
-            await addSectionToPdf(step2Cards[i], `2.${i + 1} Use Case Description`);
+        if (step1) {
+            await addSectionToPdf(step1, '1. Use Case Diagram & Checking Report', false);
         }
 
-        // --- SECTION 3: SYSTEM SEQUENCE DIAGRAMS ---
-        const step3Cards = Array.from(renderer.querySelectorAll('[data-testid="ssd-card"]'));
-        for (let i = 0; i < step3Cards.length; i++) {
-            await addSectionToPdf(step3Cards[i], `3.${i + 1} System Sequence Diagram`);
+        // --- SECTION 2: USE CASE DESCRIPTIONS & REPORTS ---
+        const step2 = renderer.querySelector('[data-export-section="descriptions"]');
+        if (step2) {
+            const descBlocks = Array.from(step2.children).filter(el => el.tagName !== 'H1');
+            for (let i = 0; i < descBlocks.length; i++) {
+                await addSectionToPdf(descBlocks[i], `2.${i + 1} Use Case Description & Report`);
+            }
         }
 
-        pdf.save(`${userInfo.assignmentTitle || 'UML-Report'}.pdf`);
+        // --- SECTION 3: SSDS & REPORTS ---
+        const step3 = renderer.querySelector('[data-export-section="ssds"]');
+        if (step3) {
+            const ssdBlocks = Array.from(step3.children).filter(el => el.tagName !== 'H1');
+            for (let i = 0; i < ssdBlocks.length; i++) {
+                await addSectionToPdf(ssdBlocks[i], `3.${i + 1} System Sequence Diagram & Checking Report`);
+            }
+        }
+
+        const fileName = `${userInfo.studentName ? userInfo.studentName + ' - ' : ''}${userInfo.assignmentTitle || 'UML-Design-Report'}.pdf`;
+        pdf.save(fileName);
     } catch (error) {
         console.error('Combined export failed:', error);
         throw error;
