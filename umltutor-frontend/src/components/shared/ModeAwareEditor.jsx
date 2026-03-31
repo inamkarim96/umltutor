@@ -109,7 +109,15 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   const isTutorialMode = useAppSelector(selectIsTutorialMode);
   const currentSubmission = useAppSelector(selectCurrentSubmission);
   // Strictly enforce tutorial UI if approved by teacher, even if Redux mode hasn't switched yet
-  const isTutorialActive = useMemo(() => isTutorialMode || currentSubmission?.tutorialApproved, [isTutorialMode, currentSubmission?.tutorialApproved]);
+  const isTutorialActive = currentMode === 'tutorial';
+  const isSubmitted = ['submitted', 'graded', 'reviewed', 'completed', 'approved'].includes(currentSubmission?.status?.toLowerCase()) || !!currentSubmission?.fullReport;
+  const effectivelyReadOnly = isReadOnly || (isStudentWork && isSubmitted && !isTutorialActive);
+
+  useEffect(() => {
+    if (isStudentWork) {
+      console.log(`[Workspace] Status: ${currentSubmission?.status}, IsSubmitted: ${isSubmitted}, Mode: ${currentMode}`);
+    }
+  }, [currentSubmission?.status, isSubmitted, currentMode]);
 
   const tutorialStep = useAppSelector(selectTutorialStep);
   const isSubmitting = useAppSelector(selectIsSubmitting);
@@ -415,38 +423,38 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
     switch (activeSection) {
       case 'usecase':
         if (!isCheckingActive) {
-          return <UseCaseDiagramEditor key={isReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={isReadOnly} />;
+          return <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />;
         }
         return (
           <div className="flex h-full">
             <div className="flex-1 min-w-0 h-full overflow-hidden">
-              <UseCaseDiagramEditor key={isReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={isReadOnly} />
+              <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
             </div>
             <div className="w-80 border-l border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/10 flex flex-col h-full animate-in slide-in-from-right duration-500">
               <CheckingModePanel
                 activeSection="usecase"
-                reportOverride={isGraded || currentSubmission?.tutorialApproved ? currentSubmission?.fullReport : null}
-                onRunChecker={!isReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
+                reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+                onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
               />
             </div>
           </div>
         );
       case 'description':
         return <UseCaseDescriptionEditor
-          key={isReadOnly ? 'read-only' : 'editable'}
+          key={effectivelyReadOnly ? 'read-only' : 'editable'}
           assignmentId={model.id}
-          isReadOnly={isReadOnly}
+          isReadOnly={effectivelyReadOnly}
           isCheckingActive={isCheckingActive}
-          reportOverride={isGraded || currentSubmission?.tutorialApproved ? currentSubmission?.fullReport : null}
+          reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
         />;
       case 'ssd':
         return <SSDDiagramEditor
-          key={isReadOnly ? 'read-only' : 'editable'}
+          key={effectivelyReadOnly ? 'read-only' : 'editable'}
           assignmentId={model.id}
-          isReadOnly={isReadOnly}
+          isReadOnly={effectivelyReadOnly}
           isCheckingActive={isCheckingActive}
-          reportOverride={isGraded || currentSubmission?.tutorialApproved ? currentSubmission?.fullReport : null}
-          onRunChecker={!isReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
+          reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+          onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
           modelOverride={model}
         />;
       default:
@@ -547,8 +555,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                   <button
                     onClick={async () => {
                       setIsExporting(true);
-                      // Give browser time to render the hidden elements
-                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      // Give browser a short moment to start rendering, utility will handle fine-grained waiting
+                      await new Promise(resolve => setTimeout(resolve, 300));
 
                       try {
                         const studentName = model?.studentName ||
@@ -728,7 +736,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                 </button>
 
                 {/* Save button only in Development Mode before submission */}
-                {!isTutorialActive && (!isStudentWork || (!currentSubmission?.status || !['submitted', 'graded', 'reviewed', 'completed'].includes(currentSubmission?.status?.toLowerCase()))) && (
+                {!isTutorialActive && !isSubmitted && (!isStudentWork || (!currentSubmission?.status || !['submitted', 'graded', 'reviewed', 'completed'].includes(currentSubmission?.status?.toLowerCase()))) && (
                   <button
                     onClick={handleSave}
                     disabled={isSubmitting || isSaving}
@@ -748,44 +756,51 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                 )}
 
                 {/* Tutorial Mode Status / Request Toggle */}
-                {isTutorialActive ? (
+                {isTutorialActive && (
                   <div className="px-6 py-3 bg-green-50 text-green-700 rounded-xl font-bold flex items-center gap-2 border border-green-200">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                     Tutorial Mode Active
                   </div>
-                ) : (
-                  currentSubmission?.status === 'submitted' && (
-                    <button
-                      onClick={handleRequestTutorial}
-                      disabled={currentSubmission?.tutorialRequested}
-                      className={`px-8 py-3 ${currentSubmission?.tutorialRequested ? 'bg-amber-500 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center shadow-sm min-w-[200px]`}
-                    >
-                      {currentSubmission?.tutorialRequested ? 'Waiting for Approval...' : 'Unlock Tutorial Mode'}
-                    </button>
-                  )
+                )}
+
+                {!isTutorialActive && currentSubmission?.status === 'submitted' && !currentSubmission?.tutorialApproved && (
+                  <button
+                    onClick={handleRequestTutorial}
+                    disabled={currentSubmission?.tutorialRequested}
+                    className={`px-8 py-3 ${currentSubmission?.tutorialRequested ? 'bg-amber-500 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center shadow-sm min-w-[200px]`}
+                  >
+                    {currentSubmission?.tutorialRequested ? 'Waiting for Approval...' : 'Unlock Tutorial Mode'}
+                  </button>
                 )}
               </div>
 
-              <button
-                onClick={handleProcess}
-                disabled={(activeSection === 'ssd' && isStudentWork && isReadOnly && !isTutorialActive) || isGraded || (isStudentWork && currentSubmission?.status === 'submitted' && !isTutorialActive)}
-                className={`px-12 py-4 ${isTutorialActive ? (activeSection === 'ssd' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100') : (activeSection === 'ssd' && isStudentWork ? (isReadOnly || isGraded || currentSubmission?.status === 'submitted' ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200') : 'bg-[#2563EB] hover:bg-blue-700 shadow-blue-200')} text-white font-black rounded-xl shadow-lg dark:shadow-none transition-all active:scale-95 flex items-center gap-2 min-w-[180px] justify-center`}
-              >
-                {isTutorialActive ? (
-                  <>
-                    {activeSection === 'ssd' ? <CheckCircle size={20} /> : <ArrowRight size={20} />}
-                    {activeSection === 'ssd' ? "Finish Tutorial" : `Process Step ${activeSection === 'usecase' ? '1' : '2'}`}
-                  </>
-                ) : activeSection === 'ssd' && isStudentWork ? (
-                  <>
-                    <CheckCircle size={20} />
-                    {isGraded ? 'Already Graded' :
-                      (currentSubmission?.status === 'submitted' ? 'Already Submitted' :
-                        (isReadOnly ? 'Editing Locked' : 'Submit Assignment'))}
-                  </>
-                ) : activeSection === 'ssd' ? "Finish" : "Process"}
-                {!isTutorialActive && <ArrowRight size={20} />}
-              </button>
+
+              {/* Show 'Finish' (Tutorial) or 'Submit/Process' (Development) */}
+              {isTutorialActive ? (
+                <button
+                  onClick={handleProcess}
+                  className="px-12 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 min-w-[180px] justify-center"
+                >
+                  {activeSection === 'ssd' ? <CheckCircle size={20} /> : <ArrowRight size={20} />}
+                  {activeSection === 'ssd' ? "Finish Tutorial" : `Process Step ${activeSection === 'usecase' ? '1' : '2'}`}
+                </button>
+              ) : (
+                !isSubmitted && (
+                  <button
+                    onClick={handleProcess}
+                    disabled={(activeSection === 'ssd' && isStudentWork && isReadOnly) || isGraded}
+                    className={`px-12 py-4 ${activeSection === 'ssd' && isStudentWork ? (isReadOnly || isGraded ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200') : 'bg-[#2563EB] hover:bg-blue-700 shadow-blue-200'} text-white font-black rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 min-w-[180px] justify-center`}
+                  >
+                    {activeSection === 'ssd' && isStudentWork ? (
+                      <>
+                        <CheckCircle size={20} />
+                        {isReadOnly ? 'Editing Locked' : 'Submit Assignment'}
+                      </>
+                    ) : activeSection === 'ssd' ? "Finish" : "Process"}
+                    <ArrowRight size={20} />
+                  </button>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -895,50 +910,82 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
               <p className="text-[10px] text-gray-400 mt-4 italic">Sequential rendering in progress (Diagrams → Descriptions → SSDs)</p>
             </div>
           </div>
-          {/* Background rendering container for full model capture */}
           <div
             id="full-model-export-renderer"
             className="fixed opacity-0 pointer-events-none"
-            style={{ width: '1300px', minHeight: '1300px', height: 'auto', left: '-20000px', top: 0, overflow: 'visible' }}
+            style={{ width: '1300px', height: 'auto', left: '-20000px', top: 0, overflow: 'visible' }}
           >
             <div className="w-full flex flex-col gap-20 p-20 bg-white">
-              {/* Step 1: Use Case Diagram with Report */}
-              <div className="flex gap-10" data-export-section="usecase">
-                <div className="flex-1 min-w-0 border rounded-2xl p-4 shadow-sm bg-slate-50">
+              {/* Step 1: Use Case Diagram & Report */}
+              <div className="flex flex-col gap-8" data-export-section="usecase">
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">1. Use Case Diagram</h1>
+                <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
                   <UseCaseDiagramEditor
                     assignmentId={model.id}
                     initialData={model.diagram}
                     isReadOnly={true}
                   />
                 </div>
-                <div className="w-80 shrink-0">
+                <div className="w-full">
                   <CheckingModePanel
                     activeSection="usecase"
-                    reportOverride={currentSubmission?.fullReport || checkingState.results}
-                    isReadOnly={true}
+                    reportOverride={currentSubmission?.fullReport}
+                    modelOverride={model}
                   />
                 </div>
               </div>
 
-              {/* Step 2: Use Case Descriptions (Reports are internal to this component) */}
-              <div data-export-section="description">
-                <UseCaseDescriptionEditor
-                  assignmentId={model.id}
-                  isReadOnly={true}
-                  isCheckingActive={true}
-                  reportOverride={currentSubmission?.fullReport || checkingState.results}
-                />
+              {/* Step 2: Use Case Descriptions & Reports */}
+              <div className="flex flex-col gap-12" data-export-section="descriptions">
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">2. Use Case Descriptions</h1>
+                {model?.descriptions && Object.entries(model.descriptions).map(([id, desc]) => (
+                  <div key={id} className="flex flex-col gap-6 p-8 border-2 border-slate-100 rounded-3xl">
+                    <h2 className="text-2xl font-black text-slate-800 italic">2.1 Use Case: {desc.useCaseName}</h2>
+                    <div className="w-full">
+                      <UseCaseDescriptionEditor
+                        assignmentId={model.id}
+                        isReadOnly={true}
+                        isCheckingActive={false}
+                        useCaseId={id}
+                      />
+                    </div>
+                    <div className="w-full mt-4">
+                      <CheckingModePanel
+                        activeSection="description"
+                        useCaseId={id}
+                        reportOverride={currentSubmission?.fullReport}
+                        modelOverride={model}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {/* Step 3: SSDs (Reports are internal to this component) */}
-              <div data-export-section="ssd">
-                <SSDDiagramEditor
-                  assignmentId={model.id}
-                  isReadOnly={true}
-                  isCheckingActive={true}
-                  reportOverride={currentSubmission?.fullReport || checkingState.results}
-                  modelOverride={model}
-                />
+              {/* Step 3: SSDs & Reports */}
+              <div className="flex flex-col gap-12" data-export-section="ssds">
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">3. System Sequence Diagrams</h1>
+                {model?.descriptions && Object.keys(model.descriptions).map(id => (
+                  <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
+                    <h2 className="text-2xl font-black text-slate-800 italic">3.1 SSD: {model.descriptions[id]?.useCaseName}</h2>
+                    <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
+                      <SSDDiagramEditor
+                        assignmentId={model.id}
+                        isReadOnly={true}
+                        isCheckingActive={false}
+                        modelOverride={model}
+                        useCaseId={id}
+                      />
+                    </div>
+                    <div className="w-full">
+                      <CheckingModePanel
+                        activeSection="ssd"
+                        useCaseId={id}
+                        reportOverride={currentSubmission?.fullReport}
+                        modelOverride={model}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
