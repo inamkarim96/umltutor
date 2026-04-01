@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: umltutor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: umltutor
+      POSTGRES_PASSWORD: umltutor_pass
+      POSTGRES_DB: umltutor
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umltutor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend API ──────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./umltutor-backend
+      dockerfile: Dockerfile
+    container_name: umltutor-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://umltutor:umltutor_pass@postgres:5432/umltutor?schema=public
+      JWT_SECRET: umltutor-secret-key-change-in-production
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: http://localhost
+      LOG_LEVEL: info
+      UPLOAD_DIR: uploads
+    volumes:
+      - uploads_data:/app/uploads
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Frontend (React + Nginx) ─────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./umltutor-frontend
+      dockerfile: Dockerfile
+    container_name: umltutor-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  uploads_data:
