@@ -167,8 +167,8 @@ export const UseCaseDescriptionEditor = ({
                                 )}
                             </div>
 
-                            <div className={`flex flex-col lg:flex-row gap-10 ${isCheckingActive ? 'items-start' : ''}`}>
-                                <div className={`flex-1 min-w-0 transition-all duration-500 ${isCheckingActive ? 'lg:w-[58%]' : 'w-full'}`}>
+                            <div className={`flex flex-col lg:flex-row w-full gap-6 lg:gap-8 ${isCheckingActive ? 'items-start' : ''}`}>
+                                <div className={`w-full lg:w-[65%] lg:flex-none min-w-0 overflow-hidden transition-all duration-500`}>
                                     <DescriptionForm
                                         useCaseId={id}
                                         initialData={descriptions[id]}
@@ -186,16 +186,16 @@ export const UseCaseDescriptionEditor = ({
                                 </div>
 
                                 {isCheckingActive && (
-                                    <div className="w-full lg:w-[42%] shrink-0 animate-in slide-in-from-right-4 duration-500">
-                                        <div className="sticky top-6">
-                                            <div className="mb-4 flex items-center gap-2">
+                                    <div className="min-w-[300px] w-full lg:w-[35%] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-[750px]">
+                                        <div className="sticky top-6 flex flex-col h-full w-full">
+                                            <div className="mb-4 flex items-center gap-2 flex-shrink-0">
                                                 <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                                                     <Play size={12} fill="currentColor" /> Independent Runner
                                                 </span>
                                                 <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
                                             </div>
-                                            <div className="max-h-[750px] overflow-auto rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm bg-slate-50/50 dark:bg-slate-900/50">
+                                            <div className="flex-1 overflow-y-auto w-full rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm bg-slate-50/50 dark:bg-slate-900/50">
                                                 <CheckingModePanel
                                                     activeSection="description"
                                                     label={displayLabel}

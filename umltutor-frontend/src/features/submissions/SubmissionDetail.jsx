@@ -254,7 +254,7 @@ const SubmissionDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-[98%] 2xl:max-w-[1800px] w-full mx-auto space-y-8">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors"
@@ -399,8 +399,8 @@ const SubmissionDetail = () => {
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Section</p>
               <h3 className="text-xl font-black text-gray-900">Use Case Diagram</h3>
             </div>
-            <div className="h-[650px] flex">
-              <div className="flex-1 overflow-auto">
+            <div className="flex flex-col lg:flex-row w-full gap-6 h-auto lg:h-[650px]">
+              <div className="w-full lg:w-[65%] lg:flex-none min-w-0 h-[500px] lg:h-full overflow-hidden border border-gray-100 rounded-3xl bg-gray-50/30">
                 <UseCaseDiagramEditor
                   key={submission?.id || 'empty-uc'}
                   initialData={modelPayload.diagram}
@@ -408,22 +408,24 @@ const SubmissionDetail = () => {
                   highlights={localUseCaseHighlights}
                 />
               </div>
-              <div className="w-80 border-l border-gray-100 bg-gray-50/30 overflow-auto">
-                <CheckingModePanel
-                  activeSection="usecase"
-                  modelOverride={modelPayload}
-                  reportOverride={checkReport?.useCaseDiagramReport || checkReport?.useCaseDiagram}
-                  onRunChecker={!isStudent ? handleRunCheck : undefined}
-                  onLocalReport={!isStudent ? ((r) => {
-                    const h = (r?.issues || []).filter(i => i.context?.useCaseId).map(i => ({
-                      elementId: i.context.useCaseId,
-                      message: i.message,
-                      type: i.severity === 'error' ? 'error' : 'warning'
-                    }));
-                    setLocalUseCaseHighlights(h);
-                    handleLocalReportUpdate('usecase', r);
-                  }) : undefined}
-                />
+              <div className="min-w-[300px] w-full lg:w-[35%] flex-shrink-0 flex flex-col h-[500px] lg:h-full border border-gray-100 rounded-3xl bg-gray-50/30 overflow-hidden">
+                <div className="overflow-y-auto h-full w-full">
+                  <CheckingModePanel
+                    activeSection="usecase"
+                    modelOverride={modelPayload}
+                    reportOverride={checkReport?.useCaseDiagramReport || checkReport?.useCaseDiagram}
+                    onRunChecker={!isStudent ? handleRunCheck : undefined}
+                    onLocalReport={!isStudent ? ((r) => {
+                      const h = (r?.issues || []).filter(i => i.context?.useCaseId).map(i => ({
+                        elementId: i.context.useCaseId,
+                        message: i.message,
+                        type: i.severity === 'error' ? 'error' : 'warning'
+                      }));
+                      setLocalUseCaseHighlights(h);
+                      handleLocalReportUpdate('usecase', r);
+                    }) : undefined}
+                  />
+                </div>
               </div>
             </div>
           </div>

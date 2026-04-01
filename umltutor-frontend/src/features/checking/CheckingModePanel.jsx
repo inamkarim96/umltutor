@@ -7,6 +7,7 @@ import { selectUser } from '../../features/auth';
 import { validateUseCaseName, validateActorName } from './grammarRules';
 import { useSuccessToast, useErrorToast } from '../../components/ui/Toast';
 import { checkConsistency } from './ConsistencyChecker';
+import { Plus, Minus, RotateCcw } from 'lucide-react';
 
 
 const CheckingModePanel = ({
@@ -33,6 +34,21 @@ const CheckingModePanel = ({
     const [localReport, setLocalReport] = useState(null);
     const [localRunning, setLocalRunning] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Font size control logic
+    const [fontSize, setFontSize] = useState(() => {
+        const savedSize = localStorage.getItem("reportFontSize");
+        return savedSize ? Number(savedSize) : 14;
+    });
+
+    useEffect(() => {
+        localStorage.setItem("reportFontSize", fontSize);
+    }, [fontSize]);
+
+    const handleIncreaseFontSize = () => setFontSize(prev => Math.min(prev + 1, 20));
+    const handleDecreaseFontSize = () => setFontSize(prev => Math.max(prev - 1, 12));
+    const handleResetFontSize = () => setFontSize(14);
+
     const isExternal = !!modelOverride || !!reportOverride || !!onRunChecker;
 
     // Filter and process report issues for the current section and use case
@@ -1056,27 +1072,36 @@ const CheckingModePanel = ({
 
     return (
         <div data-testid="checking-report" className="flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-3">
+            <div className="p-4 border-b border-gray-100 flex flex-col gap-3">
+                <div className="flex items-center justify-between mb-2">
                     <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         Checking Report {label && <span className="text-sm bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100 font-black">{label}</span>}
                     </h2>
-                    {onRunChecker && !isStudent && (
-                        <button
-                            onClick={runChecks}
-                            disabled={isRunning}
-                            className="px-3 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
-                        >
-                            {isRunning ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/30 border-t-white" />
-                                    Running...
-                                </>
-                            ) : (
-                                <>🔍 Run Checker</>
-                            )}
-                        </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-200 shadow-sm" title="Adjust text size">
+                            <button onClick={handleDecreaseFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95"><Minus size={14} strokeWidth={2.5}/></button>
+                            <span className="text-[11px] font-black text-gray-400 w-6 text-center select-none">{fontSize}</span>
+                            <button onClick={handleIncreaseFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95"><Plus size={14} strokeWidth={2.5}/></button>
+                            <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                            <button onClick={handleResetFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95" title="Reset text size"><RotateCcw size={12} strokeWidth={3}/></button>
+                        </div>
+                        {onRunChecker && !isStudent && (
+                            <button
+                                onClick={runChecks}
+                                disabled={isRunning}
+                                className="px-3 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                            >
+                                {isRunning ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/30 border-t-white" />
+                                        Running...
+                                    </>
+                                ) : (
+                                    <>🔍 Run Checker</>
+                                )}
+                            </button>
+                        )}
+                    </div>
                 </div>
                 {/* Score Display (Hidden for Students) */}
                 {!isStudent && (
@@ -1106,7 +1131,10 @@ const CheckingModePanel = ({
             </div>
             {/* Text Report Display */}
             <div className="flex-1 p-4 overflow-auto">
-                <pre className="text-xs font-mono text-gray-800 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <pre 
+                    className="font-mono text-gray-800 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-200 transition-all duration-200 ease-in-out"
+                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
+                >
                     {generateTextReport()}
                 </pre>
             </div>
