@@ -47,3 +47,25 @@ jobs:
             CYPRESS_INSTALL_BINARY=0
           cache-from: type=registry,ref=inamkarim/umltutor-frontend:buildcache
           cache-to: type=inline
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+
+      - name: Apply Kubernetes Manifests
+        run: |
+          kubectl apply -f k8s/
+
+      - name: Fresh Deployment Restart
+        run: |
+          kubectl rollout restart deployment umltutor-backend -n umltutor
+          kubectl rollout restart deployment umltutor-frontend -n umltutor
