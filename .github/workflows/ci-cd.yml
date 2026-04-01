@@ -1,0 +1,108 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  IMAGE_BACKEND: ${{ secrets.DOCKER_USERNAME }}/umltutor-backend
+  IMAGE_FRONTEND: ${{ secrets.DOCKER_USERNAME }}/umltutor-frontend
+
+jobs:
+  # ── Job 1: Test Backend ────────────────────────────────────────────────────
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: umltutor-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: umltutor-backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client (SQLite for tests)
+        run: npx prisma generate
+
+      - name: Run tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: file:./prisma/test.db
+          JWT_SECRET: test-secret-key
+
+  # ── Job 2: Build & Push Docker Images ─────────────────────────────────────
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    needs: test-backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build & push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./umltutor-backend
+          dockerfile: ./umltutor-backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_BACKEND }}:latest
+            ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./umltutor-frontend
+          dockerfile: ./umltutor-frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_FRONTEND }}:latest
+            ${{ env.IMAGE_FRONTEND }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Job 3: Summary ────────────────────────────────────────────────────────
+  deploy-summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Print deploy instructions
+        run: |
+          echo "✅ Images pushed successfully!"
+          echo ""
+          echo "To deploy to your local Kubernetes cluster, run:"
+          echo "  kubectl rollout restart deployment/umltutor-backend -n umltutor"
+          echo "  kubectl rollout restart deployment/umltutor-frontend -n umltutor"
+          echo ""
+          echo "Backend image: ${{ env.IMAGE_BACKEND }}:${{ github.sha }}"
+          echo "Frontend image: ${{ env.IMAGE_FRONTEND }}:${{ github.sha }}"
