@@ -654,14 +654,14 @@ class CheckingEngine {
                 }
 
                 if (isMatch) {
-                    console.log(`Step ${stepNo} ("${stepTextNoSpaces}") MATCHED msg ${i} ("${msgNorm}")`);
+                    // console.log(\`Step \${stepNo} ("\${stepTextNoSpaces}") MATCHED msg \${i} ("\${msgNorm}")\`);
                     matchedMsgIdx = i;
                     break;
                 }
             }
 
             if (matchedMsgIdx !== -1) {
-                console.log(`Step ${stepNo} matched message ${matchedMsgIdx} (expected: >= ${expectedMessageIdx})`);
+                // console.log(\`Step \${stepNo} matched message \${matchedMsgIdx} (expected: >= \${expectedMessageIdx})\`);
                 matchedMessages.add(matchedMsgIdx);
                 const msg = messages[matchedMsgIdx];
                 const msgOrig = (msg.name || '').trim();
