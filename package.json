@@ -27,6 +27,13 @@
         "prisma:push": "npm run prisma:push -w umltutor-backend",
         "prisma:studio": "npm run prisma:studio -w umltutor-backend",
         "prisma:status": "npm run prisma:status -w umltutor-backend",
-        "db:check": "npm run db:check -w umltutor-backend"
+        "db:check": "npm run db:check -w umltutor-backend",
+        "test:suite": "cross-env NODE_ENV=test DATABASE_URL=\"file:./prisma/test.db\" jest --config jest.config.js"
+    },
+    "devDependencies": {
+        "cross-env": "^10.1.0",
+        "jest": "^30.3.0",
+        "jest-environment-node": "^30.3.0",
+        "supertest": "^7.2.2"
     }
 }
