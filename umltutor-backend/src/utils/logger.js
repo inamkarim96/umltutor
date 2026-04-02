@@ -20,6 +20,7 @@ const logFormat = _winston2.default.format.combine(
 );
 
 const createLogger = () => {
+  const envConfig = getCurrentEnvConfig();
   const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
   const transportsList = [];
   const exceptionHandlersList = [];

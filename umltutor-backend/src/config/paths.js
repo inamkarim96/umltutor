@@ -160,7 +160,10 @@ const getFileUrl = (filePath, uploadType = 'assignments') => {
 
 // Initialize directories on module load
 try {
-  initializeDirectories();
+  const isVercelContext = process.env.VERCEL || process.env.NODE_ENV === 'production';
+  if (!isVercelContext) {
+    initializeDirectories();
+  }
 } catch (error) {
   console.error('Failed to initialize directories:', error);
 }
