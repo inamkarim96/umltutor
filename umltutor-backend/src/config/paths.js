@@ -104,6 +104,13 @@ const ENV_CONFIG = {
  * Ensure directory exists, create if it doesn't
  */
 const ensureDirectory = (dirPath) => {
+  const isVercelContext = process.env.VERCEL || process.env.NODE_ENV === 'production';
+  if (isVercelContext) {
+    // Vercel serverless functions have a read-only filesystem except for /tmp.
+    // Skip directory creation entirely.
+    return;
+  }
+  
   try {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
