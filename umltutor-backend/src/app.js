@@ -1,4 +1,4 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _express = require('express'); var _express2 = _interopRequireDefault(_express);
+"use strict"; Object.defineProperty(exports, "__esModule", { value: true }); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } var _express = require('express'); var _express2 = _interopRequireDefault(_express);
 var _cors = require('cors'); var _cors2 = _interopRequireDefault(_cors);
 var _compression = require('compression'); var _compression2 = _interopRequireDefault(_compression);
 var _rateLimiter = require('./middleware/rateLimiter');
@@ -14,7 +14,7 @@ var _submissionRoutes = require('./routes/submissionRoutes'); var _submissionRou
 var _notificationRoutes = require('./routes/notificationRoutes'); var _notificationRoutes2 = _interopRequireDefault(_notificationRoutes);
 var _errorHandler = require('./middleware/errorHandler');
 
-const app = _express2.default.call(void 0, );
+const app = _express2.default.call(void 0,);
 
 // Middleware
 app.use(_cors2.default.call(void 0, {
@@ -22,7 +22,7 @@ app.use(_cors2.default.call(void 0, {
   credentials: true
 }));
 app.set('trust proxy', true);
-app.use(_compression2.default.call(void 0, ));
+app.use(_compression2.default.call(void 0,));
 app.use(_express2.default.json({ limit: '10mb' }));
 app.use(_express2.default.urlencoded({ extended: true }));
 
@@ -56,4 +56,4 @@ app.get('/health', (req, res) => {
 // Error handling
 app.use(_errorHandler.errorHandler);
 
-exports. default = app;
+exports.default = app;
