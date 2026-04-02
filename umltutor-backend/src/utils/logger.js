@@ -8,7 +8,10 @@ const {
 } = require('../config/paths');
 
 // Ensure logs directory exists - use the logs root directory directly
-ensureDirectory(require('../config/paths').DIRS.LOGS_ROOT);
+const isVercelContext = process.env.VERCEL || process.env.NODE_ENV === 'production';
+if (!isVercelContext) {
+  ensureDirectory(require('../config/paths').DIRS.LOGS_ROOT);
+}
 
 const logFormat = _winston2.default.format.combine(
   _winston2.default.format.timestamp(),
@@ -17,13 +20,13 @@ const logFormat = _winston2.default.format.combine(
 );
 
 const createLogger = () => {
-  const envConfig = getCurrentEnvConfig();
-  const logger = _winston2.default.createLogger({
-    level: LOG_CONFIG.LEVEL,
-    format: logFormat,
-    defaultMeta: { service: 'umltutor-backend' },
-    transports: [
-      // Error log file with rotation
+  const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
+  const transportsList = [];
+  const exceptionHandlersList = [];
+  const rejectionHandlersList = [];
+  
+  if (!isVercel) {
+    transportsList.push(
       new (0, _winstondailyrotatefile2.default)({
         filename: LOG_CONFIG.FILES.error,
         datePattern: LOG_CONFIG.ROTATION.datePattern,
@@ -33,8 +36,6 @@ const createLogger = () => {
         maxFiles: LOG_CONFIG.ROTATION.maxFiles.error,
         zippedArchive: LOG_CONFIG.ROTATION.zippedArchive
       }),
-      
-      // Combined log file with rotation
       new (0, _winstondailyrotatefile2.default)({
         filename: LOG_CONFIG.FILES.combined,
         datePattern: LOG_CONFIG.ROTATION.datePattern,
@@ -43,8 +44,6 @@ const createLogger = () => {
         maxFiles: LOG_CONFIG.ROTATION.maxFiles.combined,
         zippedArchive: LOG_CONFIG.ROTATION.zippedArchive
       }),
-      
-      // Separate access log
       new (0, _winstondailyrotatefile2.default)({
         filename: LOG_CONFIG.FILES.access,
         datePattern: LOG_CONFIG.ROTATION.datePattern,
@@ -53,10 +52,8 @@ const createLogger = () => {
         maxFiles: LOG_CONFIG.ROTATION.maxFiles.access,
         zippedArchive: LOG_CONFIG.ROTATION.zippedArchive
       })
-    ],
-    
-    // Handle uncaught exceptions and rejections
-    exceptionHandlers: [
+    );
+    exceptionHandlersList.push(
       new (0, _winstondailyrotatefile2.default)({
         filename: LOG_CONFIG.FILES.exceptions,
         datePattern: LOG_CONFIG.ROTATION.datePattern,
@@ -64,9 +61,8 @@ const createLogger = () => {
         maxFiles: LOG_CONFIG.ROTATION.maxFiles.exceptions,
         zippedArchive: LOG_CONFIG.ROTATION.zippedArchive
       })
-    ],
-    
-    rejectionHandlers: [
+    );
+    rejectionHandlersList.push(
       new (0, _winstondailyrotatefile2.default)({
         filename: LOG_CONFIG.FILES.rejections,
         datePattern: LOG_CONFIG.ROTATION.datePattern,
@@ -74,11 +70,20 @@ const createLogger = () => {
         maxFiles: LOG_CONFIG.ROTATION.maxFiles.rejections,
         zippedArchive: LOG_CONFIG.ROTATION.zippedArchive
       })
-    ]
+    );
+  }
+
+  const logger = _winston2.default.createLogger({
+    level: LOG_CONFIG.LEVEL,
+    format: logFormat,
+    defaultMeta: { service: 'umltutor-backend' },
+    transports: transportsList,
+    exceptionHandlers: exceptionHandlersList,
+    rejectionHandlers: rejectionHandlersList
   });
 
-  // Add console transport for development
-  if (envConfig.LOG_TO_CONSOLE) {
+  // Add console transport for development or Vercel
+  if (envConfig.LOG_TO_CONSOLE || isVercel) {
     logger.add(new _winston2.default.transports.Console({
       format: _winston2.default.format.combine(
         _winston2.default.format.colorize(),
