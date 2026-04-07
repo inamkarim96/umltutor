@@ -62,10 +62,23 @@ const LoginPage = () => {
     const {
         register,
         handleSubmit,
+        setValue,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(loginSchema),
     });
+
+    React.useEffect(() => {
+        if (location.state?.message) {
+            setSuccessMessage(location.state.message);
+            // Pre-fill email if provided from registration
+            if (location.state.email) {
+                setValue('email', location.state.email);
+            }
+            // Clear location state to prevent message showing again on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, setValue]);
 
     const onSubmit = async (data) => {
         try {

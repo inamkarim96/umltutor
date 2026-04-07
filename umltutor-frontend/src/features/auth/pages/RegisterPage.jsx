@@ -26,7 +26,6 @@ const RegisterPage = () => {
     const { register: registerUser, authState } = useAuth();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
-    const [isEmailSent, setIsEmailSent] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
     const {
@@ -67,9 +66,13 @@ const RegisterPage = () => {
                 data.lastName,
                 data.role
             );
-            
-            // Set success state to show verification message
-            setIsEmailSent(true);
+            // Redirect to login with success message
+            navigate('/login', { 
+                state: { 
+                    message: 'Account created successfully! Please check your email inbox to verify your account before logging in.',
+                    email: data.email
+                } 
+            });
         } catch (error) {
             let finalMessage = 'An unexpected error occurred. Please try again.';
             
@@ -91,32 +94,6 @@ const RegisterPage = () => {
             setIsLoading(false);
         }
     };
-
-    if (isEmailSent) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12">
-                <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg text-center">
-                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
-                        <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <h2 className="text-3xl font-extrabold text-gray-900">Verify your email</h2>
-                    <p className="mt-4 text-gray-600">
-                        We've sent a verification link to your email. Please check your inbox and click the link to activate your account.
-                    </p>
-                    <div className="mt-8">
-                        <Link
-                            to="/login"
-                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-all"
-                        >
-                            Back to Sign in
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12">

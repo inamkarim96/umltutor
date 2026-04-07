@@ -163,14 +163,25 @@ export const AuthProvider = ({ children }) => {
                 firebaseUid: firebaseUser.uid
             });
 
-            const currentUser = await authService.getCurrentUser();
+            let currentUser = null;
+            try {
+                currentUser = await authService.getCurrentUser();
+            } catch (error) {
+                // If the error is just that email verification is required, 
+                // we treat the registration as successful but not yet fully authenticated.
+                if (!error?.needsEmailVerification && !error?.raw?.needsEmailVerification) {
+                    throw error;
+                }
+                console.log('Registration successful, but email verification pending.');
+            }
+
             const isEmailVerified = firebaseUser.emailVerified;
             const token = await firebaseUser.getIdToken();
 
             setAuthState(prev => ({
                 ...prev,
                 isAuthenticated: isEmailVerified,
-                user: currentUser,
+                user: currentUser || { email, firstName, lastName, role, firebaseUid: firebaseUser.uid },
                 token,
                 needsProfileCompletion: false,
                 isGuest: !isEmailVerified
