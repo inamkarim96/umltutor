@@ -48,13 +48,9 @@ const AssignmentList = ({ assignments = [], onEdit }) => {
                             </div>
                         </div>
                         
-                        <h3 className="text-xl font-black text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors uppercase tracking-tight leading-tight">
+                        <h3 className="text-xl font-black text-gray-900 mb-6 group-hover:text-indigo-600 transition-colors uppercase tracking-tight leading-tight">
                             {asgn.title}
                         </h3>
-                        
-                        <p className="text-gray-500 text-sm font-medium line-clamp-2 mb-6 flex-1">
-                            {asgn.description || 'No description provided.'}
-                        </p>
                         
                         <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
                             <div className="flex items-center gap-2 text-indigo-600">

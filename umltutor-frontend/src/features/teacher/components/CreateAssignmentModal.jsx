@@ -6,10 +6,8 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
-        description: initialData?.description || '',
         deadline: initialData?.deadline ? new Date(initialData.deadline).toISOString().split('T')[0] : '',
         assignmentType: initialData?.assignmentType || 'TEXT',
-        instructions: initialData?.instructions || '',
         releaseDate: initialData?.releaseDate ? new Date(initialData.releaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         maxScore: initialData?.maxScore?.toString() || '',
         textContent: initialData?.textContent || '',
@@ -69,8 +67,6 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
         if (formData.assignmentType === 'FILE' && (selectedFile || isEditMode)) {
             const fd = new FormData();
             fd.append('title', formData.title);
-            fd.append('description', formData.description);
-            fd.append('instructions', formData.instructions || formData.description);
             fd.append('assignmentType', 'FILE');
             fd.append('releaseDate', formData.releaseDate);
             fd.append('deadline', formData.deadline);
@@ -88,8 +84,6 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
         } else {
             const submissionData = {
                 title: formData.title,
-                description: formData.description,
-                instructions: formData.instructions || formData.description,
                 assignmentType: 'TEXT',
                 releaseDate: formData.releaseDate,
                 deadline: formData.deadline,
@@ -130,20 +124,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                <Type size={16} className="text-indigo-500"/> Description
-                            </label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                required
-                                rows="3"
-                                placeholder="Provide instructions and context..."
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-gray-900 resize-none font-medium"
-                            />
-                        </div>
+
 
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">

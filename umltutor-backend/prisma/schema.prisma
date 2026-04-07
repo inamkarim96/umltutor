@@ -60,11 +60,9 @@ model ClassStudent {
 model Assignment {
   id                 Int      @id @default(autoincrement())
   title              String
-  description        String?
   dueDate            DateTime
   releaseDate        DateTime? @default(now())
   textContent        String?
-  instructions       String?
   assignmentFileUrl  String?
   assignmentFileName String?
   assignmentFileType String?

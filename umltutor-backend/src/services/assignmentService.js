@@ -86,7 +86,6 @@ class AssignmentService {
 
     const assignment = await assignmentRepository.create({
       title: data.title,
-      description: data.description,
       dueDate: data.dueDate,
       releaseDate: data.releaseDate || new Date(),
       textContent: data.textContent,

@@ -226,9 +226,6 @@ const AssignmentDetails = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="text-gray-500 text-lg font-medium leading-relaxed max-w-2xl">
-                                        {assignment.description || 'No description provided for this assignment.'}
-                                    </p>
                                 </div>
                             </div>
 

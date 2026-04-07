@@ -7,9 +7,9 @@ const fileUpload = require('../utils/fileUpload');
 
 const createAssignmentDefinition = async (req, res, next) => {
     try {
-        const { title, description, releaseDate, dueDate, deadline, assignmentType } = req.body;
+        const { title, releaseDate, dueDate, deadline, assignmentType } = req.body;
         const finalDueDate = deadline || dueDate;
-        if (!title || !description || !releaseDate || !finalDueDate || !assignmentType) {
+        if (!title || !releaseDate || !finalDueDate || !assignmentType) {
             return res.status(400).json({ success: false, error: { message: 'Missing required fields' } });
         }
         const textContent = req.body.textContent || req.body.contentText || null;
