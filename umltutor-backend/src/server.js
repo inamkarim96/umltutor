@@ -4,9 +4,6 @@ const { initializeApplication } = require('./utils/startup');
 // Load environment variables immediately
 _dotenv2.default.config();
 
-// Initialize application directories and checks (silent by default)
-initializeApplication();
-
 var _http = require('http');
 var _socketio = require('socket.io');
 var _express = require('express'); var _express2 = _interopRequireDefault(_express);
@@ -32,25 +29,36 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
-if (process.env.NODE_ENV !== 'test') {
-  httpServer.on('error', (e) => {
-    if (e.code === 'EADDRINUSE') {
-      console.error(`Error: Port ${PORT} is already in use.`);
-      console.error(`Try killing the process using this port or change the PORT in your .env file.`);
-      process.exit(1);
-    } else {
-      console.error('Server error:', e);
-      process.exit(1);
-    }
-  });
+// Initialize and start server
+const startServer = async () => {
+  try {
+    // Initialize application directories and checks
+    await initializeApplication();
 
-  httpServer.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-  });
-}
+    // Start server
+    if (process.env.NODE_ENV !== 'test') {
+      httpServer.on('error', (e) => {
+        if (e.code === 'EADDRINUSE') {
+          console.error(`Error: Port ${PORT} is already in use.`);
+          console.error(`Try killing the process using this port or change the PORT in your .env file.`);
+          process.exit(1);
+        } else {
+          console.error('Server error:', e);
+          process.exit(1);
+        }
+      });
+
+      httpServer.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+        console.log(`Health check: http://localhost:${PORT}/health`);
+      });
+    }
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 exports.httpServer = httpServer; exports.io = io;
-
-

@@ -25,29 +25,44 @@ export const AuthProvider = ({ children }) => {
         token: null,
         isGuest: true,
         needsProfileCompletion: false,
+        needsEmailVerification: false,
         redirectPath: null,
     });
     const [isLoading, setIsLoading] = useState(true);
+
     // Listen for Firebase Auth state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             setIsLoading(true);
             try {
                 if (firebaseUser) {
-                    // Check if email is verified
                     const isEmailVerified = firebaseUser.emailVerified;
-                    
                     const token = await firebaseUser.getIdToken();
                     localStorage.setItem('token', token);
 
-                    // Sync with our backend to get the full user profile (role, etc.)
-                    let currentUser = null;
                     try {
-                        currentUser = await authService.getCurrentUser();
+                        // Sync with our backend to get the full user profile (role, etc.)
+                        const currentUser = await authService.getCurrentUser();
+                        
+                        if (currentUser) {
+                            setAuthState(prev => ({
+                                isAuthenticated: isEmailVerified,
+                                user: currentUser,
+                                token,
+                                isGuest: !isEmailVerified,
+                                needsProfileCompletion: false,
+                                needsEmailVerification: !isEmailVerified,
+                                redirectPath: prev.redirectPath,
+                            }));
+                            
+                            if (isEmailVerified) {
+                                dispatch(setReduxUser(currentUser));
+                                dispatch(setReduxToken(token));
+                            }
+                        }
                     } catch (error) {
                         // Handle the case where Firebase user is valid but local profile doesn't exist yet
                         if (error?.needsRegistration || error?.raw?.needsRegistration) {
-                            console.log('User needs profile completion');
                             setAuthState(prev => ({
                                 isAuthenticated: false,
                                 user: { 
@@ -55,48 +70,24 @@ export const AuthProvider = ({ children }) => {
                                     firebaseUid: firebaseUser.uid,
                                     displayName: firebaseUser.displayName 
                                 },
-                                token: null,
-                                isGuest: true,
+                                token,
+                                isGuest: false,
                                 needsProfileCompletion: true,
                                 needsEmailVerification: !isEmailVerified,
                                 redirectPath: prev.redirectPath,
                             }));
-                            setIsLoading(false);
-                            return;
-                        }
-
-                        // Handle the case where backend blocks profile fetch due to verification
-                        if (error?.needsEmailVerification || error?.raw?.needsEmailVerification || !isEmailVerified) {
+                        } else if (error?.needsEmailVerification || error?.raw?.needsEmailVerification || !isEmailVerified) {
                              setAuthState(prev => ({
                                 isAuthenticated: false,
                                 user: { email: firebaseUser.email, firebaseUid: firebaseUser.uid },
-                                token: null,
+                                token,
                                 isGuest: true,
                                 needsProfileCompletion: false,
                                 needsEmailVerification: true,
                                 redirectPath: prev.redirectPath,
                             }));
-                            setIsLoading(false);
-                            return;
-                        }
-                        
-                        throw error;
-                    }
-                    
-                    if (currentUser) {
-                        setAuthState(prev => ({
-                            isAuthenticated: isEmailVerified,
-                            user: currentUser,
-                            token,
-                            isGuest: !isEmailVerified,
-                            needsProfileCompletion: false,
-                            needsEmailVerification: !isEmailVerified,
-                            redirectPath: prev.redirectPath,
-                        }));
-                        
-                        if (isEmailVerified) {
-                            dispatch(setReduxUser(currentUser));
-                            dispatch(setReduxToken(token));
+                        } else {
+                            throw error;
                         }
                     }
                 } else {
@@ -115,7 +106,9 @@ export const AuthProvider = ({ children }) => {
                 }
             } catch (error) {
                 console.error('Auth state change error:', error);
-                dispatch(reduxLogout());
+                if (!error?.needsRegistration && !error?.raw?.needsRegistration) {
+                    dispatch(reduxLogout());
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -128,15 +121,16 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (isLoading) return;
 
-        // Note: verify-email page and select-role page have been removed. 
-        // We now show prompts in the Login/Register pages for unverified users.
-
         if (authState.isAuthenticated && authState.user) {
-            // Already authenticated, but on an auth page? Move to dashboard/redirectPath
             if (location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/signup' || location.pathname === '/') {
                 const path = authState.redirectPath || '/dashboard';
                 clearRedirectPath();
                 navigate(path, { replace: true });
+            }
+        } 
+        else if (authState.needsProfileCompletion && !isLoading) {
+            if (location.pathname !== '/register') {
+                navigate('/register', { replace: true });
             }
         }
     }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.needsEmailVerification, authState.user, authState.redirectPath, navigate, location.pathname, isLoading]);
@@ -153,17 +147,41 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (email, password, firstName, lastName, role) => {
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            await sendEmailVerification(userCredential.user);
+            let firebaseUser = auth.currentUser;
+            
+            if (!firebaseUser) {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                firebaseUser = userCredential.user;
+                await sendEmailVerification(firebaseUser);
+            }
+
             await authService.register({
                 email,
                 firstName,
                 lastName,
                 role,
-                firebaseUid: userCredential.user.uid
+                firebaseUid: firebaseUser.uid
             });
 
-            return userCredential.user;
+            const currentUser = await authService.getCurrentUser();
+            const isEmailVerified = firebaseUser.emailVerified;
+            const token = await firebaseUser.getIdToken();
+
+            setAuthState(prev => ({
+                ...prev,
+                isAuthenticated: isEmailVerified,
+                user: currentUser,
+                token,
+                needsProfileCompletion: false,
+                isGuest: !isEmailVerified
+            }));
+
+            if (isEmailVerified) {
+                dispatch(setReduxUser(currentUser));
+                dispatch(setReduxToken(token));
+            }
+
+            return firebaseUser;
         } catch (error) {
             console.error('Registration error:', error);
             throw error;
@@ -191,17 +209,11 @@ export const AuthProvider = ({ children }) => {
     };
 
     const setRedirectPath = (path) => {
-        setAuthState(prev => ({
-            ...prev,
-            redirectPath: path,
-        }));
+        setAuthState(prev => ({ ...prev, redirectPath: path }));
     };
 
     const clearRedirectPath = () => {
-        setAuthState(prev => ({
-            ...prev,
-            redirectPath: null,
-        }));
+        setAuthState(prev => ({ ...prev, redirectPath: null }));
     };
 
     const value = {
@@ -228,4 +240,3 @@ export const useAuth = () => {
     }
     return context;
 };
-

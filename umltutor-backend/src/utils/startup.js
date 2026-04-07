@@ -8,16 +8,21 @@ const path = require('path');
 /**
  * Initialize application directories and perform startup checks
  */
-const initializeApplication = () => {
+const initializeApplication = async () => {
   // Only show messages if explicitly enabled
   const verbose = process.env.SHOW_STARTUP_MESSAGES === 'true';
+  const isVercelContext = process.env.VERCEL || process.env.NODE_ENV === 'production';
   
   if (verbose) console.log('🚀 Initializing UMLTutor Backend...');
   
   try {
-    // Initialize all required directories
-    initializeDirectories();
-    if (verbose) console.log('✅ Directories initialized successfully');
+    // Initialize all required directories (handled by internal checks in paths.js)
+    if (!isVercelContext) {
+      initializeDirectories();
+      if (verbose) console.log('✅ Directories initialized successfully');
+    } else {
+      if (verbose) console.log('ℹ️ Running in Vercel/Production context - skipping directory initialization');
+    }
     
     // Verify critical directories exist using absolute paths
     const criticalDirs = [
@@ -36,33 +41,44 @@ const initializeApplication = () => {
       }
     });
     
-    // Check write permissions
-    try {
-      const testFile = path.join(DIRS.TEMP_UPLOADS, '.write-test');
-      fs.writeFileSync(testFile, 'test');
-      fs.unlinkSync(testFile);
-      if (verbose) console.log('✅ Write permissions verified');
-    } catch (error) {
-      console.error('❌ Write permission check failed:', error.message);
-      throw new Error('Insufficient write permissions for uploads directory');
+    // Check write permissions - skip on Vercel
+    if (!isVercelContext) {
+      try {
+        const testFile = path.join(DIRS.TEMP_UPLOADS, '.write-test');
+        fs.writeFileSync(testFile, 'test');
+        fs.unlinkSync(testFile);
+        if (verbose) console.log('✅ Write permissions verified');
+      } catch (error) {
+        console.error('❌ Write permission check failed:', error.message);
+        throw new Error('Insufficient write permissions for uploads directory');
+      }
+    } else {
+      if (verbose) console.log('ℹ️ Skipping write permission check on Vercel');
     }
     
-    // Check disk space (basic check)
+    // Check database connectivity
     try {
-      const stats = fs.statSync('.');
-      if (verbose) console.log('✅ File system accessible');
+      const prisma = require('./prisma').default || require('./prisma');
+      await prisma.$connect();
+      if (verbose) console.log('✅ Database connectivity verified');
     } catch (error) {
-      console.error('❌ File system check failed:', error.message);
+      console.error('❌ Database connection failed:', error.message);
+      // In production/Vercel, we might not want to crash immediately if DB is temporarily down,
+      // but for debugging purposes, logging it clearly is essential.
     }
-    
+
     if (verbose) console.log('🎉 Application initialization complete!\n');
     
   } catch (error) {
-    console.error('❌ Application initialization failed:', error.message);
-    console.error('Please check permissions and disk space');
-    process.exit(1);
+    if (isVercelContext) {
+        console.error('❌ Application initialization warning (Non-fatal in Vercel):', error.message);
+    } else {
+        console.error('❌ Application initialization failed:', error.message);
+        process.exit(1);
+    }
   }
 };
+
 
 module.exports = {
   initializeApplication

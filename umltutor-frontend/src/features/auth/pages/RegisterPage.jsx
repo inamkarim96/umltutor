@@ -23,7 +23,7 @@ const registerSchema = z.object({
 });
 
 const RegisterPage = () => {
-    const { register: registerUser } = useAuth();
+    const { register: registerUser, authState } = useAuth();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [isEmailSent, setIsEmailSent] = useState(false);
@@ -33,10 +33,27 @@ const RegisterPage = () => {
         register,
         handleSubmit,
         setError,
+        setValue,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(registerSchema),
+        defaultValues: {
+            email: authState.user?.email || '',
+            firstName: authState.user?.firstName || '',
+            lastName: authState.user?.lastName || '',
+            role: authState.user?.role || '',
+        }
     });
+
+    React.useEffect(() => {
+        if (authState.needsProfileCompletion && authState.user?.email) {
+            setValue('email', authState.user.email);
+            // Hide password fields by setting dummy values to pass validation
+            setValue('password', 'ALREADY_AUTHENTICATED');
+            setValue('confirmPassword', 'ALREADY_AUTHENTICATED');
+        }
+    }, [authState.needsProfileCompletion, authState.user?.email, setValue]);
+
     const showErrorToast = useErrorToast();
 
     const onSubmit = async (data) => {
@@ -196,7 +213,7 @@ const RegisterPage = () => {
                                 )}
                             </div>
 
-                            <div>
+<div className={authState.needsProfileCompletion ? "hidden" : ""}>
                                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Password</label>
                                 <input
                                     id="password"
@@ -212,7 +229,7 @@ const RegisterPage = () => {
                                 )}
                             </div>
 
-                            <div>
+                            <div className={authState.needsProfileCompletion ? "hidden" : ""}>
                                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Confirm password</label>
                                 <input
                                     id="confirmPassword"
@@ -260,10 +277,10 @@ const RegisterPage = () => {
                                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                             />
                                         </svg>
-                                        Creating account...
+                                        {authState.needsProfileCompletion ? 'Completing profile...' : 'Creating account...'}
                                     </span>
                                 ) : (
-                                    'Create account'
+                                    authState.needsProfileCompletion ? 'Complete Registration' : 'Create account'
                                 )}
                             </button>
                         </div>
