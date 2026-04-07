@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
                         
                         if (currentUser) {
                             setAuthState(prev => ({
-                                isAuthenticated: isEmailVerified,
+                                isAuthenticated: true, // Allow session even if not verified
                                 user: currentUser,
                                 token,
                                 isGuest: !isEmailVerified,
@@ -186,11 +186,12 @@ export const AuthProvider = ({ children }) => {
 
             setAuthState(prev => ({
                 ...prev,
-                isAuthenticated: isEmailVerified,
+                isAuthenticated: true, // Allow navigation to dashboard
                 user: currentUser || { email, firstName, lastName, role, firebaseUid: firebaseUser.uid },
                 token,
                 needsProfileCompletion: false,
-                isGuest: !isEmailVerified
+                isGuest: !isEmailVerified,
+                needsEmailVerification: !isEmailVerified
             }));
 
             if (isEmailVerified) {

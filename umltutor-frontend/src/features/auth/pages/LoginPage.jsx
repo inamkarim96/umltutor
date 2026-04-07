@@ -114,43 +114,6 @@ const LoginPage = () => {
                 </div>
 
                 <div className="mt-8 space-y-6">
-                    {/* Verification Alert Section */}
-                    {authState?.needsEmailVerification && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 space-y-4 animate-fadeIn">
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
-                                    <Mail className="w-5 h-5" />
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-sm font-bold text-amber-900">Verify your email</h3>
-                                    <p className="text-xs text-amber-700 leading-relaxed font-medium">
-                                        Check your inbox at <span className="font-bold">{auth.currentUser?.email}</span>. 
-                                        Click the verification link to proceed.
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3 pt-1">
-                                <button
-                                    onClick={handleCheckStatus}
-                                    disabled={isChecking}
-                                    className="flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                                >
-                                    {isChecking ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                                    Check Status
-                                </button>
-                                <button
-                                    onClick={handleResendEmail}
-                                    disabled={isResending}
-                                    className="flex items-center justify-center gap-2 py-2.5 px-4 border-2 border-amber-200 text-amber-700 hover:bg-amber-100 text-xs font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50"
-                                >
-                                    {isResending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                                    Resend Link
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Feedback Messages */}
                     {successMessage && (
                         <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg flex items-center gap-3 animate-fadeIn">

@@ -28,14 +28,65 @@ import {
     History,
     GraduationCap,
     Clock,
-    LogOut
+    LogOut,
+    Mail,
+    RefreshCw,
+    CheckCircle2,
+    AlertCircle
 } from 'lucide-react';
+import { useState } from 'react';
+import { auth } from '../../config/firebase';
+import { sendEmailVerification, reload } from 'firebase/auth';
 import NotificationDropdown from '../../components/shared/NotificationDropdown';
 
 const TeacherDashboard = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, authState } = useAuth();
+
+    // Verification state
+    const [isResending, setIsResending] = useState(false);
+    const [isChecking, setIsChecking] = useState(false);
+    const [verifMessage, setVerifMessage] = useState('');
+    const [verifType, setVerifType] = useState('warning');
+
+    const handleResendEmail = async () => {
+        if (!auth.currentUser) return;
+        setIsResending(true);
+        try {
+            await sendEmailVerification(auth.currentUser);
+            setVerifMessage('Verification email sent! Please check your inbox.');
+            setVerifType('success');
+            setTimeout(() => setVerifMessage(''), 5000);
+        } catch (error) {
+            setVerifMessage('Failed to resend verification email.');
+            setVerifType('error');
+        } finally {
+            setIsResending(false);
+        }
+    };
+
+    const handleCheckStatus = async () => {
+        if (!auth.currentUser) return;
+        setIsChecking(true);
+        try {
+            await reload(auth.currentUser);
+            if (auth.currentUser.emailVerified) {
+                setVerifMessage('Email verified! Initializing session...');
+                setVerifType('success');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                setVerifMessage('Email still not verified. Please check your inbox.');
+                setVerifType('warning');
+                setTimeout(() => setVerifMessage(''), 4000);
+            }
+        } catch (error) {
+            setVerifMessage('Error checking status.');
+            setVerifType('error');
+        } finally {
+            setIsChecking(false);
+        }
+    };
 
     // Auth and Data Selectors
     const user = useAppSelector(selectUser);
@@ -127,6 +178,43 @@ const TeacherDashboard = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Email Verification Banner */}
+            {authState.needsEmailVerification && (
+                <div className="mb-8 animate-in slide-in-from-top-4 duration-300">
+                    <div className={`p-5 rounded-2xl border ${
+                        verifType === 'success' ? 'bg-green-50 border-green-200' : 
+                        verifType === 'error' ? 'bg-red-50 border-red-200' : 
+                        'bg-amber-50 border-amber-200'
+                    } shadow-sm overflow-hidden relative`}>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
+                                <div className={`p-3 rounded-xl ${verifType === 'success' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+                                    <Mail size={24} />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className={`text-base font-black ${verifType === 'success' ? 'text-green-900' : 'text-amber-900'}`}>
+                                        {verifMessage || 'Action Required: Email Verification'}
+                                    </h3>
+                                    <p className={`text-sm font-medium ${verifType === 'success' ? 'text-green-700' : 'text-amber-700'}`}>
+                                        {verifMessage ? '' : <>We've sent a link to <span className="font-bold">{auth.currentUser?.email}</span>. Please verify to access all features.</>}
+                                    </p>
+                                </div>
+                            </div>
+                            {!verifMessage && (
+                                <div className="flex gap-2 shrink-0">
+                                    <button onClick={handleCheckStatus} disabled={isChecking} className="flex items-center gap-2 py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black rounded-lg transition-all active:scale-95 disabled:opacity-50">
+                                        {isChecking ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 size={14} />} I'VE VERIFIED
+                                    </button>
+                                    <button onClick={handleResendEmail} disabled={isResending} className="flex items-center gap-2 py-2 px-4 border-2 border-amber-200 text-amber-700 hover:bg-amber-100 text-xs font-black rounded-lg transition-all active:scale-95 disabled:opacity-50">
+                                        {isResending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw size={14} />} RESEND LINK
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
