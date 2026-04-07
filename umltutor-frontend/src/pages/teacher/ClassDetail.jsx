@@ -185,7 +185,7 @@ const ClassDetail = () => {
         <div className="min-h-screen bg-[#f8fafc] p-8">
             <div className="max-w-6xl mx-auto">
                 <button
-                    onClick={() => navigate('/teacher/dashboard')}
+                    onClick={() => navigate('/teacher/classes')}
                     className="mb-10 text-gray-500 font-extrabold text-sm hover:text-indigo-600 transition-all flex items-center gap-2 group"
                 >
                     <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-100 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-all">

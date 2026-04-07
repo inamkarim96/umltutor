@@ -119,152 +119,98 @@ const ClassesManagement = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] flex">
-            {/* Sidebar - Classes List */}
-            <div className="w-80 bg-white border-r border-gray-100 flex flex-col pt-8 shadow-sm">
-                <div className="px-6 mb-8 flex justify-between items-center">
-                    <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-                        <GraduationCap className="text-indigo-600" size={24} /> Classes
-                    </h2>
+        <div className="min-h-screen bg-[#f8fafc] p-8 md:p-12">
+            <div className="max-w-7xl mx-auto">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+                    <div>
+                        <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                            <GraduationCap className="text-indigo-600" size={40} /> 
+                            Classrooms
+                        </h1>
+                        <p className="text-gray-500 mt-2 font-medium text-lg italic">
+                            Manage your academic spaces and student enrollments.
+                        </p>
+                    </div>
                     <button 
                         onClick={() => setIsCreateClassModalOpen(true)}
-                        className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                        className="group relative px-8 py-4 bg-indigo-600 text-white rounded-[1.5rem] font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-3 active:scale-95 overflow-hidden"
                     >
-                        <Plus size={20} />
+                        <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                        <Plus size={22} className="relative z-10" />
+                        <span className="relative z-10 uppercase tracking-widest text-xs">Create New Class</span>
                     </button>
                 </div>
-                <div className="flex-1 overflow-y-auto px-4 space-y-2 pb-8">
-                    {classes.map(c => (
-                        <button
-                            key={c.id}
-                            onClick={() => setSelectedClassId(c.id)}
-                            className={`w-full text-left p-5 rounded-2xl transition-all group relative overflow-hidden ${selectedClassId === c.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'text-gray-600 hover:bg-indigo-50/50'}`}
+
+                {/* Status Messages */}
+                {(errorMessage || successMessage) && (
+                    <div className={`mb-10 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-top-4 duration-500 border ${errorMessage ? 'bg-red-50 text-red-700 border-red-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${errorMessage ? 'bg-red-100' : 'bg-emerald-100'}`}>
+                            {errorMessage ? <Info size={20} /> : <CheckCircle size={20} />}
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-black text-sm uppercase tracking-tight">{errorMessage ? 'Action Failed' : 'Success'}</p>
+                            <p className="text-sm font-medium opacity-90">{errorMessage || successMessage}</p>
+                        </div>
+                        <button 
+                            onClick={() => {setErrorMessage(''); setSuccessMessage('');}}
+                            className="p-2 hover:bg-black/5 rounded-xl transition-colors"
                         >
-                            <div className="relative z-10">
-                                <p className="font-extrabold text-sm mb-1">{c.name}</p>
-                                <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${selectedClassId === c.id ? 'text-indigo-100' : 'text-gray-400'}`}>
-                                    <Shield size={10} /> {c.code}
-                                </div>
-                            </div>
-                            {selectedClassId === c.id && (
-                                <ChevronRight size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-200" />
-                            )}
+                            <X size={18} />
                         </button>
-                    ))}
-                    {classes.length === 0 && (
-                        <div className="px-6 py-10 text-center">
-                            <p className="text-gray-400 font-bold italic text-sm">No classes created yet</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Main Content - Students in selected class */}
-            <div className="flex-1 p-10 overflow-y-auto">
-                {activeClass ? (
-                    <div className="max-w-5xl mx-auto">
-                        <div className="flex justify-between items-start mb-12">
-                            <div>
-                                <h1 className="text-4xl font-black text-gray-900 tracking-tight">{activeClass.name}</h1>
-                                <p className="text-gray-500 mt-2 font-medium text-lg leading-relaxed max-w-2xl">{activeClass.description}</p>
-                            </div>
-                            <div className="bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-xl shadow-indigo-50 flex flex-col items-center">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Access Token</p>
-                                <p className="text-2xl font-black text-indigo-600 font-mono tracking-tighter">{activeClass.code}</p>
-                            </div>
-                        </div>
-                        
-                        {/* Status Messages */}
-                        {(errorMessage || successMessage) && (
-                            <div className={`mb-6 p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${errorMessage ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${errorMessage ? 'bg-red-100' : 'bg-emerald-100'}`}>
-                                    {errorMessage ? <Info size={16} /> : <CheckCircle size={16} />}
-                                </div>
-                                <p className="font-bold text-sm">{errorMessage || successMessage}</p>
-                                <button 
-                                    onClick={() => {setErrorMessage(''); setSuccessMessage('');}}
-                                    className="ml-auto p-1 hover:bg-black/5 rounded-lg transition-colors"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </div>
-                        )}
-
-
-                        {/* Student Management Section */}
-                        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden border-t-4 border-t-indigo-500">
-                            <div className="p-8 border-b border-gray-50 flex flex-wrap gap-4 justify-between items-center bg-gray-50/30">
-                                <div className="relative w-full sm:w-80">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type="text"
-                                        placeholder="Search students in class..."
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                        className="w-full pl-12 pr-6 py-4 bg-white border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-900 shadow-inner"
-                                    />
-                                </div>
-                                <form onSubmit={handleAddStudent} className="flex gap-3 w-full sm:w-auto">
-                                    <div className="relative flex-1">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                        <input
-                                            type="email"
-                                            placeholder="Student Email Address"
-                                            required
-                                            value={newStudentEmail}
-                                            onChange={e => setNewStudentEmail(e.target.value)}
-                                            className="w-full pl-11 pr-6 py-4 bg-white border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-900 shadow-inner min-w-[260px]"
-                                        />
-                                    </div>
-                                    <button className="px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2 whitespace-nowrap">
-                                        <UserPlus size={18} /> Enroll
-                                    </button>
-                                </form>
-                            </div>
-                            <div className="divide-y divide-gray-50">
-                                {filteredStudents.length > 0 ? (
-                                    filteredStudents.map(student => (
-                                        <div key={student.id} className="p-6 flex items-center justify-between hover:bg-indigo-50/30 transition-all group">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-xl shadow-sm group-hover:bg-white transition-colors">
-                                                    {(student.firstName || student.name || 'S').charAt(0).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <p className="font-black text-gray-900 text-lg">
-                                                        {student.firstName ? `${student.firstName} ${student.lastName}` : (student.name || student.email)}
-                                                    </p>
-                                                    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold">
-                                                        <Mail size={12} /> {student.email}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => handleRemoveStudent(student.id)}
-                                                className="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-white rounded-xl transition-all hover:shadow-sm"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-24 text-center">
-                                        <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                            <Users size={32} className="text-indigo-400" />
-                                        </div>
-                                        <h3 className="text-xl font-black text-gray-900 mb-1">Classroom is empty</h3>
-                                        <p className="text-gray-400 font-bold italic">Start by enrolling students via email.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
                     </div>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center">
-                        <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-50 mb-8 animate-bounce duration-[3000ms]">
-                            <GraduationCap size={48} className="text-indigo-600" />
+                )}
+
+                {/* Classes Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {classes.map(c => (
+                        <div
+                            key={c.id}
+                            className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all group flex flex-col h-full relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/30 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
+                            
+                            <div className="relative z-10 flex-1">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                                        {c.name.charAt(0)}
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Access Token</p>
+                                        <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-mono font-black rounded-lg uppercase tracking-wider group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                            {c.code}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <h3 className="text-2xl font-black text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">
+                                    {c.name}
+                                </h3>
+                                <p className="text-gray-500 font-medium text-sm line-clamp-3 mb-8 leading-relaxed">
+                                    {c.description || "No description provided for this classroom yet. Update it in settings."}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => navigate(`/teacher/classes/${c.id}`)}
+                                className="relative z-10 w-full py-4 bg-gray-50 text-gray-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:shadow-indigo-100 transition-all flex items-center justify-center gap-2 group/btn active:scale-95"
+                            >
+                                Manage Classroom
+                                <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                            </button>
                         </div>
-                        <h3 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Select a class to manage</h3>
-                        <p className="text-gray-400 max-w-md font-medium text-lg">Pick a classroom from the sidebar to manage enrollment, view student details, and sync progress.</p>
+                    ))}
+                </div>
+
+                {classes.length === 0 && (
+                    <div className="py-32 flex flex-col items-center justify-center text-center max-w-md mx-auto">
+                        <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-50 mb-8 animate-bounce transition-all duration-[3000ms]">
+                            <Users size={40} className="text-indigo-600" />
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2 italic">Your corridor is quiet</h3>
+                        <p className="text-gray-400 font-medium leading-relaxed">
+                            You haven't created any classes yet. Start by setting up a new space for your students to begin their UML journey.
+                        </p>
                     </div>
                 )}
             </div>
@@ -272,55 +218,55 @@ const ClassesManagement = () => {
             {/* Create Class Modal */}
             {isCreateClassModalOpen && (
                 <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-                        <div className="p-10">
-                            <div className="flex justify-between items-center mb-8">
+                    <div className="bg-white rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-500 border border-white/20">
+                        <div className="p-10 md:p-12">
+                            <div className="flex justify-between items-center mb-10">
                                 <div>
-                                    <h2 className="text-3xl font-black text-gray-900">New Classroom</h2>
-                                    <p className="text-gray-500 font-medium text-sm mt-1">Set up a new space for your students.</p>
+                                    <h2 className="text-3xl font-black text-gray-900 tracking-tight italic">New Classroom</h2>
+                                    <p className="text-gray-500 font-medium text-sm mt-1 uppercase tracking-tighter">Enter details to initiate space</p>
                                 </div>
                                 <button 
                                     onClick={() => setIsCreateClassModalOpen(false)} 
-                                    className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900"
+                                    className="w-12 h-12 flex items-center justify-center bg-gray-50 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all text-gray-400 active:scale-90"
                                 >
-                                    <X size={20} />
+                                    <X size={24} />
                                 </button>
                             </div>
-                            <form onSubmit={handleCreateClass} className="space-y-6">
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Class Name</label>
+                            <form onSubmit={handleCreateClass} className="space-y-8">
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Classroom Designation</label>
                                     <input
                                         type="text"
                                         required
                                         value={newClassName}
                                         onChange={e => setNewClassName(e.target.value)}
-                                        className="w-full px-5 py-4 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-indigo-500 shadow-inner outline-none transition-all font-bold text-gray-900 placeholder:text-gray-300"
-                                        placeholder="e.g. Software Engineering A"
+                                        className="w-full px-6 py-5 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-indigo-600 shadow-inner outline-none transition-all font-bold text-gray-900 placeholder:text-gray-300"
+                                        placeholder="e.g. Adv. Software Design"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Description</label>
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Description / Goals</label>
                                     <textarea
                                         required
                                         value={newClassDesc}
                                         onChange={e => setNewClassDesc(e.target.value)}
-                                        className="w-full px-5 py-4 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-indigo-500 shadow-inner outline-none transition-all h-32 font-medium text-gray-900 placeholder:text-gray-300 resize-none"
-                                        placeholder="Describe the course goals..."
+                                        className="w-full px-6 py-5 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-indigo-600 shadow-inner outline-none transition-all h-40 font-medium text-gray-900 placeholder:text-gray-300 resize-none"
+                                        placeholder="What will students achieve here?"
                                     />
                                 </div>
-                                <div className="pt-6 flex gap-3">
+                                <div className="pt-6 flex gap-4">
                                     <button
                                         type="button"
                                         onClick={() => setIsCreateClassModalOpen(false)}
-                                        className="flex-1 px-8 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black hover:bg-gray-200 transition-all uppercase text-xs tracking-widest"
+                                        className="flex-1 px-8 py-5 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all uppercase text-[10px] tracking-widest active:scale-95"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-[2] px-10 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all uppercase text-xs tracking-widest flex items-center justify-center gap-2"
+                                        className="flex-[2] px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 active:scale-95"
                                     >
-                                        <CheckCircle size={16} /> Create Class
+                                        <CheckCircle size={18} /> Initialize Class
                                     </button>
                                 </div>
                             </form>
@@ -328,15 +274,6 @@ const ClassesManagement = () => {
                     </div>
                 </div>
             )}
-
-            <ConfirmModal
-                isOpen={confirmDelete.isOpen}
-                onClose={() => setConfirmDelete({ isOpen: false, studentId: null })}
-                onConfirm={handleRemoveStudent}
-                title="Remove Student"
-                message="Are you sure you want to remove this student from the class? They will lose access to all assignments in this classroom."
-                confirmText="Remove"
-            />
         </div>
     );
 };
