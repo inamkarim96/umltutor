@@ -21,6 +21,10 @@ app.use(_cors2.default.call(void 0, {
   origin: process.env.CLIENT_URL || '*',
   credentials: true
 }));
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
 app.set('trust proxy', true);
 app.use(_compression2.default.call(void 0,));
 app.use(_express2.default.json({ limit: '10mb' }));

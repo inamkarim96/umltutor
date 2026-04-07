@@ -15,6 +15,7 @@
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 }); exports.apiLimiter = apiLimiter;
 
 // Strict rate limiter for authentication
@@ -28,6 +29,7 @@
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 }); exports.authLimiter = authLimiter;
 
 // Relaxed rate limiter for public endpoints (1000 requests per 15 minutes)
@@ -40,6 +42,7 @@
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 }); exports.publicLimiter = publicLimiter;
 
 /**

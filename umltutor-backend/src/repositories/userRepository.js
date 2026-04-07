@@ -9,6 +9,12 @@ const userRepository = {
         });
     },
 
+    async findByFirebaseUid(firebaseUid) {
+        return prisma.user.findUnique({
+            where: { firebaseUid },
+        });
+    },
+
     async findById(id) {
         return prisma.user.findUnique({
             where: { id },
@@ -18,6 +24,7 @@ const userRepository = {
                 firstName: true,
                 lastName: true,
                 role: true,
+                firebaseUid: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -28,10 +35,11 @@ const userRepository = {
         return prisma.user.create({
             data: {
                 email: userData.email.toLowerCase(),
-                password: userData.password,
+                password: userData.password || null,
                 firstName: userData.firstName,
                 lastName: userData.lastName,
                 role: userData.role,
+                firebaseUid: userData.firebaseUid || null,
             },
             select: {
                 id: true,
@@ -39,6 +47,7 @@ const userRepository = {
                 firstName: true,
                 lastName: true,
                 role: true,
+                firebaseUid: true,
                 createdAt: true,
             },
         });
