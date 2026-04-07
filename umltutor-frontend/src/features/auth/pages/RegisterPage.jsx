@@ -74,6 +74,23 @@ const RegisterPage = () => {
                 } 
             });
         } catch (error) {
+            const isVerificationError = 
+                error?.needsEmailVerification || 
+                error?.raw?.needsEmailVerification ||
+                (error?.message && error.message.toLowerCase().includes('verification'));
+
+            if (isVerificationError) {
+                // Even if there's a verification error, registration is complete,
+                // so we still navigate to login as requested by the user.
+                navigate('/login', { 
+                    state: { 
+                        message: 'Registration complete! Please check your email to verify your account before logging in.',
+                        email: data.email
+                    } 
+                });
+                return;
+            }
+
             let finalMessage = 'An unexpected error occurred. Please try again.';
             
             const isEmailConflict = 

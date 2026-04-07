@@ -168,11 +168,17 @@ export const AuthProvider = ({ children }) => {
                 currentUser = await authService.getCurrentUser();
             } catch (error) {
                 // If the error is just that email verification is required, 
+                // or any other profile-fetch error during registration,
                 // we treat the registration as successful but not yet fully authenticated.
-                if (!error?.needsEmailVerification && !error?.raw?.needsEmailVerification) {
+                const isVerificationError = 
+                    error?.needsEmailVerification || 
+                    error?.raw?.needsEmailVerification ||
+                    (error?.message && error.message.toLowerCase().includes('verification'));
+
+                if (!isVerificationError) {
                     throw error;
                 }
-                console.log('Registration successful, but email verification pending.');
+                console.log('Registration successful, profile fetch pending verification.');
             }
 
             const isEmailVerified = firebaseUser.emailVerified;
