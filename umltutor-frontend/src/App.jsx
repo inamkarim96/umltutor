@@ -145,7 +145,7 @@ function App() {
                 />
 
                 <Route
-                  path="/teacher/classes/:id"
+                  path="/teacher/classes/:className"
                   element={
                     <ProtectedRoute requiredRole="TEACHER">
                       <ClassDetail />

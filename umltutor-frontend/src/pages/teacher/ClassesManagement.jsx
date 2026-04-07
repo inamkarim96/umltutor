@@ -192,7 +192,7 @@ const ClassesManagement = () => {
                             </div>
 
                             <button
-                                onClick={() => navigate(`/teacher/classes/${c.id}`)}
+                                onClick={() => navigate(`/teacher/classes/${c.name.toLowerCase().replace(/\s+/g, '-')}`)}
                                 className="relative z-10 w-full py-4 bg-gray-50 text-gray-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:shadow-indigo-100 transition-all flex items-center justify-center gap-2 group/btn active:scale-95"
                             >
                                 Manage Classroom

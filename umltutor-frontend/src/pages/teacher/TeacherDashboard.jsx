@@ -264,7 +264,7 @@ const TeacherDashboard = () => {
                             classes.map(c => (
                                 <div
                                     key={c.id}
-                                    onClick={() => navigate(`/teacher/classes/${c.id}`)}
+                                    onClick={() => navigate(`/teacher/classes/${c.name.toLowerCase().replace(/\s+/g, '-')}`)}
                                     className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-200 hover:shadow-xl transition-all group cursor-pointer"
                                 >
                                     <div className="flex justify-between items-start mb-4">

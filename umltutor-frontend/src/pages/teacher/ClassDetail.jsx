@@ -7,11 +7,11 @@ import {
     selectClassroomLoading
 } from '../../features/classroom';
 import { selectUser } from '../../features/auth';
-import { 
-    createAssignment, 
+import {
+    createAssignment,
     updateAssignment,
-    fetchAllAssignments, 
-    selectAllAssignments as selectAssignmentsFromSlice 
+    fetchAllAssignments,
+    selectAllAssignments as selectAssignmentsFromSlice
 } from '../../features/assignments';
 import {
     ArrowLeft,
@@ -39,7 +39,7 @@ import apiClient from '../../services/apiClient';
 import { getEnrolledStudentsLogic, removeStudentLogic } from '../../features/teacher/teacherLogic';
 
 const ClassDetail = () => {
-    const { id } = useParams();
+    const { className } = useParams();
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const classes = useAppSelector(selectClasses);
@@ -47,8 +47,10 @@ const ClassDetail = () => {
     const isLoading = useAppSelector(selectClassroomLoading);
     const user = useAppSelector(selectUser);
 
-    // Find class by ID
-    const targetClass = classes.find(c => c.id === parseInt(id));
+    // Find class by Name Slug
+    const targetClass = classes.find(c => 
+        c.name.toLowerCase().replace(/\s+/g, '-') === className.toLowerCase()
+    );
     const classId = targetClass?.id;
     const classAssignments = classId ? assignmentsMap.filter(a => a.classId === classId) : [];
     const [enrolledStudents, setEnrolledStudents] = useState([]);
@@ -67,7 +69,7 @@ const ClassDetail = () => {
         } else {
             document.title = 'Class Details | UML Tutor';
         }
-        
+
         // Cleanup function to reset title when component unmounts
         return () => {
             document.title = 'UML Tutor';
@@ -119,18 +121,18 @@ const ClassDetail = () => {
         try {
             setErrorMessage('');
             let resultAction;
-            
+
             if (editingAssignment) {
                 resultAction = await dispatch(updateAssignment({ id: editingAssignment.id, data }));
             } else {
                 resultAction = await dispatch(createAssignment({ classId: classId, data }));
             }
-            
+
             if (createAssignment.fulfilled.match(resultAction) || (updateAssignment && updateAssignment.fulfilled && updateAssignment.fulfilled.match(resultAction))) {
                 setIsCreateAssignmentOpen(false);
                 setEditingAssignment(null);
-                setSuccessMessage(editingAssignment 
-                    ? 'Assignment updated successfully!' 
+                setSuccessMessage(editingAssignment
+                    ? 'Assignment updated successfully!'
                     : 'Assignment has been created successfully. If you want to make changes, you can edit the assignment anytime.'
                 );
                 setTimeout(() => setSuccessMessage(''), 8000);
@@ -193,7 +195,7 @@ const ClassDetail = () => {
                     </div>
                     Back to Dashboard
                 </button>
-                
+
                 {(errorMessage || successMessage) && (
                     <div className={`mb-8 p-5 rounded-[2rem] flex items-center gap-4 animate-in slide-in-from-top-4 duration-300 border ${errorMessage ? 'bg-red-50 text-red-700 border-red-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
                         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${errorMessage ? 'bg-red-100' : 'bg-emerald-100'}`}>
@@ -203,8 +205,8 @@ const ClassDetail = () => {
                             <p className="font-black text-sm uppercase tracking-tight">{errorMessage ? 'Action Failed' : 'Success'}</p>
                             <p className="text-sm font-medium opacity-90">{errorMessage || successMessage}</p>
                         </div>
-                        <button 
-                            onClick={() => {setErrorMessage(''); setSuccessMessage('');}}
+                        <button
+                            onClick={() => { setErrorMessage(''); setSuccessMessage(''); }}
                             className="p-2 hover:bg-black/5 rounded-xl transition-colors"
                         >
                             <X size={18} />
@@ -240,7 +242,7 @@ const ClassDetail = () => {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teacher</p>
-                                    <p className="text-sm font-bold text-gray-700">Prof. {user?.firstName} {user?.lastName}</p>
+                                    <p className="text-sm font-bold text-gray-700"> {user?.firstName} {user?.lastName}</p>
                                 </div>
                             </div>
                         </div>
@@ -268,7 +270,7 @@ const ClassDetail = () => {
 
                         {showEnrollment && (
                             <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-200">
-                                <StudentEnrollment 
+                                <StudentEnrollment
                                     classId={classId}
                                     enrolledStudents={enrolledStudents}
                                     onEnrollmentSuccess={handleEnrollmentSuccess}
@@ -299,7 +301,7 @@ const ClassDetail = () => {
                                                 <UserCheck size={14} />
                                                 Enrolled
                                             </div>
-                                            <button 
+                                            <button
                                                 onClick={() => setConfirmDelete({ isOpen: true, studentId: student.id })}
                                                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                                 title="Remove Student"
