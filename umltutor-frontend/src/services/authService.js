@@ -9,27 +9,22 @@ class AuthService {
   }
 
   async login(credentials) {
-    // apiClient already handles unwrapping and common errors via interceptors
-    const data = await apiClient.post('/api/auth/login', credentials);
-    
-    // Auth-specific persistence logic
-    this.token = data.token;
-    localStorage.setItem('token', this.token);
-
+    // With Firebase, we don't necessarily need a backend login call 
+    // unless we want to do additional logging or session management.
+    // However, we still need to fetch the user profile.
+    const data = await apiClient.get('/api/auth/profile');
     return data;
   }
 
   async register(userData) {
+    // userData should now include firebaseUid
     const data = await apiClient.post('/api/auth/register', userData);
-    
-    this.token = data.token;
-    localStorage.setItem('token', this.token);
-
     return data;
   }
 
   async logout() {
     try {
+      // Backend logout might still be useful to clear server-side sessions/logs
       await apiClient.post('/api/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
@@ -41,23 +36,29 @@ class AuthService {
   }
 
   async getCurrentUser() {
-    if (!this.token) return null;
+    // The token is now managed by Firebase and automatically refreshed.
+    // apiClient interceptor will pick it up from localStorage.
+    const token = localStorage.getItem('token');
+    if (!token) return null;
 
     try {
-      // apiClient already attaches authorization header via request interceptor
       const data = await apiClient.get('/api/auth/profile');
       return data.user;
     } catch (error) {
+      // If profile fails because user is not in our DB, let the caller (AuthContext) handle it
+      if (error?.needsRegistration || error?.raw?.needsRegistration) {
+        throw error;
+      }
+      
       console.error('Get current user error:', error);
       return null;
     }
   }
 
   getToken() {
-    return this.token;
+    return localStorage.getItem('token');
   }
 }
-
 
 const authService = new AuthService();
 export default authService;

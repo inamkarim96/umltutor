@@ -224,7 +224,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                
+
                 <Route
                   path="/student/assignments/reviewed"
                   element={
