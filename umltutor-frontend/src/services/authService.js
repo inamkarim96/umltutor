@@ -45,8 +45,9 @@ class AuthService {
       const data = await apiClient.get('/api/auth/profile');
       return data.user;
     } catch (error) {
-      // If profile fails because user is not in our DB, let the caller (AuthContext) handle it
-      if (error?.needsRegistration || error?.raw?.needsRegistration) {
+      // If profile fails because user is not in our DB or needs verification, let the caller (AuthContext) handle it
+      if (error?.needsRegistration || error?.raw?.needsRegistration || 
+          error?.needsEmailVerification || error?.raw?.needsEmailVerification) {
         throw error;
       }
       

@@ -40,9 +40,7 @@ class RouteMiddleware {
 
       const { email, uid, name, email_verified } = decodedToken;
 
-      // Import prisma here to avoid potential circular dependency or early initialization issues
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
+      const prisma = require('../config/prisma');
       
       const user = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
