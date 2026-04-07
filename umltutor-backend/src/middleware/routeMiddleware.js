@@ -1,83 +1,131 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 
-const jwt = require('../utils/jwt');
+const admin = require('../config/firebase-admin');
 const logger = require('../utils/logger');
-const { sendError } = require('../utils/errors');
+const { sendError, AuthenticationError, AuthorizationError } = require('../utils/errors');
 
 /**
  * Middleware for route-specific operations
- * Handles authentication, request logging, and common route setup
+ * Handles authentication, request logging, and role-based authorization
  */
 class RouteMiddleware {
   /**
-   * Apply authentication middleware to a route
+   * Authenticate requests using Firebase ID tokens
    */
   static authenticate = async (req, res, next) => {
     try {
-      // Get token from Authorization header
       const authHeader = req.headers.authorization;
 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return sendError(res, new AuthenticationError('No token provided. Please include a Bearer token in the Authorization header.'));
+        console.warn(`[Auth] No token provided for ${req.method} ${req.originalUrl}`);
+        return res.status(401).json({
+          success: false,
+          message: 'No token provided. Please include a Firebase ID token in the Authorization header.',
+        });
       }
 
-      // Extract token (remove 'Bearer ' prefix)
-      const token = authHeader.substring(7);
+      const idToken = authHeader.substring(7);
+      
+      let decodedToken;
+      try {
+        decodedToken = await admin.auth().verifyIdToken(idToken);
+      } catch (verifyError) {
+        console.error(`[Auth] Token verification failed: ${verifyError.message}`);
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid or expired token',
+          error: verifyError.message
+        });
+      }
 
-      // Verify token
-      const decoded = jwt.verifyToken(token);
+      const { email, uid, name, email_verified } = decodedToken;
 
-      // Get user data from database
-      const prisma = require('../utils/prisma').default;
+      // Import prisma here to avoid potential circular dependency or early initialization issues
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
       const user = await prisma.user.findUnique({
-        where: { id: Number(decoded.userId) },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-        },
+        where: { email: email.toLowerCase() },
       });
 
-      if (!user) {
-        return sendError(res, new AuthenticationError('User not found'));
+      const isSyncRequest = req.path === '/sync' || req.originalUrl.includes('/auth/sync');
+
+      if (!user && !isSyncRequest) {
+        console.warn(`[Auth] User not found in DB: ${email}`);
+        return res.status(401).json({
+          success: false,
+          message: 'User profile not found. Please complete registration.',
+          needsRegistration: true,
+          firebaseUser: { email, uid, name }
+        });
+      }
+
+      // Block unverified users for non-sync routes
+      // Note: In development, you might want to allow this if testing is difficult
+      const skipEmailVerification = process.env.NODE_ENV === 'development' && process.env.SKIP_EMAIL_VERIFY === 'true';
+      
+      if (!email_verified && !isSyncRequest && !skipEmailVerification) {
+          console.warn(`[Auth] Email not verified: ${email}`);
+          return res.status(401).json({
+              success: false,
+              message: 'Email verification required. Please check your inbox.',
+              needsEmailVerification: true
+          });
       }
 
       // Attach user info to request
-      req.user = {
-        userId: user.id,
-        role: user.role,
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      };
+      if (user) {
+          req.user = {
+            id: user.id,
+            userId: user.id,
+            role: user.role,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            firebaseUid: uid
+          };
+      } else {
+          req.firebaseUser = { email, uid, name };
+      }
 
       next();
     } catch (error) {
+      console.error('[Auth] Internal Middleware Error:', error);
       logger.logError(error, {
         url: req.originalUrl,
         method: req.method,
         ip: req.ip,
-        userAgent: req.get('User-Agent'),
       });
-      return sendError(res, error);
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error during authentication',
+        error: error.message
+      });
     }
   };
 
   /**
-   * Apply authorization middleware to a route
+   * Authorize requests based on user roles
    */
   static authorize = (...roles) => {
     return (req, res, next) => {
       if (!req.user) {
-        return sendError(res, new AuthenticationError('Authentication required'));
+        console.warn(`[Auth] Authorization failed: No user attached to request`);
+        return res.status(401).json({
+            success: false,
+            message: 'Authentication required'
+        });
       }
 
       if (!roles.includes(req.user.role)) {
-        return sendError(res, new AuthorizationError('You do not have permission to access this resource'));
+        console.warn(`[Auth] Forbidden: User ${req.user.email} (Role: ${req.user.role}) attempted to access ${req.originalUrl} requiring ${roles.join(' or ')}`);
+        return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to access this resource',
+            requiredRoles: roles,
+            currentRole: req.user.role
+        });
       }
 
       next();
@@ -85,53 +133,26 @@ class RouteMiddleware {
   };
 
   /**
-   * Add request logging middleware
+   * Request logging middleware
    */
   static requestLogger = (req, res, next) => {
     const startTime = Date.now();
-    
-    // Generate unique request ID
-    const requestId = `req_${startTime}_${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `req_${startTime}_${Math.random().toString(36).substr(2, 5)}`;
     req.requestId = requestId;
 
-    // Log request
-    logger.logHttp(req, res, Date.now() - startTime);
-
-    // Override res.json to log response
+    // Override res.json to log response status
     const originalJson = res.json;
     res.json = function(data) {
-      logger.logHttp(req, res, Date.now() - startTime);
+      const responseTime = Date.now() - startTime;
+      if (res.statusCode >= 400) {
+        console.log(`[HTTP] ${req.method} ${req.originalUrl} - ${res.statusCode} (${responseTime}ms)`);
+      }
       return originalJson.call(this, data);
     };
 
     next();
   };
-
-  /**
-   * Apply common route setup
-   */
-  static setupRoute = (router) => {
-    // Apply request logging to all routes in this router
-    router.use(this.requestLogger);
-    return router;
-  };
-
-  /**
-   * Apply authentication to all routes in a router
-   */
-  static requireAuth = (router) => {
-    router.use(this.authenticate);
-    return router;
-  };
-
-  /**
-   * Apply authentication and authorization to all routes in a router
-   */
-  static requireAuthAndAuthorize = (router, ...roles) => {
-    router.use(this.authenticate);
-    router.use(this.authorize(...roles));
-    return router;
-  };
 }
 
 module.exports = RouteMiddleware;
+
