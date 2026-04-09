@@ -865,9 +865,25 @@ const CheckingModePanel = ({
             // Use Case Description specific report
             const hasNoTitle = issues.some(i => i.code === 'NO_TITLE');
             const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR');
-            const hasNoPre = issues.some(i => i.code === 'NO_PRECONDITIONS' || i.code === 'INVALID_PRECONDITIONS');
-            const hasNoPost = issues.some(i => i.code === 'NO_POSTCONDITIONS' || i.code === 'INVALID_POSTCONDITIONS');
-            const hasNoFlow = issues.some(i => i.code === 'NO_MAIN_FLOW' || i.code === 'EMPTY_MAIN_FLOW_STEP' || i.code === 'INVALID_MAIN_FLOW_STEP');
+            const hasNoPre = issues.some(i => 
+                i.code === 'NO_PRECONDITIONS' || 
+                i.code === 'INVALID_PRECONDITIONS' || 
+                (i.message && i.message.toLowerCase().includes('precondition') && i.severity === 'error') ||
+                (i.id && i.id.toLowerCase().includes('precondition'))
+            );
+            const hasNoPost = issues.some(i => 
+                i.code === 'NO_POSTCONDITIONS' || 
+                i.code === 'INVALID_POSTCONDITIONS' || 
+                (i.message && i.message.toLowerCase().includes('postcondition') && i.severity === 'error') ||
+                (i.id && i.id.toLowerCase().includes('postcondition'))
+            );
+            const hasNoFlow = issues.some(i => 
+                i.code === 'NO_MAIN_FLOW' || 
+                i.code === 'EMPTY_MAIN_FLOW_STEP' || 
+                i.code === 'INVALID_MAIN_FLOW_STEP' ||
+                (i.message && i.message.toLowerCase().includes('main flow') && i.severity === 'error') ||
+                (i.message && i.message.toLowerCase().includes('main success scenario') && i.severity === 'error')
+            );
 
             textReport += `${hasNoTitle ? '✗' : '✓'} Use Case Name defined\n`;
             textReport += `${hasNoActor ? '✗' : '✓'} Primary Actor selected\n`;
