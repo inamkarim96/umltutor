@@ -95,3 +95,56 @@ export const validateActorName = (name) => {
 
     return { isValid: true, error: null };
 };
+
+/**
+ * Validates if a text input is a proper sentence (or multiple sentences).
+ * Used for Preconditions, Postconditions, and Scenario Steps.
+ * 
+ * Rules:
+ * 1. Minimum 10 characters.
+ * 2. Minimum 3 words.
+ * 3. Starts with an alphabetic character (capital or small).
+ * 4. Must contain at least one vowel (basic gibberish check).
+ * 
+ * @param {string} text - The text to validate
+ * @returns {Object} { isValid: boolean, error: string | null }
+ */
+export const validateSentence = (text) => {
+    if (!text || typeof text !== 'string') {
+        return { isValid: false, error: 'Content is missing.' };
+    }
+
+    const trimmed = text.trim();
+    if (trimmed.length < 10) {
+        return { 
+            isValid: false, 
+            error: 'Content is too short (minimum 10 characters).' 
+        };
+    }
+
+    const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+    if (words.length < 3) {
+        return { 
+            isValid: false, 
+            error: 'Please provide a complete sentence (at least 3 words).' 
+        };
+    }
+
+    // Check if starts with a letter (capital or small)
+    if (!/^[a-zA-Z]/.test(trimmed)) {
+        return { 
+            isValid: false, 
+            error: 'Sentence must start with a letter.' 
+        };
+    }
+
+    // Basic gibberish check: must contain at least one vowel
+    if (!/[aeiouyAEIOUY]/.test(trimmed)) {
+        return { 
+            isValid: false, 
+            error: 'Content seems invalid or meaningless.' 
+        };
+    }
+
+    return { isValid: true, error: null };
+};

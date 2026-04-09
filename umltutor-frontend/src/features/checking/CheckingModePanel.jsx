@@ -4,7 +4,7 @@ import { setCheckingRunning, setCheckingResults } from '../../features/checking'
 import { selectTutorialModel, selectDevelopmentModel } from '../../features/diagram';
 import { selectCurrentMode } from '../../features/modes';
 import { selectUser } from '../../features/auth';
-import { validateUseCaseName, validateActorName } from './grammarRules';
+import { validateUseCaseName, validateActorName, validateSentence } from './grammarRules';
 import { useSuccessToast, useErrorToast } from '../../components/ui/Toast';
 import { checkConsistency } from './ConsistencyChecker';
 import { Plus, Minus, RotateCcw } from 'lucide-react';
@@ -478,7 +478,20 @@ const CheckingModePanel = ({
                     });
                     report.score -= 15;
                 } else {
-                    passes.push('Preconditions defined');
+                    const validation = validateSentence(description.preconditions);
+                    if (!validation.isValid) {
+                        issues.push({
+                            id: `invalid-preconditions-${useCaseId}`,
+                            code: 'INVALID_PRECONDITIONS',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Invalid Precondition: ${validation.error}`,
+                            context: { useCaseId, suggestion: 'Write a proper sentence for the precondition (e.g., "The user is logged in.").' }
+                        });
+                        report.score -= 10;
+                    } else {
+                        passes.push('Preconditions defined');
+                    }
                 }
 
                 // Check postconditions
@@ -497,7 +510,20 @@ const CheckingModePanel = ({
                     });
                     report.score -= 15;
                 } else {
-                    passes.push('Postconditions defined');
+                    const validation = validateSentence(description.postconditions);
+                    if (!validation.isValid) {
+                        issues.push({
+                            id: `invalid-postconditions-${useCaseId}`,
+                            code: 'INVALID_POSTCONDITIONS',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Invalid Postcondition: ${validation.error}`,
+                            context: { useCaseId, suggestion: 'Write a proper sentence for the postcondition (e.g., "The order is saved in the database.").' }
+                        });
+                        report.score -= 10;
+                    } else {
+                        passes.push('Postconditions defined');
+                    }
                 }
 
                 // Check main flow
@@ -526,7 +552,21 @@ const CheckingModePanel = ({
                             });
                             report.score -= 5;
                         } else {
-                            passes.push(`Step ${index + 1} content`);
+                            // Check if step content is a proper sentence
+                            const validation = validateSentence(step.action);
+                            if (!validation.isValid) {
+                                issues.push({
+                                    id: `invalid-main-flow-step-${useCaseId}-${index}`,
+                                    code: 'INVALID_MAIN_FLOW_STEP',
+                                    severity: 'error',
+                                    location: 'description',
+                                    message: `Main Success Scenario step ${index + 1} is invalid: ${validation.error}`,
+                                    context: { useCaseId, stepIndex: index + 1, suggestion: `Write a clear and complete sentence for step ${index + 1}.` }
+                                });
+                                report.score -= 5;
+                            } else {
+                                passes.push(`Step ${index + 1} content`);
+                            }
                         }
                     });
                 }

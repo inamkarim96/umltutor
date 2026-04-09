@@ -227,6 +227,54 @@ class CheckingEngine {
         return { nearestMessage, nearestFunction, nearestFunctionWithParam };
     }
 
+    /**
+     * Proper sentence validation for Preconditions, Postconditions, and Steps.
+     * Rules:
+     * 1. Minimum 10 characters.
+     * 2. Minimum 3 words.
+     * 3. Starts with an alphabetic character (capital or small).
+     * 4. Must contain at least one vowel (basic gibberish check).
+     */
+    static validateSentence(text) {
+        if (!text || typeof text !== 'string') {
+            return { isValid: false, error: 'Content is missing.' };
+        }
+
+        const trimmed = text.trim();
+        if (trimmed.length < 10) {
+            return { 
+                isValid: false, 
+                error: 'Content is too short (minimum 10 characters).' 
+            };
+        }
+
+        const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+        if (words.length < 3) {
+            return { 
+                isValid: false, 
+                error: 'Please provide a complete sentence (at least 3 words).' 
+            };
+        }
+
+        // Check if starts with a letter (capital or small)
+        if (!/^[a-zA-Z]/.test(trimmed)) {
+            return { 
+                isValid: false, 
+                error: 'Sentence must start with a letter.' 
+            };
+        }
+
+        // Basic gibberish check: must contain at least one vowel
+        if (!/[aeiouyAEIOUY]/.test(trimmed)) {
+            return { 
+                isValid: false, 
+                error: 'Content seems meaningless or invalid.' 
+            };
+        }
+
+        return { isValid: true, error: null };
+    }
+
     static validateDiagram(diagram, issues, analysis) {
         if (!analysis.nodes.length) {
             issues.push({ type: 'diagram', severity: 'error', location: 'diagram', code: 'DIAGRAM_EMPTY', message: 'Diagram is missing nodes.' });
@@ -465,6 +513,19 @@ class CheckingEngine {
                     location: 'description',
                     context: { suggestion: 'Please write Precondition' }
                 });
+            } else {
+                const validation = this.validateSentence(desc.preconditions);
+                if (!validation.isValid) {
+                    issues.push({
+                        type: 'description',
+                        severity: 'error',
+                        code: 'INVALID_PRECONDITIONS',
+                        message: `Invalid Precondition for "${nodeLabel}": ${validation.error}`,
+                        relatedId: node.id,
+                        location: 'description',
+                        context: { suggestion: 'Please write a proper sentence (e.g., "The user is logged in.").' }
+                    });
+                }
             }
 
             // 3. Check postconditions
@@ -482,6 +543,19 @@ class CheckingEngine {
                     location: 'description',
                     context: { suggestion: 'Please write Postcondition' }
                 });
+            } else {
+                const validation = this.validateSentence(desc.postconditions);
+                if (!validation.isValid) {
+                    issues.push({
+                        type: 'description',
+                        severity: 'error',
+                        code: 'INVALID_POSTCONDITIONS',
+                        message: `Invalid Postcondition for "${nodeLabel}": ${validation.error}`,
+                        relatedId: node.id,
+                        location: 'description',
+                        context: { suggestion: 'Please write a proper sentence (e.g., "The order is saved.").' }
+                    });
+                }
             }
 
             // 4. Check main flow exists
@@ -493,6 +567,24 @@ class CheckingEngine {
                     message: `Description for "${nodeLabel}" has no main flow steps.`,
                     relatedId: node.id,
                     location: 'description'
+                });
+            } else {
+                // Validate each step in main flow
+                desc.mainFlow.forEach((step, idx) => {
+                    if (step.action) {
+                        const validation = this.validateSentence(step.action);
+                        if (!validation.isValid) {
+                            issues.push({
+                                type: 'description',
+                                severity: 'error',
+                                code: 'INVALID_MAIN_FLOW_STEP',
+                                message: `Step ${idx + 1} in "${nodeLabel}" is invalid: ${validation.error}`,
+                                relatedId: node.id,
+                                location: 'description',
+                                context: { suggestion: `Write a clear and complete sentence for step ${idx + 1}.` }
+                            });
+                        }
+                    }
                 });
             }
         });
