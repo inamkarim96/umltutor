@@ -494,7 +494,8 @@ class CheckingEngine {
                     message: `Primary Actor "${desc.primaryActor}" in description for "${nodeLabel}" does not exist in the use case diagram.`,
                     relatedId: node.id,
                     path: 'primaryActor',
-                    location: 'description'
+                    location: 'description',
+                    context: { suggestion: 'Ensure Primary Actor name matches the one in the Use Case Diagram.' }
                 });
             }
 

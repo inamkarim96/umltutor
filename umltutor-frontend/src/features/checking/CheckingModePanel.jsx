@@ -574,7 +574,13 @@ const CheckingModePanel = ({
                 // Check alternative flows - only if they exist
                 if (description.alternativeFlows && description.alternativeFlows.length > 0) {
                     description.alternativeFlows.forEach((altFlow, index) => {
-                        if (!altFlow.condition || altFlow.condition.trim() === '') {
+                        const hasCondition = altFlow.condition && altFlow.condition.trim() !== '';
+                        const hasResponse = altFlow.response && altFlow.response.trim() !== '';
+                        
+                        // Skip completely empty optional rows
+                        if (!hasCondition && !hasResponse) return;
+
+                        if (!hasCondition) {
                             issues.push({
                                 id: `empty-alt-flow-condition-${useCaseId}-${index}`,
                                 code: 'EMPTY_ALT_FLOW_CONDITION',
@@ -587,7 +593,7 @@ const CheckingModePanel = ({
                             passes.push(`Alt Flow ${index + 1} condition`);
                         }
 
-                        if (!altFlow.response || altFlow.response.trim() === '') {
+                        if (!hasResponse) {
                             issues.push({
                                 id: `empty-alt-flow-response-${useCaseId}-${index}`,
                                 code: 'EMPTY_ALT_FLOW_RESPONSE',
