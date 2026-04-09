@@ -1013,11 +1013,7 @@ const CheckingModePanel = ({
                                     textReport += `  - ${problem}\n`;
 
                                     // Show parsed message name if available
-                                    if (issue.context?.suggestions) {
-                                        textReport += `    Suggestion (Nearest Message): "${issue.context.suggestions.nearestMessage}"\n`;
-                                        textReport += `    Suggestion (Nearest Function Name): "${issue.context.suggestions.nearestFunction}"\n`;
-                                        textReport += `    Suggestion (Nearest Function with Param): "${issue.context.suggestions.nearestFunctionWithParam}"\n`;
-                                    } else if (issue.context?.parsedMessage) {
+                                    if (issue.context?.parsedMessage) {
                                         textReport += `    Suggestion: "${issue.context.parsedMessage}"\n`;
                                     }
                                 });
