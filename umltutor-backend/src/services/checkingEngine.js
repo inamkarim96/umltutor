@@ -523,7 +523,7 @@ class CheckingEngine {
                         message: `Invalid Precondition for "${nodeLabel}": ${validation.error}`,
                         relatedId: node.id,
                         location: 'description',
-                        context: { suggestion: 'Please write a proper sentence (e.g., "The user is logged in.").' }
+                        context: { suggestion: 'Precondition: Please write a proper sentence (e.g., "The user is logged in.").' }
                     });
                 }
             }
@@ -553,7 +553,7 @@ class CheckingEngine {
                         message: `Invalid Postcondition for "${nodeLabel}": ${validation.error}`,
                         relatedId: node.id,
                         location: 'description',
-                        context: { suggestion: 'Please write a proper sentence (e.g., "The order is saved.").' }
+                        context: { suggestion: 'Postcondition: Please write a proper sentence (e.g., "The order is saved.").' }
                     });
                 }
             }
@@ -581,7 +581,7 @@ class CheckingEngine {
                                 message: `Step ${idx + 1} in "${nodeLabel}" is invalid: ${validation.error}`,
                                 relatedId: node.id,
                                 location: 'description',
-                                context: { suggestion: `Write a clear and complete sentence for step ${idx + 1}.` }
+                                context: { suggestion: `Step ${idx + 1}: Write a clear and complete sentence.` }
                             });
                         }
                     }

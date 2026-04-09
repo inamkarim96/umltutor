@@ -486,7 +486,7 @@ const CheckingModePanel = ({
                             severity: 'error',
                             location: 'description',
                             message: `Invalid Precondition: ${validation.error}`,
-                            context: { useCaseId, suggestion: 'Write a proper sentence for the precondition (e.g., "The user is logged in.").' }
+                            context: { useCaseId, suggestion: 'Precondition: Write a proper sentence (e.g., "The user is logged in.").' }
                         });
                         report.score -= 10;
                     } else {
@@ -518,7 +518,7 @@ const CheckingModePanel = ({
                             severity: 'error',
                             location: 'description',
                             message: `Invalid Postcondition: ${validation.error}`,
-                            context: { useCaseId, suggestion: 'Write a proper sentence for the postcondition (e.g., "The order is saved in the database.").' }
+                            context: { useCaseId, suggestion: 'Postcondition: Write a proper sentence (e.g., "The order is saved in the database.").' }
                         });
                         report.score -= 10;
                     } else {
@@ -561,7 +561,7 @@ const CheckingModePanel = ({
                                     severity: 'error',
                                     location: 'description',
                                     message: `Main Success Scenario step ${index + 1} is invalid: ${validation.error}`,
-                                    context: { useCaseId, stepIndex: index + 1, suggestion: `Write a clear and complete sentence for step ${index + 1}.` }
+                                    context: { useCaseId, stepIndex: index + 1, suggestion: `Step ${index + 1}: Write a clear and complete sentence.` }
                                 });
                                 report.score -= 5;
                             } else {
@@ -865,9 +865,9 @@ const CheckingModePanel = ({
             // Use Case Description specific report
             const hasNoTitle = issues.some(i => i.code === 'NO_TITLE');
             const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR');
-            const hasNoPre = issues.some(i => i.code === 'NO_PRECONDITIONS');
-            const hasNoPost = issues.some(i => i.code === 'NO_POSTCONDITIONS');
-            const hasNoFlow = issues.some(i => i.code === 'NO_MAIN_FLOW' || i.code === 'EMPTY_MAIN_FLOW_STEP');
+            const hasNoPre = issues.some(i => i.code === 'NO_PRECONDITIONS' || i.code === 'INVALID_PRECONDITIONS');
+            const hasNoPost = issues.some(i => i.code === 'NO_POSTCONDITIONS' || i.code === 'INVALID_POSTCONDITIONS');
+            const hasNoFlow = issues.some(i => i.code === 'NO_MAIN_FLOW' || i.code === 'EMPTY_MAIN_FLOW_STEP' || i.code === 'INVALID_MAIN_FLOW_STEP');
 
             textReport += `${hasNoTitle ? '✗' : '✓'} Use Case Name defined\n`;
             textReport += `${hasNoActor ? '✗' : '✓'} Primary Actor selected\n`;
