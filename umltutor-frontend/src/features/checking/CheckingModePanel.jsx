@@ -954,19 +954,14 @@ const CheckingModePanel = ({
                 if (consistencyIssues.length === 0) {
                     textReport += `✓ SSD interaction flow matches ${mapRef}\n`;
                 } else {
-                    // ── Per-Sentence Match Status Report ──
-                    const divider = '  ' + '─'.repeat(48);
-
                     // Actor mismatch issues (diagram-level)
                     const actorMismatchIssues = consistencyIssues.filter(i =>
                         i.code === 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH'
                     );
                     if (actorMismatchIssues.length > 0) {
                         actorMismatchIssues.forEach(issue => {
-                            textReport += `\n❌ Actor Mismatch\n`;
-                            textReport += divider + '\n';
-                            textReport += `   ${issue.context?.problem || issue.message}\n`;
-                            textReport += '\n';
+                            textReport += `\n✗ Actor Mismatch:\n`;
+                            textReport += `  - ${issue.context?.problem || issue.message}\n`;
                         });
                     }
 
@@ -975,56 +970,55 @@ const CheckingModePanel = ({
                         i.code !== 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH'
                     );
 
-                    const byStep = {};
-                    stepIssues.forEach(issue => {
-                        const step = issue.context?.stepNumber || '?';
-                        if (!byStep[step]) byStep[step] = [];
-                        byStep[step].push(issue);
-                    });
-
-                    textReport += `\n─── ${mapRef} — Step-by-Step Analysis ───\n\n`;
-
-                    Object.keys(byStep)
-                        .sort((a, b) => (a === '?' ? 1 : b === '?' ? -1 : Number(a) - Number(b)))
-                        .forEach(stepNo => {
-                            const stepIssueList = byStep[stepNo];
-
-                            // Determine match status from context
-                            const matchStatus = stepIssueList[0]?.context?.matchStatus || 'unknown';
-                            const hasError = stepIssueList.some(i => i.severity === 'error');
-                            const hasWarning = stepIssueList.some(i => i.severity === 'warning');
-
-                            let icon, statusLabel;
-                            if (matchStatus === 'missing') {
-                                icon = '❌'; statusLabel = 'Missing';
-                            } else if (matchStatus === 'partial') {
-                                icon = '⚠'; statusLabel = 'Partially Matched';
-                            } else if (matchStatus === 'extra') {
-                                icon = '⚠'; statusLabel = 'Extra Message';
-                            } else if (matchStatus === 'matched' && hasError) {
-                                icon = '⚠'; statusLabel = 'Matched (issues found)';
-                            } else if (matchStatus === 'matched') {
-                                icon = '✔'; statusLabel = 'Matched';
-                            } else {
-                                icon = hasError ? '✗' : hasWarning ? '⚠' : '💡';
-                                statusLabel = hasError ? 'Error' : hasWarning ? 'Warning' : 'Suggestion';
-                            }
-
-                            textReport += `${icon} Step ${stepNo} — ${statusLabel}\n`;
-                            textReport += divider + '\n';
-
-                            stepIssueList.forEach(issue => {
-                                const problem = issue.context?.problem || issue.message;
-                                textReport += `   ${problem}\n`;
-
-                                // Show parsed message name if available
-                                if (issue.context?.parsedMessage) {
-                                    textReport += `   Suggested name: "${issue.context.parsedMessage}"\n`;
-                                }
-                            });
-
-                            textReport += '\n';
+                    if (stepIssues.length > 0) {
+                        textReport += `\nStep-by-Step Analysis:\n`;
+                        
+                        const byStep = {};
+                        stepIssues.forEach(issue => {
+                            const step = issue.context?.stepNumber || '?';
+                            if (!byStep[step]) byStep[step] = [];
+                            byStep[step].push(issue);
                         });
+
+                        Object.keys(byStep)
+                            .sort((a, b) => (a === '?' ? 1 : b === '?' ? -1 : Number(a) - Number(b)))
+                            .forEach(stepNo => {
+                                const stepIssueList = byStep[stepNo];
+
+                                // Determine match status from context
+                                const matchStatus = stepIssueList[0]?.context?.matchStatus || 'unknown';
+                                const hasError = stepIssueList.some(i => i.severity === 'error');
+                                const hasWarning = stepIssueList.some(i => i.severity === 'warning');
+
+                                let icon, statusLabel;
+                                if (matchStatus === 'missing') {
+                                    icon = '✗'; statusLabel = 'Missing';
+                                } else if (matchStatus === 'partial') {
+                                    icon = '!'; statusLabel = 'Partially Matched';
+                                } else if (matchStatus === 'extra') {
+                                    icon = '!'; statusLabel = 'Extra Message';
+                                } else if (matchStatus === 'matched' && hasError) {
+                                    icon = '!'; statusLabel = 'Matched (issues found)';
+                                } else if (matchStatus === 'matched') {
+                                    icon = '✓'; statusLabel = 'Matched';
+                                } else {
+                                    icon = hasError ? '✗' : hasWarning ? '!' : '💡';
+                                    statusLabel = hasError ? 'Error' : hasWarning ? 'Warning' : 'Suggestion';
+                                }
+
+                                textReport += `\n${icon} Step ${stepNo} (${statusLabel})\n`;
+
+                                stepIssueList.forEach(issue => {
+                                    const problem = issue.context?.problem || issue.message;
+                                    textReport += `  - ${problem}\n`;
+
+                                    // Show parsed message name if available
+                                    if (issue.context?.parsedMessage) {
+                                        textReport += `    Suggestion: "${issue.context.parsedMessage}"\n`;
+                                    }
+                                });
+                            });
+                    }
                 }
             }
         }
