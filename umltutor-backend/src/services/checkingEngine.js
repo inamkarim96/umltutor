@@ -892,24 +892,23 @@ class CheckingEngine {
                 }
 
                 // Validate naming — also surface smart suggestions for how to name the message
-                if (msgWords.length < 1) {
-                    const sg = this.suggestFromSentence(stepTextOrig);
+                const sg = this.suggestFromSentence(stepTextOrig);
+                const hasParens = msgOrig.includes('(') || msgOrig.includes(')');
+                
+                // If the user's message is loosely matched but doesn't follow method format, guide them
+                if (msgWords.length < 1 || !hasParens) {
                     issues.push({
                         type: 'consistency',
-                        severity: 'info',
+                        severity: 'warning',
                         code: 'SSD_CONSISTENCY_NAME_GUIDANCE',
                         message: 'Message Name Guidance',
                         relatedId: ucId,
                         location: 'ssd',
                         context: {
                             stepNumber: `${stepNo}`,
-                            problem: `Message ${msg.order} ("${msgOrig}") lacks actionable verbs or description.`,
-                            suggestion: `Rename to clearly describe the action.`,
-                            suggestions: {
-                                nearestMessage: sg.nearestMessage,
-                                nearestFunction: sg.nearestFunction,
-                                nearestFunctionWithParam: sg.nearestFunctionWithParam,
-                            }
+                            problem: `Message ${msg.order} ("${msgOrig}") lacks standard structural formatting (action/parameters).`,
+                            suggestion: `Rename to clearly describe the action using standard notation.`,
+                            parsedMessage: sg.nearestFunctionWithParam
                         }
                     });
                 }

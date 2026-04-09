@@ -463,9 +463,9 @@ const CheckingModePanel = ({
                     const actorLabels = (model.diagram?.nodes || [])
                         .filter(n => n.type === 'actor')
                         .map(n => (n.data?.label || '').trim().toLowerCase());
-                    
+
                     const selectedActorLower = description.primaryActor.trim().toLowerCase();
-                    
+
                     if (actorLabels.length > 0 && !actorLabels.includes(selectedActorLower)) {
                         issues.push({
                             id: `invalid-primary-actor-${useCaseId}`,
@@ -828,7 +828,7 @@ const CheckingModePanel = ({
                 }
                 if (warnings.length > 0) {
                     textReport += 'Warnings:\n';
-                    warnings.forEach((i) => { textReport += `⚠ ${i.message}\n`; });
+                    warnings.forEach((i) => { textReport += `! ${i.message}\n`; });
                     textReport += '\n';
                 }
                 if (suggestions.length > 0) {
@@ -840,7 +840,7 @@ const CheckingModePanel = ({
 
             textReport += '\n--- VALIDATION SUMMARY ---\n';
             textReport += `✗ ${errors.length} Error(s) found\n`;
-            if (warnings.length > 0) textReport += `⚠ ${warnings.length} Warning(s) found\n`;
+            if (warnings.length > 0) textReport += `! ${warnings.length} Warning(s) found\n`;
             textReport += `\nOverall Score: ${Math.max(0, report?.score ?? 0)}%\n`;
             textReport += '---------------------------------';
             return textReport;
@@ -954,10 +954,9 @@ const CheckingModePanel = ({
                 if (consistencyIssues.length === 0) {
                     textReport += `✓ SSD interaction flow matches ${mapRef}\n`;
                 } else {
-                    // Actor mismatch issues (diagram-level or SSD-Description mapping level)
+                    // Actor mismatch issues (diagram-level)
                     const actorMismatchIssues = consistencyIssues.filter(i =>
-                        i.code === 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH' || 
-                        i.code === 'SSD_CONSISTENCY_ACTOR_MISMATCH'
+                        i.code === 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH'
                     );
                     if (actorMismatchIssues.length > 0) {
                         actorMismatchIssues.forEach(issue => {
@@ -968,13 +967,12 @@ const CheckingModePanel = ({
 
                     // Group step-level issues by step number
                     const stepIssues = consistencyIssues.filter(i =>
-                        i.code !== 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH' &&
-                        i.code !== 'SSD_CONSISTENCY_ACTOR_MISMATCH'
+                        i.code !== 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH'
                     );
 
                     if (stepIssues.length > 0) {
                         textReport += `\nStep-by-Step Analysis:\n`;
-                        
+
                         const byStep = {};
                         stepIssues.forEach(issue => {
                             const step = issue.context?.stepNumber || '?';
@@ -1040,7 +1038,7 @@ const CheckingModePanel = ({
             textReport += '✓ All elements are correct.\n';
         } else {
             textReport += `✗ ${errorCount} Error(s) found\n`;
-            if (warningCount > 0) textReport += `⚠ ${warningCount} Warning(s) found\n`;
+            if (warningCount > 0) textReport += `! ${warningCount} Warning(s) found\n`;
 
             textReport += '\nSuggestions:\n';
             const suggestions = new Set();
