@@ -899,7 +899,7 @@ class CheckingEngine {
                 if (msgWords.length < 1 || !hasParens) {
                     issues.push({
                         type: 'consistency',
-                        severity: 'info',
+                        severity: 'warning',
                         code: 'SSD_CONSISTENCY_NAME_GUIDANCE',
                         message: 'Message Name Guidance',
                         relatedId: ucId,

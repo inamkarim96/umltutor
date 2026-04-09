@@ -1002,7 +1002,7 @@ const CheckingModePanel = ({
                                 } else if (matchStatus === 'matched') {
                                     icon = '✓'; statusLabel = 'Matched';
                                 } else {
-                                    icon = hasError ? '✗' : hasWarning ? '!' : '💡';
+                                    icon = hasError ? '✗' : hasWarning ? '!' : '->';
                                     statusLabel = hasError ? 'Error' : hasWarning ? 'Warning' : 'Suggestion';
                                 }
 
@@ -1042,7 +1042,7 @@ const CheckingModePanel = ({
                 if (issue.context && issue.context.suggestion) {
                     let stepPrefix = '';
                     if (issue.context.stepNumber && issue.context.stepNumber !== '?') {
-                         stepPrefix = `Step ${issue.context.stepNumber}: `;
+                        stepPrefix = `Step ${issue.context.stepNumber}: `;
                     }
                     let line = `• ${stepPrefix}${issue.context.suggestion}`;
                     // Append smart suggestions inline if available
