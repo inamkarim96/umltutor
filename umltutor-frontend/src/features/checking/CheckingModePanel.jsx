@@ -34,7 +34,7 @@ const CheckingModePanel = ({
     const [localReport, setLocalReport] = useState(null);
     const [localRunning, setLocalRunning] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     // Font size control logic
     const [fontSize, setFontSize] = useState(() => {
         const savedSize = localStorage.getItem("reportFontSize");
@@ -459,7 +459,26 @@ const CheckingModePanel = ({
                     });
                     report.score -= 20;
                 } else {
-                    passes.push(`Primary actor defined: ${description.primaryActor}`);
+                    // Check if selected actor exists in diagram
+                    const actorLabels = (model.diagram?.nodes || [])
+                        .filter(n => n.type === 'actor')
+                        .map(n => (n.data?.label || '').trim().toLowerCase());
+                    
+                    const selectedActorLower = description.primaryActor.trim().toLowerCase();
+                    
+                    if (actorLabels.length > 0 && !actorLabels.includes(selectedActorLower)) {
+                        issues.push({
+                            id: `invalid-primary-actor-${useCaseId}`,
+                            code: 'INVALID_PRIMARY_ACTOR',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Primary Actor "${description.primaryActor}" does not exist in the diagram.`,
+                            context: { useCaseId, suggestion: 'Ensure Primary Actor name matches the one in the Use Case Diagram.' }
+                        });
+                        report.score -= 10;
+                    } else {
+                        passes.push(`Primary actor defined: ${description.primaryActor}`);
+                    }
                 }
 
                 // Check preconditions
@@ -576,7 +595,7 @@ const CheckingModePanel = ({
                     description.alternativeFlows.forEach((altFlow, index) => {
                         const hasCondition = altFlow.condition && altFlow.condition.trim() !== '';
                         const hasResponse = altFlow.response && altFlow.response.trim() !== '';
-                        
+
                         // Skip completely empty optional rows
                         if (!hasCondition && !hasResponse) return;
 
@@ -871,21 +890,21 @@ const CheckingModePanel = ({
             // Use Case Description specific report
             const hasNoTitle = issues.some(i => i.code === 'NO_TITLE');
             const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR');
-            const hasNoPre = issues.some(i => 
-                i.code === 'NO_PRECONDITIONS' || 
-                i.code === 'INVALID_PRECONDITIONS' || 
+            const hasNoPre = issues.some(i =>
+                i.code === 'NO_PRECONDITIONS' ||
+                i.code === 'INVALID_PRECONDITIONS' ||
                 (i.message && i.message.toLowerCase().includes('precondition') && i.severity === 'error') ||
                 (i.id && i.id.toLowerCase().includes('precondition'))
             );
-            const hasNoPost = issues.some(i => 
-                i.code === 'NO_POSTCONDITIONS' || 
-                i.code === 'INVALID_POSTCONDITIONS' || 
+            const hasNoPost = issues.some(i =>
+                i.code === 'NO_POSTCONDITIONS' ||
+                i.code === 'INVALID_POSTCONDITIONS' ||
                 (i.message && i.message.toLowerCase().includes('postcondition') && i.severity === 'error') ||
                 (i.id && i.id.toLowerCase().includes('postcondition'))
             );
-            const hasNoFlow = issues.some(i => 
-                i.code === 'NO_MAIN_FLOW' || 
-                i.code === 'EMPTY_MAIN_FLOW_STEP' || 
+            const hasNoFlow = issues.some(i =>
+                i.code === 'NO_MAIN_FLOW' ||
+                i.code === 'EMPTY_MAIN_FLOW_STEP' ||
                 i.code === 'INVALID_MAIN_FLOW_STEP' ||
                 (i.message && i.message.toLowerCase().includes('main flow') && i.severity === 'error') ||
                 (i.message && i.message.toLowerCase().includes('main success scenario') && i.severity === 'error')
@@ -1141,11 +1160,11 @@ const CheckingModePanel = ({
                     </h2>
                     <div className="flex items-center gap-3">
                         <div className="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-200 shadow-sm" title="Adjust text size">
-                            <button onClick={handleDecreaseFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95"><Minus size={14} strokeWidth={2.5}/></button>
+                            <button onClick={handleDecreaseFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95"><Minus size={14} strokeWidth={2.5} /></button>
                             <span className="text-[11px] font-black text-gray-400 w-6 text-center select-none">{fontSize}</span>
-                            <button onClick={handleIncreaseFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95"><Plus size={14} strokeWidth={2.5}/></button>
+                            <button onClick={handleIncreaseFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95"><Plus size={14} strokeWidth={2.5} /></button>
                             <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                            <button onClick={handleResetFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95" title="Reset text size"><RotateCcw size={12} strokeWidth={3}/></button>
+                            <button onClick={handleResetFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95" title="Reset text size"><RotateCcw size={12} strokeWidth={3} /></button>
                         </div>
                         {onRunChecker && !isStudent && (
                             <button
@@ -1193,7 +1212,7 @@ const CheckingModePanel = ({
             </div>
             {/* Text Report Display */}
             <div className="flex-1 p-4 overflow-auto">
-                <pre 
+                <pre
                     className="font-mono text-gray-800 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-200 transition-all duration-200 ease-in-out"
                     style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
                 >

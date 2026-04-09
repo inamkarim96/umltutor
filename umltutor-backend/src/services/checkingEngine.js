@@ -1,14 +1,8 @@
 "use strict"; Object.defineProperty(exports, "__esModule", { value: true }); function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } var _ssdValidationService = require('./ssdValidationService');
 
-/**
- * Pure service for checking UML Model consistency and quality.
- * No database access.
- */
+
 class CheckingEngine {
-    // Lookup tables for better performance
-    /**
-     * Perform a check of the UML Model (can be global or focused on a section/target)
-     */
+
     static checkModel(model, section = null, targetId = null) {
         const issues = [];
 
@@ -104,18 +98,7 @@ class CheckingEngine {
         return labels.get(nodeId) || fallback;
     }
 
-    /**
-     * Classify a "System" description step into:
-     *   'self'     → internal operation (self-loop on System lifeline)
-     *   'external' → output/response to Actor (normal System → Actor arrow)
-     *   'actor'    → actor-initiated (not a System step at all)
-     *
-     * Rules:
-     *   INTERNAL verbs (self-loop): calculate, process, validate, check, compute, verify,
-     *                               update, store, save, record, log, retrieve, fetch, look, find
-     *   EXTERNAL verbs (output):    display, show, confirm, generate, return, notify, send,
-     *                               present, provide, redirect, output, emit, render, respond
-     */
+
     static classifySystemStep(stepText) {
         const s = (stepText || '').trim().toLowerCase();
 
@@ -242,33 +225,33 @@ class CheckingEngine {
 
         const trimmed = text.trim();
         if (trimmed.length < 10) {
-            return { 
-                isValid: false, 
-                error: 'Content is too short (minimum 10 characters).' 
+            return {
+                isValid: false,
+                error: 'Content is too short (minimum 10 characters).'
             };
         }
 
         const words = trimmed.split(/\s+/).filter(w => w.length > 0);
         if (words.length < 3) {
-            return { 
-                isValid: false, 
-                error: 'Please provide a complete sentence (at least 3 words).' 
+            return {
+                isValid: false,
+                error: 'Please provide a complete sentence (at least 3 words).'
             };
         }
 
         // Check if starts with a letter (capital or small)
         if (!/^[a-zA-Z]/.test(trimmed)) {
-            return { 
-                isValid: false, 
-                error: 'Sentence must start with a letter.' 
+            return {
+                isValid: false,
+                error: 'Sentence must start with a letter.'
             };
         }
 
         // Basic gibberish check: must contain at least one vowel
         if (!/[aeiouyAEIOUY]/.test(trimmed)) {
-            return { 
-                isValid: false, 
-                error: 'Content seems meaningless or invalid.' 
+            return {
+                isValid: false,
+                error: 'Content seems meaningless or invalid.'
             };
         }
 
@@ -486,17 +469,23 @@ class CheckingEngine {
                     location: 'description',
                     context: { suggestion: 'Please set up Primary Actor' }
                 });
-            } else if (!actorLabels.has(desc.primaryActor)) {
-                issues.push({
-                    type: 'consistency',
-                    severity: 'error',
-                    code: 'INVALID_PRIMARY_ACTOR',
-                    message: `Primary Actor "${desc.primaryActor}" in description for "${nodeLabel}" does not exist in the use case diagram.`,
-                    relatedId: node.id,
-                    path: 'primaryActor',
-                    location: 'description',
-                    context: { suggestion: 'Ensure Primary Actor name matches the one in the Use Case Diagram.' }
-                });
+            } else {
+                // Check if the actor name matches any value in actorLabels (case-insensitive)
+                const primaryActorLower = desc.primaryActor.trim().toLowerCase();
+                const availableActors = Array.from(actorLabels.values()).map(v => v.trim().toLowerCase());
+                
+                if (!availableActors.includes(primaryActorLower)) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'error',
+                        code: 'INVALID_PRIMARY_ACTOR',
+                        message: `Primary Actor "${desc.primaryActor}" in description for "${nodeLabel}" does not exist in the use case diagram.`,
+                        relatedId: node.id,
+                        path: 'primaryActor',
+                        location: 'description',
+                        context: { suggestion: 'Ensure Primary Actor name matches the one in the Use Case Diagram.' }
+                    });
+                }
             }
 
             // 2. Check preconditions
