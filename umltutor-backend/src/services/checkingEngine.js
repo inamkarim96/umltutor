@@ -675,15 +675,21 @@ class CheckingEngine {
             const firstMsg = messages.find(m => !m.isReturn);
             if (firstMsg) {
                 const sender = lifelines.find(l => l.id === firstMsg.fromLifelineId);
-                if (sender && sender.type === 'actor' && desc.primaryActor && sender.label !== desc.primaryActor) {
-                    issues.push({
-                        type: 'consistency',
-                        severity: 'warning',
-                        code: 'SSD_CONSISTENCY_ACTOR_MISMATCH',
-                        message: `SSD 3.${displayNum} Consistency error: Started with Actor "${sender.label}", but mapped ${mappingRef} defines "${desc.primaryActor}".`,
-                        relatedId: ucId,
-                        location: 'ssd'
-                    });
+                
+                if (sender && sender.type === 'actor' && desc.primaryActor) {
+                    const senderLabelLower = (sender.label || '').trim().toLowerCase();
+                    const descActorLower = (desc.primaryActor || '').trim().toLowerCase();
+                    
+                    if (senderLabelLower !== descActorLower) {
+                        issues.push({
+                            type: 'consistency',
+                            severity: 'error',
+                            code: 'SSD_CONSISTENCY_ACTOR_MISMATCH',
+                            message: `SSD 3.${displayNum} Consistency error: Started with Actor "${sender.label}", but mapped ${mappingRef} defines "${desc.primaryActor}".`,
+                            relatedId: ucId,
+                            location: 'ssd'
+                        });
+                    }
                 }
             }
         }

@@ -954,9 +954,10 @@ const CheckingModePanel = ({
                 if (consistencyIssues.length === 0) {
                     textReport += `✓ SSD interaction flow matches ${mapRef}\n`;
                 } else {
-                    // Actor mismatch issues (diagram-level)
+                    // Actor mismatch issues (diagram-level or SSD-Description mapping level)
                     const actorMismatchIssues = consistencyIssues.filter(i =>
-                        i.code === 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH'
+                        i.code === 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH' || 
+                        i.code === 'SSD_CONSISTENCY_ACTOR_MISMATCH'
                     );
                     if (actorMismatchIssues.length > 0) {
                         actorMismatchIssues.forEach(issue => {
@@ -967,7 +968,8 @@ const CheckingModePanel = ({
 
                     // Group step-level issues by step number
                     const stepIssues = consistencyIssues.filter(i =>
-                        i.code !== 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH'
+                        i.code !== 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH' &&
+                        i.code !== 'SSD_CONSISTENCY_ACTOR_MISMATCH'
                     );
 
                     if (stepIssues.length > 0) {
