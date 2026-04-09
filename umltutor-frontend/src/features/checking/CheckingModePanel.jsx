@@ -1012,10 +1012,6 @@ const CheckingModePanel = ({
                                     const problem = issue.context?.problem || issue.message;
                                     textReport += `  - ${problem}\n`;
 
-                                    // Show parsed message name if available
-                                    if (issue.context?.parsedMessage) {
-                                        textReport += `    Suggestion: "${issue.context.parsedMessage}"\n`;
-                                    }
                                 });
                             });
                     }
@@ -1044,7 +1040,11 @@ const CheckingModePanel = ({
             const suggestions = new Set();
             issues.forEach(issue => {
                 if (issue.context && issue.context.suggestion) {
-                    let line = `• ${issue.context.suggestion}`;
+                    let stepPrefix = '';
+                    if (issue.context.stepNumber && issue.context.stepNumber !== '?') {
+                         stepPrefix = `Step ${issue.context.stepNumber}: `;
+                    }
+                    let line = `• ${stepPrefix}${issue.context.suggestion}`;
                     // Append smart suggestions inline if available
                     if (issue.context.suggestions) {
                         const sg = issue.context.suggestions;
