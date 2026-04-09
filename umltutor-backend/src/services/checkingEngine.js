@@ -473,7 +473,7 @@ class CheckingEngine {
                 // Check if the actor name matches any value in actorLabels (case-insensitive)
                 const primaryActorLower = desc.primaryActor.trim().toLowerCase();
                 const availableActors = Array.from(actorLabels.values()).map(v => v.trim().toLowerCase());
-                
+
                 if (!availableActors.includes(primaryActorLower)) {
                     issues.push({
                         type: 'consistency',
@@ -675,11 +675,11 @@ class CheckingEngine {
             const firstMsg = messages.find(m => !m.isReturn);
             if (firstMsg) {
                 const sender = lifelines.find(l => l.id === firstMsg.fromLifelineId);
-                
+
                 if (sender && sender.type === 'actor' && desc.primaryActor) {
                     const senderLabelLower = (sender.label || '').trim().toLowerCase();
                     const descActorLower = (desc.primaryActor || '').trim().toLowerCase();
-                    
+
                     if (senderLabelLower !== descActorLower) {
                         issues.push({
                             type: 'consistency',
@@ -894,12 +894,12 @@ class CheckingEngine {
                 // Validate naming — also surface smart suggestions for how to name the message
                 const sg = this.suggestFromSentence(stepTextOrig);
                 const hasParens = msgOrig.includes('(') || msgOrig.includes(')');
-                
+
                 // If the user's message is loosely matched but doesn't follow method format, guide them
                 if (msgWords.length < 1 || !hasParens) {
                     issues.push({
                         type: 'consistency',
-                        severity: 'warning',
+                        severity: 'info',
                         code: 'SSD_CONSISTENCY_NAME_GUIDANCE',
                         message: 'Message Name Guidance',
                         relatedId: ucId,
@@ -908,7 +908,12 @@ class CheckingEngine {
                             stepNumber: `${stepNo}`,
                             problem: `Message ${msg.order} ("${msgOrig}") lacks standard structural formatting (action/parameters).`,
                             suggestion: `Rename to clearly describe the action using standard notation.`,
-                            parsedMessage: sg.nearestFunctionWithParam
+                            parsedMessage: sg.nearestFunctionWithParam,
+                            suggestions: {
+                                nearestMessage: sg.nearestMessage,
+                                nearestFunction: sg.nearestFunction,
+                                nearestFunctionWithParam: sg.nearestFunctionWithParam,
+                            }
                         }
                     });
                 }
