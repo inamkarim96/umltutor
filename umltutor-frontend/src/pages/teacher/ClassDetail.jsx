@@ -33,7 +33,6 @@ import {
 import StudentEnrollment from '../../features/teacher/components/StudentEnrollment';
 import CreateAssignmentModal from '../../features/teacher/components/CreateAssignmentModal';
 import AssignmentList from '../../features/teacher/components/AssignmentList';
-import TeacherAnalytics from '../../features/teacher/components/TeacherAnalytics';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import apiClient from '../../services/apiClient';
 import { getEnrolledStudentsLogic, removeStudentLogic } from '../../features/teacher/teacherLogic';
@@ -247,10 +246,6 @@ const ClassDetail = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div className="mb-10">
-                    <TeacherAnalytics classId={classId} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
