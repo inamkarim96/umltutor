@@ -163,7 +163,7 @@ const TeacherDashboard = () => {
             <div className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-                        Welcome back, Prof. {user?.firstName || user?.name || 'Teacher'}!
+                        Welcome back, {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || user?.name || 'Teacher'}!
                     </h1>
                     <p className="text-gray-500 mt-1 font-medium">Here's an overview of your academic workspace today.</p>
                 </div>

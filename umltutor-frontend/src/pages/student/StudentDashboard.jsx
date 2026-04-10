@@ -138,7 +138,7 @@ const StudentDashboard = () => {
             <div className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                        Hi, {user?.firstName || user?.name || 'Student'}!
+                        Hi, {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || user?.name || 'Student'}!
                     </h1>
                     <p className="text-gray-500 mt-1 font-medium">Ready to continue your learning journey?</p>
                 </div>

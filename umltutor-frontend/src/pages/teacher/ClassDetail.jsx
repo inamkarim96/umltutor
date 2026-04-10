@@ -47,7 +47,7 @@ const ClassDetail = () => {
     const user = useAppSelector(selectUser);
 
     // Find class by Name Slug
-    const targetClass = classes.find(c => 
+    const targetClass = classes.find(c =>
         c.name.toLowerCase().replace(/\s+/g, '-') === className.toLowerCase()
     );
     const classId = targetClass?.id;
@@ -359,5 +359,8 @@ const ClassDetail = () => {
 };
 
 export default ClassDetail;
+
+
+
 
 
