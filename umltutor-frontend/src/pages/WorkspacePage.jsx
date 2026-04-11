@@ -129,7 +129,7 @@ const WorkspacePage = ({ mode }) => {
     }, [assignmentObj, submissions, currentSubmission, assignmentId, titleSlug]);
 
     return (
-        <div className="h-screen flex flex-col bg-white dark:bg-gray-900">
+        <div className="h-screen flex flex-col bg-white">
             {/* Mode Banner */}
             <div className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-center flex items-center justify-center gap-4 ${currentMode === 'tutorial'
                 ? 'bg-green-600 text-white'

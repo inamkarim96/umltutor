@@ -49,10 +49,10 @@ const StepSelectionModal = ({ isOpen, onClose, onSelect, format }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-[32px] p-8 max-w-md w-full shadow-2xl ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 italic tracking-tight">Select Export Step</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+          <h2 className="text-2xl font-black text-gray-900 italic tracking-tight">Select Export Step</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X size={20} className="text-gray-400" />
           </button>
         </div>
@@ -72,11 +72,11 @@ const StepSelectionModal = ({ isOpen, onClose, onSelect, format }) => {
               key={step.id}
               data-step-id={step.id}
               onClick={() => onSelect(step.id)}
-              className="w-full p-5 bg-gray-50 dark:bg-gray-800/50 border-2 border-transparent hover:border-indigo-500/30 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/20 rounded-2xl text-left transition-all flex items-center justify-between group"
+              className="w-full p-5 bg-gray-50 border-2 border-transparent hover:border-indigo-500/30 hover:bg-indigo-50/30 rounded-2xl text-left transition-all flex items-center justify-between group"
             >
               <div>
                 <span className="block text-[10px] font-black uppercase text-indigo-600 mb-0.5 tracking-widest">{step.label}</span>
-                <span className="block font-black text-gray-800 dark:text-gray-200">{step.desc}</span>
+                <span className="block font-black text-gray-800 ">{step.desc}</span>
               </div>
               <ArrowRight size={20} className="text-gray-300 group-hover:text-indigo-500 transform group-hover:translate-x-1 transition-all" />
             </button>
@@ -408,7 +408,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
   if (!model) {
     return (
-      <div className="h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+      <div className="h-screen flex items-center justify-center bg-white ">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-500 font-bold">Initializing Workspace...</p>
@@ -428,7 +428,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             <div className="flex-1 min-w-0 h-full overflow-hidden">
               <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
             </div>
-            <div className="w-80 border-l border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/10 flex flex-col h-full animate-in slide-in-from-right duration-500">
+            <div className="w-80 border-l border-gray-100 bg-gray-50/30 flex flex-col h-full animate-in slide-in-from-right duration-500">
               <CheckingModePanel
                 activeSection="usecase"
                 reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
@@ -461,12 +461,12 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-white dark:bg-gray-900">
+    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-white ">
       {/* Sidebar Navigation */}
-      <div className="w-full md:w-64 max-h-48 md:max-h-none border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-y-auto">
+      <div className="w-full md:w-64 max-h-48 md:max-h-none border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto">
         {/* Tutorial Mode Toggle (Enabled ONLY if Approved) */}
         {currentSubmission?.tutorialApproved && (
-          <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-indigo-50/30 dark:bg-indigo-900/10">
+          <div className="p-4 border-b border-gray-200 bg-indigo-50/30 ">
             <button
               onClick={() => {
                 const newMode = currentMode === 'tutorial' ? 'development' : 'tutorial';
@@ -485,8 +485,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
           </div>
         )}
 
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <h1 className="text-sm font-black uppercase tracking-tighter text-indigo-600 dark:text-indigo-400">
+        <div className="p-4 border-b border-gray-200 ">
+          <h1 className="text-sm font-black uppercase tracking-tighter text-indigo-600 ">
             {currentMode === 'tutorial' ? 'Tutorial Steps' : 'Editor Sections'}
           </h1>
         </div>
@@ -497,8 +497,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
               key={section.id}
               onClick={() => handleSectionTabChange(section.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${activeSection === section.id
-                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                ? 'bg-indigo-50 text-indigo-700 shadow-sm'
+                : 'text-gray-500 hover:bg-gray-50 '
                 } ${isTutorialMode && section.isLocked ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
             >
               {section.label}
@@ -507,13 +507,13 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         </nav>
 
         {currentMode === 'development' && (!isStudentWork || isGraded || currentSubmission?.tutorialApproved) && (
-          <div className="p-2 border-t border-gray-200 dark:border-gray-800">
+          <div className="p-2 border-t border-gray-200 ">
             <button
               id="checking-toggle-btn"
               onClick={toggleCheckingMode}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${isCheckingActive
                 ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 '
                 }`}
             >
               <span>{isGraded || currentSubmission?.tutorialApproved ? 'Teacher Report' : 'Checking Mode'}</span>
@@ -522,7 +522,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
           </div>
         )}
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
+        <div className="p-4 border-t border-gray-200 space-y-3">
           <div className="flex gap-2">
             <div className="flex-1 relative" ref={exportDropdownRef}>
               <button
@@ -534,7 +534,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                 <ChevronDown size={10} className={`transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
               </button>
               {showExportDropdown && (
-                <div className="absolute bottom-full mb-2 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 z-50">
+                <div className="absolute bottom-full mb-2 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-50">
                   <div className="grid grid-cols-2 gap-1 mb-2">
                     {['png', 'jpeg', 'svg', 'pdf'].map(ext => (
                       <button
@@ -543,13 +543,13 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                           setExportModal({ isOpen: true, format: ext });
                           setShowExportDropdown(false);
                         }}
-                        className="text-left px-2 py-1 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 font-bold"
+                        className="text-left px-2 py-1 text-[10px] hover:bg-gray-100 rounded border border-gray-100 bg-gray-50/50 font-bold"
                       >
                         {ext.toUpperCase()}
                       </button>
                     ))}
                   </div>
-                  <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
+                  <div className="border-t border-gray-200 my-1"></div>
                   <button
                     onClick={async () => {
                       setIsExporting(true);
@@ -586,7 +586,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                         setShowExportDropdown(false);
                       }
                     }}
-                    className="w-full text-left px-2 py-1.5 text-[10px] hover:bg-indigo-50 dark:hover:bg-indigo-900/40 rounded font-black text-indigo-600 dark:text-indigo-400 flex flex-col gap-0.5"
+                    className="w-full text-left px-2 py-1.5 text-[10px] hover:bg-indigo-50 rounded font-black text-indigo-600 flex flex-col gap-0.5"
                   >
                     <div className="flex items-center gap-1.5 font-black">
                       <File size={10} />
@@ -599,7 +599,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             </div>
           </div>
           {saveError && (
-            <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] font-bold border border-red-100 dark:border-red-800/50">
+            <div className="p-2 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold border border-red-100 ">
               {saveError}
             </div>
           )}
@@ -607,18 +607,18 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full border-l border-gray-100 dark:border-gray-800">
+      <div className="flex-1 flex flex-col min-w-0 h-full border-l border-gray-100 ">
         {/* Assignment Header (Student Only) */}
         {isStudentWork && model && (
-          <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 transition-all flex flex-col">
+          <div className="bg-white border-b border-gray-100 transition-all flex flex-col">
             <div className="px-4 sm:px-8 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-xl shadow-sm">
+                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl shadow-sm">
                   📝
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-gray-900 dark:text-gray-100">{model.title || assignmentDetails?.title}</h2>
+                    <h2 className="text-lg font-black text-gray-900 ">{model.title || assignmentDetails?.title}</h2>
                     <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[8px] font-black rounded uppercase tracking-widest">Assignment</span>
                   </div>
                   <p className="text-xs text-gray-500 font-medium truncate max-w-md">{model.description || assignmentDetails?.description}</p>
@@ -650,14 +650,14 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             {/* Expandable Brief Content */}
             {isInstructionsOpen && (
               <div className="px-8 pb-6 animate-in slide-in-from-top-2 duration-300">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-50 dark:border-gray-800">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-50 ">
                   <div className="md:col-span-2 space-y-4">
                     {/* Instructions/Text Content */}
                     <div>
                       <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
                         <FileText size={12} /> Assignment Brief & Instructions
                       </h3>
-                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 text-sm text-gray-700 dark:text-gray-300 leading-relaxed max-h-60 overflow-y-auto font-medium">
+                      <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-700 leading-relaxed max-h-60 overflow-y-auto font-medium">
                         {model.textContent ? (
                           <div className="whitespace-pre-wrap">{model.textContent}</div>
                         ) : model.instructions ? (
@@ -681,20 +681,20 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                             href={model.assignmentFileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm"
+                            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm"
                           >
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
                                 <File size={16} />
                               </div>
-                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
+                              <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]">
                                 {model.assignmentFileName || 'Resource File'}
                               </span>
                             </div>
                             <Download size={14} className="text-gray-400 group-hover:text-indigo-600" />
                           </a>
                         ) : (
-                          <div className="p-8 text-center bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                          <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 ">
                             <p className="text-[10px] font-bold text-gray-400 uppercase">No extra files</p>
                           </div>
                         )}
@@ -708,15 +708,15 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         )}
 
         <div className="flex-1 relative overflow-hidden h-full">
-          <div className="h-full flex flex-col bg-slate-50 dark:bg-gray-950">
+          <div className="h-full flex flex-col bg-slate-50 ">
             <div className={`flex-1 relative overflow-auto transition-all duration-700 ${isTutorialMode && !sections.find(s => s.id === activeSection)?.isActive ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
               {renderContent()}
               {isTutorialMode && !sections.find(s => s.id === activeSection)?.isActive ? (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-50/10 backdrop-blur-[1px]">
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
+                  <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 flex flex-col items-center gap-3">
                     <Lock size={48} className="text-gray-300" />
-                    <p className="font-black text-gray-800 dark:text-gray-100">Step Locked</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-[200px]">
+                    <p className="font-black text-gray-800 ">Step Locked</p>
+                    <p className="text-xs text-gray-500 text-center max-w-[200px]">
                       {sections.find(s => s.id === activeSection)?.isLocked ? "Please complete the previous step first." : "This step is already completed."}
                     </p>
                   </div>
@@ -724,7 +724,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
               ) : null}
             </div>
             {/* Professional Navigation Bar */}
-            <div className="p-3 sm:p-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] bg-slate-50/50 backdrop-blur-sm overflow-x-auto">
+            <div className="p-3 sm:p-6 bg-white border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] bg-slate-50/50 backdrop-blur-sm overflow-x-auto">
               <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
                 <button
                   onClick={handleBack}
@@ -869,8 +869,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
       {exportModal.subItems && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-[32px] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-4 italic">Select Specific Item</h3>
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-black text-gray-900 mb-4 italic">Select Specific Item</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
               {exportModal.subItems.map(item => (
                 <button
@@ -882,7 +882,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                     const selectBtn = document.querySelector(`[data-step-id="${stepId}"]`);
                     if (selectBtn) selectBtn.click();
                   }}
-                  className="w-full p-4 bg-gray-50 dark:bg-gray-800/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-left rounded-xl transition-all font-bold text-gray-800 dark:text-gray-200 border border-transparent hover:border-indigo-200"
+                  className="w-full p-4 bg-gray-50 hover:bg-indigo-50 text-left rounded-xl transition-all font-bold text-gray-800 border border-transparent hover:border-indigo-200"
                 >
                   {item.label}
                 </button>
@@ -900,7 +900,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
       {isExporting && (
         <>
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/60 dark:bg-gray-950/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/60 backdrop-blur-md">
             <div className="text-center">
               <div className="w-16 h-16 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-sm font-black text-indigo-600 uppercase tracking-widest">Preparing High-Quality Export...</p>

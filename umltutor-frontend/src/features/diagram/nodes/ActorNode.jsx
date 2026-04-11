@@ -186,7 +186,7 @@ const ActorNode = ({ id, data, selected }) => {
                     width={currentIconSize}
                     height={currentIconSize * 1.5}
                     viewBox="0 0 40 60"
-                    className="text-gray-900 dark:text-gray-100 fill-current pointer-events-none"
+                    className="text-gray-900 fill-current pointer-events-none"
                 >
                     <circle cx="20" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
                     <line x1="20" y1="18" x2="20" y2="35" stroke="currentColor" strokeWidth="2" />
@@ -216,12 +216,12 @@ const ActorNode = ({ id, data, selected }) => {
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className="w-full text-center text-sm border border-indigo-300 rounded px-1 outline-none font-medium bg-white dark:bg-gray-700 dark:text-white"
+                        className="w-full text-center text-sm border border-indigo-300 rounded px-1 outline-none font-medium bg-white"
                         autoFocus
                     />
                 ) : (
                     <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 select-none pointer-events-none">{label}</span>
+                        <span className="text-sm font-medium text-gray-900 select-none pointer-events-none">{label}</span>
                         {isLocked && <Lock size={12} className="text-indigo-500 ml-1" />}
                     </div>
                 )}
@@ -238,7 +238,7 @@ const ActorNode = ({ id, data, selected }) => {
                     style={{ transform: 'translate(25%, 25%)', zIndex: 60 }}
                     onMouseDown={handleResizeStart}
                 >
-                    <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-sm pointer-events-none" />
+                    <div className="w-2 h-2 bg-gray-400 rounded-sm pointer-events-none" />
                 </div>
             )}
         </div>

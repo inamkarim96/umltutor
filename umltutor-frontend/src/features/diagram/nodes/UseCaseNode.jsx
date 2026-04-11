@@ -133,7 +133,7 @@ const UseCaseNode = ({ id, data, selected }) => {
     return (
         <div
             ref={nodeRef}
-            className={`relative bg-white dark:bg-gray-800 border-2 rounded-full shadow-sm flex items-center justify-center cursor-pointer group ${hasErrors ? 'border-dashed border-red-500 bg-red-50/50' : 'border-gray-800 dark:border-gray-400'}`}
+            className={`relative bg-white border-2 rounded-full shadow-sm flex items-center justify-center cursor-pointer group ${hasErrors ? 'border-dashed border-red-500 bg-red-50/50' : 'border-gray-800'}`}
             style={{
                 zIndex: 50,
                 width: `${currentWidth}px`,
@@ -157,12 +157,12 @@ const UseCaseNode = ({ id, data, selected }) => {
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className="w-full text-center text-sm bg-transparent border-none outline-none font-bold text-gray-900 dark:text-white"
+                        className="w-full text-center text-sm bg-transparent border-none outline-none font-bold text-gray-900"
                         autoFocus
                     />
                 ) : (
                     <div className="flex items-center justify-center">
-                        <span className="text-sm font-bold text-gray-900 dark:text-white break-words max-w-[140px] block mx-auto select-none pointer-events-none">
+                        <span className="text-sm font-bold text-gray-900 break-words max-w-[140px] block mx-auto select-none pointer-events-none">
                             {label}
                         </span>
                         {isLocked && <Lock size={12} className="text-indigo-500 ml-1" />}
@@ -177,7 +177,7 @@ const UseCaseNode = ({ id, data, selected }) => {
                     style={{ transform: 'translate(25%, 25%)', zIndex: 60 }}
                     onMouseDown={handleResizeStart}
                 >
-                    <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-sm pointer-events-none" />
+                    <div className="w-2 h-2 bg-gray-400 rounded-sm pointer-events-none" />
                 </div>
             )}
         </div>

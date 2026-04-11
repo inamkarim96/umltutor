@@ -128,7 +128,7 @@ const SystemBoundaryNode = ({ id, data, selected }) => {
     return (
         <div
             ref={nodeRef}
-            className={`border-2 rounded-sm relative group cursor-pointer animate-none ${hasErrors ? 'border-dashed border-red-500 bg-red-50/10' : 'border-gray-800 dark:border-gray-500 bg-gray-50/5'}`}
+            className={`border-2 rounded-sm relative group cursor-pointer animate-none ${hasErrors ? 'border-dashed border-red-500 bg-red-50/10' : 'border-gray-800 bg-gray-50/5'}`}
             style={{
                 zIndex: 0,
                 width: `${currentWidth}px`,
@@ -147,7 +147,7 @@ const SystemBoundaryNode = ({ id, data, selected }) => {
 
             {/* Title bar - Interactive for editing */}
             <div
-                className={`system-title absolute top-[-18px] left-1/2 transform -translate-x-1/2 px-4 py-1 rounded shadow-sm border transition-colors flex items-center gap-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 ${!isReadOnly ? 'cursor-text' : 'cursor-default'}`}
+                className={`system-title absolute top-[-18px] left-1/2 transform -translate-x-1/2 px-4 py-1 rounded shadow-sm border transition-colors flex items-center gap-2 bg-white border-gray-300 text-gray-900 ${!isReadOnly ? 'cursor-text' : 'cursor-default'}`}
                 onDoubleClick={handleDoubleClick}
                 style={{
                     zIndex: 5,
@@ -181,7 +181,7 @@ const SystemBoundaryNode = ({ id, data, selected }) => {
                     style={{ verticalAlign: 'middle', zIndex: 10 }}
                     onMouseDown={handleResizeStart}
                 >
-                    <div className="w-3 h-3 bg-gray-400 dark:bg-gray-500 rounded-sm pointer-events-none" />
+                    <div className="w-3 h-3 bg-gray-400 rounded-sm pointer-events-none" />
                 </div>
             )}
         </div>

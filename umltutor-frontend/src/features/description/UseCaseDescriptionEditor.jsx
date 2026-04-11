@@ -118,9 +118,9 @@ export const UseCaseDescriptionEditor = ({
 
     if (useCaseNodes.length === 0 && isTutorialMode) {
         return (
-            <div className="flex flex-col items-center justify-center h-[500px] text-center p-8 bg-gray-50 dark:bg-gray-900/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-3xl mb-4">💡</div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Use Cases Found</h3>
+            <div className="flex flex-col items-center justify-center h-[500px] text-center p-8 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-3xl mb-4">💡</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Use Cases Found</h3>
                 <p className="text-gray-500 max-w-md">Please go back to <b>Step 1: Use Case Diagram</b> and add at least one Use Case node to the diagram before writing descriptions.</p>
             </div>
         );
@@ -129,7 +129,7 @@ export const UseCaseDescriptionEditor = ({
     return (
         <div className="flex flex-col h-full overflow-visible">
             <header className="mb-6 px-4">
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Step 2: Use Case Descriptions</h2>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Step 2: Use Case Descriptions</h2>
                 <p className="text-sm text-gray-500 font-medium">Define the behavior and requirements for each use case.</p>
             </header>
 
@@ -143,14 +143,14 @@ export const UseCaseDescriptionEditor = ({
                         <div
                             key={`${id}-${index}`}
                             data-description-id={id}
-                            className="relative bg-white dark:bg-gray-900 rounded-[32px] border-2 border-slate-100 dark:border-slate-800 p-8 mb-12 shadow-sm transition-all hover:border-indigo-100 dark:hover:border-indigo-900/30"
+                            className="relative bg-white rounded-[32px] border-2 border-slate-100 p-8 mb-12 shadow-sm transition-all hover:border-indigo-100"
                         >
                             <div className="flex items-center justify-between mb-8">
                                 <div className="flex items-center gap-3">
                                     <span className="bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-black shadow-md flex items-center justify-center min-w-[3rem]">
                                         {displayLabel}
                                     </span>
-                                    <div className="h-px w-24 bg-slate-100 dark:bg-slate-800"></div>
+                                    <div className="h-px w-24 bg-slate-100"></div>
                                     <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
                                         Use Case Description Section
                                     </span>
@@ -159,7 +159,7 @@ export const UseCaseDescriptionEditor = ({
                                 {!isReadOnly && (
                                     <button
                                         onClick={() => handleRemoveBlock(index)}
-                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
+                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
                                         title="Remove Section"
                                     >
                                         <X size={14} /> Remove
@@ -189,13 +189,13 @@ export const UseCaseDescriptionEditor = ({
                                     <div className="min-w-[300px] w-full lg:w-[35%] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-[750px]">
                                         <div className="sticky top-6 flex flex-col h-full w-full">
                                             <div className="mb-4 flex items-center gap-2 flex-shrink-0">
-                                                <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
+                                                <div className="h-px flex-1 bg-slate-100"></div>
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                                                     <Play size={12} fill="currentColor" /> Independent Runner
                                                 </span>
-                                                <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
+                                                <div className="h-px flex-1 bg-slate-100"></div>
                                             </div>
-                                            <div className="flex-1 overflow-y-auto w-full rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm bg-slate-50/50 dark:bg-slate-900/50">
+                                            <div className="flex-1 overflow-y-auto w-full rounded-[24px] border border-slate-200 shadow-sm bg-slate-50/50">
                                                 <CheckingModePanel
                                                     activeSection="description"
                                                     label={displayLabel}
@@ -218,7 +218,7 @@ export const UseCaseDescriptionEditor = ({
                 {!isReadOnly && (
                     <button
                         onClick={handleAddBlock}
-                        className="w-full py-6 border-2 border-dashed border-indigo-200 dark:border-indigo-900/50 rounded-2xl text-indigo-500 font-black hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-400 transition-all flex items-center justify-center gap-2"
+                        className="w-full py-6 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-500 font-black hover:bg-indigo-50 hover:border-indigo-400 transition-all flex items-center justify-center gap-2"
                     >
                         <span className="text-xl">+</span>
                         Add Another Use Case Description

@@ -251,8 +251,8 @@ const SSDLifelineNode = ({ id, data, selected }) => {
             <div
                 className={`
                 px-4 py-2 rounded-lg border shadow-sm min-w-[110px] text-center
-                bg-white dark:bg-gray-800 border-gray-900 dark:border-gray-100 transition-colors
-                ${selected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20' : ''}
+                bg-white border-gray-900 transition-colors
+                ${selected ? 'ring-2 ring-blue-400 bg-blue-50' : ''}
                 cursor-grab active:cursor-grabbing
             `}
                 onMouseDown={handleLifelineDragStart}
@@ -264,7 +264,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                             width={currentIconSize}
                             height={currentIconSize * 1.5}
                             viewBox="0 0 30 40"
-                            className="text-blue-600 dark:text-blue-400"
+                            className="text-blue-600"
                         >
                             <circle cx="15" cy="6" r="4" fill="currentColor" />
                             <line x1="15" y1="10" x2="15" y2="22" stroke="currentColor" strokeWidth="2.5" />
@@ -293,7 +293,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                             width={currentIconSize}
                             height={currentIconSize}
                             viewBox="0 0 24 24"
-                            className="text-green-600 dark:text-green-400"
+                            className="text-green-600"
                         >
                             <rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
                             <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" strokeWidth="2" />
@@ -320,7 +320,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                             width={currentIconSize}
                             height={currentIconSize}
                             viewBox="0 0 24 24"
-                            className="text-purple-600 dark:text-purple-400"
+                            className="text-purple-600"
                         >
                             <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
                             <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" strokeWidth="1.5" />
@@ -350,11 +350,11 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                         onKeyDown={handleKeyDown}
                         onMouseDown={e => e.stopPropagation()}
                         onClick={e => e.stopPropagation()}
-                        className="w-full text-center text-sm border border-indigo-300 rounded px-1 outline-none font-medium bg-white dark:bg-gray-800 dark:text-white"
+                        className="w-full text-center text-sm border border-indigo-300 rounded px-1 outline-none font-medium bg-white"
                         autoFocus
                     />
                 ) : (
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{label}</span>
+                    <span className="text-sm font-semibold text-gray-900">{label}</span>
                 )}
             </div>
 
@@ -362,7 +362,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
             <div className="relative mt-2" style={{ height: `${currentHeight}px` }}>
                 {/* Dashed line */}
                 <div
-                    className="absolute left-1/2 -translate-x-1/2 border-l-2 border-dashed border-gray-400 dark:border-gray-500"
+                    className="absolute left-1/2 -translate-x-1/2 border-l-2 border-dashed border-gray-400"
                     style={{ height: '100%', top: 0 }}
                 />
 
@@ -383,7 +383,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                 <div
                     className={`absolute inset-0 transition-colors pointer-events-none
                         ${isInMessageCreationMode() || isInActivationPlacementMode()
-                            ? 'bg-blue-50/30 dark:bg-blue-900/10'
+                            ? 'bg-blue-50/30'
                             : ''}`}
                 />
             </div>

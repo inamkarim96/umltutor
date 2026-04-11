@@ -312,8 +312,8 @@ const UseCaseDiagramEditor = ({ assignmentId, initialData, isReadOnly = false, h
             `}} />
             <ReactFlowProvider>
                 <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center justify-between shrink-0 z-10">
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Use Case Diagram</h2>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <h2 className="text-lg font-semibold text-gray-800">Use Case Diagram</h2>
+                    <div className="text-sm text-gray-500">
                         {isReadOnly ? 'Read-only preview' : 'Drag to move • Drag handles to resize • Double-click to rename'}
                     </div>
                 </div>

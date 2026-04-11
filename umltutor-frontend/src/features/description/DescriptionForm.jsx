@@ -92,11 +92,11 @@ export const DescriptionForm = ({
         onSave(currentValues);
     };
 
-    const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-gray-900 transition-all font-medium text-gray-700 dark:text-gray-200";
+    const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-gray-700";
 
     if (availableUseCases.length === 0 && !isDevelopmentMode) {
         return (
-            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 p-6 rounded-2xl flex items-center gap-4 text-amber-700 dark:text-amber-400">
+            <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-center gap-4 text-amber-700">
                 <AlertCircle size={24} />
                 <p className="font-bold">No use cases found in diagram. Please add use cases in Step 1.</p>
             </div>
@@ -108,7 +108,7 @@ export const DescriptionForm = ({
             <div className="space-y-6 max-w-4xl mx-auto pb-12">
                 {/* Warning for Development Mode */}
                 {availableUseCases.length === 0 && isDevelopmentMode && (
-                    <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-center gap-3 text-amber-700 dark:text-amber-400 mb-6">
+                    <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-700 mb-6">
                         <AlertCircle size={20} />
                         <p className="text-sm font-bold">Warning: No Use Cases detected in the diagram. You can still write descriptions in Development Mode.</p>
                     </div>
@@ -124,7 +124,7 @@ export const DescriptionForm = ({
                         <select
                             value={useCaseId || ''}
                             onChange={(e) => onUseCaseChange(e.target.value)}
-                            className={`${inputClass} cursor-pointer bg-slate-50/50 dark:bg-slate-900 shadow-inner`}
+                            className={`${inputClass} cursor-pointer bg-slate-50/50 shadow-inner`}
                         >
                             <option value="" disabled>Choose an active use case...</option>
                             {availableUseCases.map(uc => <option key={uc.id} value={uc.id}>{uc.label}</option>)}
@@ -144,7 +144,7 @@ export const DescriptionForm = ({
                         <select
                             {...register('primaryActor')}
                             disabled={isReadOnly}
-                            className={`${inputClass} ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} bg-slate-50/50 dark:bg-slate-900 shadow-inner`}
+                            className={`${inputClass} ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} bg-slate-50/50 shadow-inner`}
                             onBlur={handleFieldBlur}
                         >
                             <option value="" disabled>Select the primary actor...</option>
@@ -153,7 +153,7 @@ export const DescriptionForm = ({
                             ))}
                         </select>
                     ) : (
-                        <div className="p-4 w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-center text-sm italic">
+                        <div className="p-4 w-full bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400 text-center text-sm italic">
                             No actors connected to this use case in the diagram.
                         </div>
                     )}
@@ -172,7 +172,7 @@ export const DescriptionForm = ({
                         {...register('preconditions')}
                         disabled={isReadOnly}
                         rows={3}
-                        className={`${inputClass} resize-none min-h-[100px] bg-slate-50/50 dark:bg-slate-900 shadow-inner ${errors.preconditions ? 'border-red-500 focus:ring-red-500 border-2' : ''}`}
+                        className={`${inputClass} resize-none min-h-[100px] bg-slate-50/50 shadow-inner ${errors.preconditions ? 'border-red-500 focus:ring-red-500 border-2' : ''}`}
                         onBlur={handleFieldBlur}
                         placeholder="Describe system state before execution..."
                     />
@@ -191,7 +191,7 @@ export const DescriptionForm = ({
                         {...register('postconditions')}
                         disabled={isReadOnly}
                         rows={3}
-                        className={`${inputClass} resize-none min-h-[100px] bg-slate-50/50 dark:bg-slate-900 shadow-inner ${errors.postconditions ? 'border-red-500 focus:ring-red-500 border-2' : ''}`}
+                        className={`${inputClass} resize-none min-h-[100px] bg-slate-50/50 shadow-inner ${errors.postconditions ? 'border-red-500 focus:ring-red-500 border-2' : ''}`}
                         onBlur={handleFieldBlur}
                         placeholder="Describe system state after successful completion..."
                     />
@@ -223,7 +223,7 @@ const MainSuccessScenarioCard = ({ isReadOnly, onFieldBlur }) => {
                     <button
                         type="button"
                         onClick={() => append({ stepNumber: fields.length + 1, action: '' })}
-                        className="px-4 py-2 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 rounded-lg font-bold text-xs hover:bg-indigo-100 transition-all border border-indigo-100 dark:border-indigo-800/50"
+                        className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-xs hover:bg-indigo-100 transition-all border border-indigo-100"
                     >
                         + Add Step
                     </button>
@@ -236,14 +236,14 @@ const MainSuccessScenarioCard = ({ isReadOnly, onFieldBlur }) => {
             <div className="space-y-4">
                 {fields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-4 group">
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900/30 flex items-center justify-center shrink-0 text-xs font-black text-gray-400 border border-gray-100 dark:border-gray-800">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0 text-xs font-black text-gray-400 border border-gray-100">
                             {index + 1}
                         </div>
                         <div className="flex-1">
                             <input
                                 {...register(`mainFlow.${index}.action`)}
                                 disabled={isReadOnly}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-gray-900 transition-all font-medium"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
                                 placeholder="Action step content..."
                                 autoComplete="off"
                                 onBlur={onFieldBlur}
@@ -253,7 +253,7 @@ const MainSuccessScenarioCard = ({ isReadOnly, onFieldBlur }) => {
                             <button
                                 type="button"
                                 onClick={() => remove(index)}
-                                className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all border border-transparent hover:border-red-100 dark:hover:border-red-800/50"
+                                className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
                                 title="Remove Step"
                             >
                                 <Trash2 size={18} />
@@ -279,7 +279,7 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
             </div>
             <div className="space-y-4">
                 {fields.map((field, index) => (
-                    <div key={field.id} className="p-6 rounded-2xl bg-gray-50/50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 relative group">
+                    <div key={field.id} className="p-6 rounded-2xl bg-gray-50/50 border border-gray-100 relative group">
                         {!isReadOnly && (
                             <button
                                 type="button"
@@ -295,7 +295,7 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Related Step</label>
                                 <select
                                     {...register(`alternativeFlows.${index}.relatedStep`, { valueAsNumber: true })}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:bg-gray-800 font-bold text-xs bg-white dark:bg-gray-900 h-10"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 font-bold text-xs bg-white h-10"
                                     onBlur={onFieldBlur}
                                 >
                                     {mainFlow.map((_, i) => <option key={i} value={i + 1}>Step {i + 1}</option>)}
@@ -306,7 +306,7 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                                     <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Condition</label>
                                     <input
                                         {...register(`alternativeFlows.${index}.condition`)}
-                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:bg-gray-800 text-sm font-medium"
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium"
                                         placeholder="If this condition is met..."
                                         autoComplete="off"
                                         onBlur={onFieldBlur}
@@ -316,7 +316,7 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                                     <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">System Response</label>
                                     <input
                                         {...register(`alternativeFlows.${index}.response`)}
-                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:bg-gray-800 text-sm font-medium"
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium"
                                         placeholder="Then the system performs this action..."
                                         autoComplete="off"
                                         onBlur={onFieldBlur}
@@ -330,7 +330,7 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                     <button
                         type="button"
                         onClick={() => append({ relatedStep: 1, condition: '', response: '' })}
-                        className="w-full py-5 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl text-gray-400 font-bold hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all text-sm"
+                        className="w-full py-5 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 font-bold hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all text-sm"
                     >
                         + Add Alternative Flow
                     </button>
