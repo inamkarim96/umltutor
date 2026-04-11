@@ -55,7 +55,7 @@ const SSDToolbar = ({
     console.log('Toolbar hasSelection:', hasSelection);
     console.log('Toolbar selectedElement exists:', !!hasSelection);
     return (
-        <div className="absolute top-20 right-4 flex flex-col gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-700 w-56 max-h-[calc(100vh-120px)] overflow-y-auto">
+        <div className="absolute top-20 right-4 flex flex-col gap-3 p-3 bg-white rounded-lg shadow-lg z-20 border border-gray-200 w-56 max-h-[calc(100vh-120px)] overflow-y-auto">
             <div>
                 <div className="flex items-center justify-between mb-2 text-gray-500">
                     <div className="text-xs font-bold uppercase tracking-wider">Lifelines</div>

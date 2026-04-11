@@ -1146,7 +1146,7 @@ const CheckingModePanel = ({
     }
 
     return (
-        <div data-testid="checking-report" className="flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden">
+        <div data-testid="checking-report" className="flex flex-col h-full bg-white overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex flex-col gap-3">
                 <div className="flex items-center justify-between mb-2">
                     <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">

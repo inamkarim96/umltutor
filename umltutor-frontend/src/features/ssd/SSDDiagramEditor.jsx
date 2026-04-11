@@ -964,15 +964,15 @@ const SSDDiagramEditorInner = ({
     }, []);
 
     return (
-        <div className="flex-1 flex flex-col relative h-[600px] bg-white rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+        <div className="flex-1 flex flex-col relative h-[600px] bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm transition-all hover:shadow-md">
             {!isReadOnly && (
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between z-30">
+                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between z-30">
                     <div className="flex items-center gap-4">
                         <label className="text-sm font-black text-slate-500 uppercase tracking-wider">Select Use Case</label>
                         <select
                             value={activeUseCaseId || ''}
                             onChange={(e) => onUseCaseChange(e.target.value)}
-                            className="bg-white border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
+                            className="bg-white border-2 border-slate-200 rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
                         >
                             <option value="" disabled>Choose a Use Case</option>
                             {availableUseCases.map((uc) => (
@@ -1171,9 +1171,9 @@ export const SSDDiagramEditor = ({
 
     if (useCaseNodes.length === 0 && isTutorialMode) {
         return (
-            <div className="flex flex-col items-center justify-center h-[500px] text-center p-8 bg-gray-50 dark:bg-gray-900/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-3xl mb-4">💡</div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Use Cases Detected</h3>
+            <div className="flex flex-col items-center justify-center h-[500px] text-center p-8 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-3xl mb-4">💡</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Use Cases Detected</h3>
                 <p className="text-gray-500 max-w-md">Please add at least one Use Case in the Diagram step before creating System Sequence Diagrams.</p>
             </div>
         );
@@ -1183,7 +1183,7 @@ export const SSDDiagramEditor = ({
         <div className="flex flex-col h-full overflow-visible">
             <header className="mb-6 px-4 flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Step 3: System Sequence Diagrams</h2>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Step 3: System Sequence Diagrams</h2>
                     <p className="text-sm text-gray-500 font-medium">Create sequence diagrams to model interactions for each use case.</p>
                 </div>
             </header>
@@ -1199,14 +1199,14 @@ export const SSDDiagramEditor = ({
                             key={`${id}-${index}`}
                             data-testid="ssd-card"
                             data-usecase-id={id}
-                            className="relative bg-white dark:bg-gray-900 rounded-[32px] border-2 border-slate-100 dark:border-slate-800 p-8 mb-16 shadow-sm transition-all hover:border-indigo-100 dark:hover:border-indigo-900/30"
+                            className="relative bg-white rounded-[32px] border-2 border-slate-100 p-8 mb-16 shadow-sm transition-all hover:border-indigo-100"
                         >
                             <div className="flex items-center justify-between mb-8">
                                 <div className="flex items-center gap-3">
                                     <span className="bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-black shadow-md flex items-center justify-center min-w-[3rem]">
                                         {displayLabel}
                                     </span>
-                                    <div className="h-px w-24 bg-slate-100 dark:bg-slate-800"></div>
+                                    <div className="h-px w-24 bg-slate-100"></div>
                                     <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
                                         System Sequence Diagram Section
                                     </span>
@@ -1215,7 +1215,7 @@ export const SSDDiagramEditor = ({
                                 {!isReadOnly && (
                                     <button
                                         onClick={() => handleRemoveBlock(index)}
-                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
+                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
                                         title="Remove Section"
                                     >
                                         <X size={14} /> Remove
@@ -1244,13 +1244,13 @@ export const SSDDiagramEditor = ({
                                     <div className="min-w-[300px] w-full lg:w-[35%] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-[650px]">
                                         <div className="sticky top-6 flex flex-col h-full w-full">
                                             <div className="mb-4 flex items-center gap-2 flex-shrink-0">
-                                                <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
+                                                <div className="h-px flex-1 bg-slate-100"></div>
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                                                     <Play size={12} fill="currentColor" /> Independent Runner
                                                 </span>
-                                                <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
+                                                <div className="h-px flex-1 bg-slate-100"></div>
                                             </div>
-                                            <div className="flex-1 overflow-y-auto w-full rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm bg-slate-50/50 dark:bg-slate-900/50">
+                                            <div className="flex-1 overflow-y-auto w-full rounded-[24px] border border-slate-200 shadow-sm bg-slate-50/50">
                                                 <CheckingModePanel
                                                     activeSection="ssd"
                                                     label={displayLabel}
@@ -1272,7 +1272,7 @@ export const SSDDiagramEditor = ({
                             {!isReadOnly && (
                                 <button
                                     onClick={() => handleRemoveBlock(index)}
-                                    className="absolute top-4 right-4 z-40 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all flex items-center gap-1 text-xs font-bold bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm"
+                                    className="absolute top-4 right-4 z-40 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1 text-xs font-bold bg-white/80 backdrop-blur-sm shadow-sm"
                                     title="Remove Section"
                                 >
                                     <X size={14} />
@@ -1286,7 +1286,7 @@ export const SSDDiagramEditor = ({
                 {!isReadOnly && (
                     <button
                         onClick={handleAddBlock}
-                        className="w-full py-8 border-2 border-dashed border-blue-200 dark:border-blue-900/50 rounded-3xl text-blue-600 font-black hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400 transition-all flex items-center justify-center gap-3 shadow-sm"
+                        className="w-full py-8 border-2 border-dashed border-blue-200 rounded-3xl text-blue-600 font-black hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-3 shadow-sm"
                     >
                         <span className="text-2xl">+</span>
                         Add System Sequence Diagram
