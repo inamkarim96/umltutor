@@ -52,22 +52,22 @@ const AssignmentList = ({ assignments = [], onEdit }) => {
                             {asgn.title}
                         </h3>
                         
-                        <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
+                        <div className="pt-6 border-t border-gray-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
                             <div className="flex items-center gap-2 text-indigo-600">
                                 <Clock size={14} />
                                 <span className="text-[10px] font-black uppercase tracking-widest">
                                     Due {new Date(asgn.dueDate || asgn.deadline).toLocaleDateString()}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
                                 {asgn.submissionCount !== undefined && (
                                     <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100">
                                         <Layout size={12} />
                                         <span className="text-[10px] font-black uppercase tracking-widest">{asgn.submissionCount} Submissions</span>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-1.5 text-gray-400 group-hover:text-indigo-600 transition-colors">
-                                    <span className="text-[10px] font-black uppercase tracking-widest">View Details</span>
+                                <div className="flex items-center gap-1.5 text-gray-400 group-hover:text-indigo-600 transition-colors ml-auto sm:ml-0">
+                                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">View Details</span>
                                     <ChevronRight size={14} />
                                 </div>
                             </div>

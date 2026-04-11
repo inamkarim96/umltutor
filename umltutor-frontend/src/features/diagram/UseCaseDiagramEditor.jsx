@@ -301,7 +301,7 @@ const UseCaseDiagramEditor = ({ assignmentId, initialData, isReadOnly = false, h
     }, [nodes, setNodes]);
 
     return (
-        <div data-testid="usecase-canvas" className="flex flex-col h-full bg-slate-50 dark:bg-gray-950 relative">
+        <div data-testid="usecase-canvas" className="flex flex-col h-full bg-slate-50 relative">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .react-flow__node.selected {
@@ -311,14 +311,14 @@ const UseCaseDiagramEditor = ({ assignmentId, initialData, isReadOnly = false, h
                 }
             `}} />
             <ReactFlowProvider>
-                <div className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between shrink-0 z-10">
+                <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center justify-between shrink-0 z-10">
                     <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Use Case Diagram</h2>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                         {isReadOnly ? 'Read-only preview' : 'Drag to move • Drag handles to resize • Double-click to rename'}
                     </div>
                 </div>
 
-                <div className="relative flex-1 min-h-0 bg-white dark:bg-gray-900">
+                <div className="relative flex-1 min-h-0 bg-white">
                     {!isReadOnly && (
                         <DiagramToolbar
                             onAddActor={() => onAddNode('actor')}

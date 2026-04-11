@@ -165,7 +165,7 @@ const StudentClassDetail = () => {
                                                     </p>
                                                 </div>
 
-                                                <div className="flex items-center gap-8 border-t md:border-t-0 md:border-l border-gray-50 pt-4 md:pt-0 md:pl-8">
+                                                <div className="flex flex-wrap items-center justify-between sm:justify-start gap-4 sm:gap-8 border-t md:border-t-0 md:border-l border-gray-50 pt-4 md:pt-0 md:pl-8 mt-4 md:mt-0">
                                                     <div className="text-center md:text-left">
                                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Deadline</p>
                                                         <div className="flex items-center gap-2 text-gray-900 font-bold">

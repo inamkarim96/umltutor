@@ -183,7 +183,7 @@ const ClassDetail = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] p-8">
+        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
                 <button
                     onClick={() => navigate('/teacher/classes')}
@@ -213,10 +213,10 @@ const ClassDetail = () => {
                     </div>
                 )}
 
-                <div className="bg-white rounded-[2.5rem] p-12 border border-gray-100 shadow-sm mb-10 relative overflow-hidden">
+                <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-12 border border-gray-100 shadow-sm mb-10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full -translate-y-1/2 translate-x-1/2 -z-0"></div>
-                    <div className="relative z-10 flex flex-wrap gap-8 justify-between items-start">
-                        <div className="flex-1 min-w-[300px]">
+                    <div className="relative z-10 flex flex-col md:flex-row gap-8 justify-between items-start">
+                        <div className="w-full md:flex-1">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
                                     <GraduationCap size={24} />
@@ -228,7 +228,7 @@ const ClassDetail = () => {
                             <h1 className="text-5xl font-black text-gray-900 tracking-tight mb-4">{targetClass.name}</h1>
                             <p className="text-gray-500 text-xl font-medium leading-relaxed max-w-3xl">{targetClass.description}</p>
                         </div>
-                        <div className="bg-[#f1f5f9] px-8 py-6 rounded-3xl border border-white shadow-inner flex flex-col items-center min-w-[200px]">
+                        <div className="w-full md:w-auto bg-[#f1f5f9] px-6 py-6 rounded-3xl border border-white shadow-inner flex flex-col items-center">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Class Information</p>
                             <div className="text-center space-y-3">
                                 <div>
@@ -249,15 +249,15 @@ const ClassDetail = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-10 flex flex-col">
-                        <div className="flex justify-between items-center mb-8">
+                    <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-gray-100 shadow-sm p-6 md:p-10 flex flex-col">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 w-full">
                             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
                                 <Users size={24} className="text-indigo-600" /> Students
                                 <span className="ml-2 px-3 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">{enrolledStudents.length}</span>
                             </h2>
                             <button
                                 onClick={() => setShowEnrollment(!showEnrollment)}
-                                className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-black text-sm hover:bg-indigo-700 transition-all flex items-center gap-2"
+                                className="w-full sm:w-auto justify-center px-4 py-2 bg-indigo-600 text-white rounded-xl font-black text-sm hover:bg-indigo-700 transition-all flex items-center gap-2"
                             >
                                 <Plus size={16} /> {showEnrollment ? 'Cancel' : 'Add Students'}
                             </button>
@@ -276,8 +276,8 @@ const ClassDetail = () => {
                         <div className="space-y-3">
                             {enrolledStudents.length > 0 ? (
                                 enrolledStudents.map((student) => (
-                                    <div key={student.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
-                                        <div className="flex items-center gap-4">
+                                    <div key={student.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors gap-4 sm:gap-0">
+                                        <div className="flex items-center gap-4 w-full sm:w-auto">
                                             <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-lg">
                                                 {student.firstName?.charAt(0) || student.email?.charAt(0) || 'S'}
                                             </div>
@@ -291,8 +291,8 @@ const ClassDetail = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center gap-2 text-xs text-gray-400 mr-2">
+                                        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-t-0 pt-4 sm:pt-0 mt-2 sm:mt-0 border-gray-200">
+                                            <div className="flex items-center gap-2 text-xs text-gray-400">
                                                 <UserCheck size={14} />
                                                 Enrolled
                                             </div>
@@ -318,15 +318,15 @@ const ClassDetail = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-10 flex flex-col">
-                        <div className="flex justify-between items-center mb-8">
+                    <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-gray-100 shadow-sm p-6 md:p-10 flex flex-col">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 w-full">
                             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
                                 <BookOpen size={24} className="text-indigo-600" /> Assignments
                                 <span className="ml-2 px-3 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">{classAssignments.length}</span>
                             </h2>
                             <button
                                 onClick={() => { setEditingAssignment(null); setIsCreateAssignmentOpen(true); }}
-                                className="px-5 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-sm hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2"
+                                className="w-full sm:w-auto justify-center px-5 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-sm hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2"
                             >
                                 <Plus size={16} /> New
                             </button>

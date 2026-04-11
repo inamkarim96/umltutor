@@ -964,15 +964,15 @@ const SSDDiagramEditorInner = ({
     }, []);
 
     return (
-        <div className="flex-1 flex flex-col relative h-[600px] bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+        <div className="flex-1 flex flex-col relative h-[600px] bg-white rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
             {!isReadOnly && (
-                <div className="px-6 py-4 bg-slate-50 dark:bg-gray-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between z-30">
+                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between z-30">
                     <div className="flex items-center gap-4">
                         <label className="text-sm font-black text-slate-500 uppercase tracking-wider">Select Use Case</label>
                         <select
                             value={activeUseCaseId || ''}
                             onChange={(e) => onUseCaseChange(e.target.value)}
-                            className="bg-white dark:bg-gray-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
+                            className="bg-white border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
                         >
                             <option value="" disabled>Choose a Use Case</option>
                             {availableUseCases.map((uc) => (
