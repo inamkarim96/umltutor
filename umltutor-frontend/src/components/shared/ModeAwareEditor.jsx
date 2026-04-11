@@ -461,9 +461,9 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   };
 
   return (
-    <div className="flex h-full overflow-hidden bg-white dark:bg-gray-900">
+    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-white dark:bg-gray-900">
       {/* Sidebar Navigation */}
-      <div className="w-64 border-r border-gray-200 dark:border-gray-800 flex flex-col shrink-0">
+      <div className="w-full md:w-64 max-h-48 md:max-h-none border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-y-auto">
         {/* Tutorial Mode Toggle (Enabled ONLY if Approved) */}
         {currentSubmission?.tutorialApproved && (
           <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-indigo-50/30 dark:bg-indigo-900/10">
@@ -491,7 +491,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
           </h1>
         </div>
 
-        <nav className="flex-1 p-2 space-y-1">
+        <nav className="flex-1 p-2 flex overflow-x-auto md:flex-col md:space-y-1 gap-2 md:gap-0">
           {sections.map((section) => (
             <button
               key={section.id}
@@ -611,7 +611,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         {/* Assignment Header (Student Only) */}
         {isStudentWork && model && (
           <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 transition-all flex flex-col">
-            <div className="px-8 py-4 flex justify-between items-center">
+            <div className="px-4 sm:px-8 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-xl shadow-sm">
                   📝
@@ -625,7 +625,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 sm:gap-6 w-full sm:w-auto">
                 {assignmentDetails?.deadline && (
                   <div className="text-right hidden sm:block">
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Deadline</p>
@@ -724,8 +724,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
               ) : null}
             </div>
             {/* Professional Navigation Bar */}
-            <div className="p-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] bg-slate-50/50 backdrop-blur-sm">
-              <div className="flex items-center gap-4">
+            <div className="p-3 sm:p-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] bg-slate-50/50 backdrop-blur-sm overflow-x-auto">
+              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
                 <button
                   onClick={handleBack}
                   className="px-8 py-3 bg-[#6B7280] hover:bg-gray-600 active:bg-gray-700 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-sm min-w-[140px] justify-center"
@@ -745,7 +745,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                 )}
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-start">
                 {/* Student Workflow Controls - Show Submit if it's not submitted/graded and NOT in tutorial mode */}
                 {!isTutorialActive && isStudentWork && (!currentSubmission?.status || !['submitted', 'graded', 'reviewed', 'completed'].includes(currentSubmission?.status?.toLowerCase())) && !currentSubmission?.tutorialApproved && (
                   <div className="flex items-center gap-2">
@@ -787,7 +787,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                   <button
                     onClick={handleProcess}
                     disabled={(activeSection === 'ssd' && isStudentWork && isReadOnly) || isGraded}
-                    className={`px-12 py-4 ${activeSection === 'ssd' && isStudentWork ? (isReadOnly || isGraded ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200') : 'bg-[#2563EB] hover:bg-blue-700 shadow-blue-200'} text-white font-black rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 min-w-[180px] justify-center`}
+                    className={`px-4 sm:px-12 py-3 sm:py-4 ${activeSection === 'ssd' && isStudentWork ? (isReadOnly || isGraded ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200') : 'bg-[#2563EB] hover:bg-blue-700 shadow-blue-200'} text-white font-black rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 min-w-[120px] sm:min-w-[180px] justify-center mt-2 sm:mt-0 w-full sm:w-auto`}
                   >
                     {activeSection === 'ssd' && isStudentWork ? (
                       <>

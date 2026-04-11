@@ -118,9 +118,9 @@ const LandingPage = () => {
       <section className="bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-16 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h1 className="text-6xl font-extrabold text-gray-900 mb-6 tracking-tight">
+            <h1 className="text-[clamp(2.5rem,5vw+1rem,4rem)] md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight leading-tight">
               Master UML Modeling with
-              <span className="text-indigo-600"> Intelligence</span>
+              <span className="text-indigo-600 block sm:inline mt-2 sm:mt-0"> Intelligence</span>
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               The intelligent platform for building professional UML diagrams with deep semantic analysis, consistency checks, and guided modeling.
