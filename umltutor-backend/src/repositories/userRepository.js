@@ -71,6 +71,27 @@ const userRepository = {
             },
             take: 20
         });
+    },
+
+    async update(id, userData) {
+        return prisma.user.update({
+            where: { id: Number(id) },
+            data: userData,
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                firebaseUid: true
+            }
+        });
+    },
+
+    async deleteById(id) {
+        return prisma.user.delete({
+            where: { id: Number(id) }
+        });
     }
 };
 

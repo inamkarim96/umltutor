@@ -70,6 +70,26 @@ const authService = {
         }
 
         return user;
+    },
+
+    async deleteAccount(userId) {
+        if (!userId) {
+            const error = new Error('User ID is missing');
+            error.code = 'MISSING_ID';
+            error.status = 400;
+            throw error;
+        }
+
+        return userRepository.deleteById(userId);
+    },
+
+    async changePassword(userId, newPassword) {
+        if (!userId || !newPassword) {
+            throw new ValidationError('User ID and new password are required');
+        }
+
+        const hashedPassword = await passwordUtils.hashPassword(newPassword);
+        return userRepository.update(userId, { password: hashedPassword });
     }
 };
 

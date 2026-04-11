@@ -10,7 +10,7 @@ const path = require('path');
  */
 const initializeApplication = async () => {
   // Only show messages if explicitly enabled
-  const verbose = process.env.SHOW_STARTUP_MESSAGES === 'true';
+  const verbose = process.env.SHOW_STARTUP_MESSAGES === 'true' || false;
   const isVercelContext = process.env.VERCEL || process.env.NODE_ENV === 'production';
   
   if (verbose) console.log('🚀 Initializing UMLTutor Backend...');

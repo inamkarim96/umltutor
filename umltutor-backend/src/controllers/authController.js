@@ -85,6 +85,7 @@ const getProfile = async (req, res, next) => {
         const userId = req.user.userId;
         const user = await authService.getProfile(userId);
 
+
         res.status(200).json({
             success: true,
             data: { user },
@@ -111,3 +112,71 @@ const logout = async (req, res) => {
         });
     }
 }; exports.logout = logout;
+ 
+/**
+ * Delete current user account
+ */
+const deleteAccount = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                error: {
+                    message: 'Authentication required',
+                    code: 'AUTH_REQUIRED'
+                }
+            });
+            return;
+        }
+
+        const userId = req.user.userId;
+        await authService.deleteAccount(userId);
+
+        res.status(200).json({
+            success: true,
+            message: 'User account deleted successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+}; exports.deleteAccount = deleteAccount;
+
+/**
+ * Change user password
+ */
+const changePassword = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                error: {
+                    message: 'Authentication required',
+                    code: 'AUTH_REQUIRED'
+                }
+            });
+            return;
+        }
+
+        const { newPassword } = req.body;
+        if (!newPassword || newPassword.length < 6) {
+            res.status(400).json({
+                success: false,
+                error: {
+                    message: 'New password must be at least 6 characters long',
+                    code: 'INVALID_PASSWORD'
+                }
+            });
+            return;
+        }
+
+        const userId = req.user.userId;
+        await authService.changePassword(userId, newPassword);
+
+        res.status(200).json({
+            success: true,
+            message: 'Password updated successfully in database',
+        });
+    } catch (error) {
+        next(error);
+    }
+}; exports.changePassword = changePassword;

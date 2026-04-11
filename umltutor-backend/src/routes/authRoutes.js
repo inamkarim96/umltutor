@@ -24,5 +24,7 @@ router.post('/logout', _authController.logout);
  * @access  Protected
  */
 router.get('/profile', _firebaseAuth.authenticateFirebase, _authController.getProfile);
+router.put('/change-password', _firebaseAuth.authenticateFirebase, _authController.changePassword);
+router.delete('/account', _firebaseAuth.authenticateFirebase, _authController.deleteAccount);
 
 exports. default = router;
