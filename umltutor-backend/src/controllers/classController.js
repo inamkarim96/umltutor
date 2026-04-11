@@ -141,3 +141,21 @@ const getClassAnalytics = async (req, res, next) => {
         next(error);
     }
 }; exports.getClassAnalytics = getClassAnalytics;
+
+const updateClass = async (req, res, next) => {
+    try {
+        const updatedClass = await classService.updateClassSettings(req.params.classId, req.user.id, req.body);
+        res.json({ success: true, data: updatedClass });
+    } catch (error) {
+        next(error);
+    }
+}; exports.updateClass = updateClass;
+
+const regenerateClassCode = async (req, res, next) => {
+    try {
+        const updatedClass = await classService.regenerateClassCode(req.params.classId, req.user.id);
+        res.json({ success: true, data: updatedClass });
+    } catch (error) {
+        next(error);
+    }
+}; exports.regenerateClassCode = regenerateClassCode;

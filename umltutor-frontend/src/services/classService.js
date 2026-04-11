@@ -117,6 +117,10 @@ class ClassroomService {
     return apiClient.post('/api/student/classes/join', { classCode });
   }
 
+  async regenerateCode(classId) {
+    return apiClient.post(`/api/classes/${classId}/regenerate-code`);
+  }
+
   async leaveClass(classId) {
     return apiClient.post(`/api/student/classes/${classId}/leave`);
   }
@@ -170,12 +174,24 @@ class ClassroomService {
   }
 
   // Class Communication
-  async sendClassAnnouncement(classId, announcement) {
-    return apiClient.post(`/api/classes/${classId}/announcements`, announcement);
-  }
-
   async getClassAnnouncements(classId) {
     return apiClient.get(`/api/classes/${classId}/announcements`);
+  }
+
+  async getAnnouncements(classId) {
+    return this.getClassAnnouncements(classId);
+  }
+
+  async createAnnouncement(classId, data) {
+    return apiClient.post(`/api/classes/${classId}/announcements`, data);
+  }
+
+  async deleteAnnouncement(id) {
+    return apiClient.delete(`/api/classes/announcements/${id}`);
+  }
+
+  async updateAnnouncement(id, data) {
+    return apiClient.patch(`/api/classes/announcements/${id}`, data);
   }
 
   async sendClassMessage(classId, message) {
@@ -187,20 +203,26 @@ class ClassroomService {
   }
 
   // Class Resources
-  async uploadClassResource(classId, file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiClient.post(`/api/classes/${classId}/resources`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  }
-
   async getClassResources(classId) {
     return apiClient.get(`/api/classes/${classId}/resources`);
   }
 
+  async getResources(classId) {
+    return this.getClassResources(classId);
+  }
+
+  async uploadResource(classId, data) {
+    return apiClient.post(`/api/classes/${classId}/resources`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
+
   async deleteClassResource(classId, resourceId) {
     return apiClient.delete(`/api/classes/${classId}/resources/${resourceId}`);
+  }
+
+  async deleteResource(id) {
+    return apiClient.delete(`/api/classes/resources/${id}`);
   }
 
   // === BATCH OPERATIONS (Teacher Only) ===

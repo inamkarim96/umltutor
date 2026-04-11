@@ -33,7 +33,7 @@ const DIRS = {
 // File upload configuration
 const UPLOAD_CONFIG = {
   // File size limits (in bytes)
-  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
   
   // Allowed file types
   ALLOWED_TYPES: [
@@ -43,6 +43,7 @@ const UPLOAD_CONFIG = {
     'image/png',
     'image/jpeg',
     'image/jpg',
+    'text/plain',
   ],
   
   // File extensions mapping
@@ -53,6 +54,7 @@ const UPLOAD_CONFIG = {
     '.png': 'image',
     '.jpg': 'image',
     '.jpeg': 'image',
+    '.txt': 'text',
   },
 };
 

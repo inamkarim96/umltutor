@@ -6,6 +6,8 @@ var _express = require('express');
 var _routeMiddleware = require('../middleware/routeMiddleware');
 var _classController = require('../controllers/classController');
 var _assignmentController = require('../controllers/assignmentController');
+var _announcementController = require('../controllers/announcementController');
+var _resourceController = require('../controllers/resourceController');
 var _fileUpload = require('../utils/fileUpload');
 
 const router = _express.Router.call(void 0, );
@@ -41,6 +43,20 @@ router.get('/my', _classController.getJoinedClasses);
  * @access Teacher (Class Owner) or Enrolled Student
  */
 router.get('/:classId', _classController.getClass);
+
+/**
+ * @route PUT /api/classes/:classId
+ * @desc Update class settings
+ * @access Teacher (Class Owner)
+ */
+router.put('/:classId', _routeMiddleware.authorize('TEACHER'), _classController.updateClass);
+
+/**
+ * @route POST /api/classes/:classId/regenerate-code
+ * @desc Regenerate class join code
+ * @access Teacher (Class Owner)
+ */
+router.post('/:classId/regenerate-code', _routeMiddleware.authorize('TEACHER'), _classController.regenerateClassCode);
 
 /**
  * @route DELETE /api/classes/:classId/students/:studentId
@@ -83,5 +99,42 @@ router.get('/:classId/assignments', _assignmentController.getClassAssignments);
  * @access Teacher (Class Owner)
  */
 router.get('/:classId/analytics', _routeMiddleware.authorize('TEACHER'), _classController.getClassAnalytics);
+
+/**
+ * @route GET /api/classes/:classId/announcements
+ * @desc Get class announcements
+ */
+router.get('/:classId/announcements', _announcementController.getAnnouncements);
+
+/**
+ * @route POST /api/classes/:classId/announcements
+ * @desc Create an announcement
+ */
+router.post('/:classId/announcements', _announcementController.createAnnouncement);
+
+/**
+ * @route DELETE /api/classes/announcements/:id
+ * @desc Delete an announcement
+ */
+router.delete('/announcements/:id', _announcementController.deleteAnnouncement);
+router.patch('/announcements/:id', _announcementController.updateAnnouncement);
+
+/**
+ * @route GET /api/classes/:classId/resources
+ * @desc Get class resources
+ */
+router.get('/:classId/resources', _resourceController.getResources);
+
+/**
+ * @route POST /api/classes/:classId/resources
+ * @desc Upload a class resource
+ */
+router.post('/:classId/resources', _fileUpload.uploadAssignmentFile.single('file'), _resourceController.uploadResource);
+
+/**
+ * @route DELETE /api/classes/resources/:id
+ * @desc Delete a resource
+ */
+router.delete('/resources/:id', _resourceController.deleteResource);
 
 exports.default = router;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { 
     selectClasses, 
@@ -26,6 +27,7 @@ import {
 import ConfirmModal from '../../components/shared/ConfirmModal';
 
 const ClassesManagement = () => {
+    const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const classes = useAppSelector(selectClasses);
     const studentsMap = useAppSelector(selectStudents);

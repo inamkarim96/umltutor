@@ -7,6 +7,7 @@ const { NotFoundError, AuthorizationError, ValidationError } = require('../utils
 const userRepository = _interopRequireDefault(require('../repositories/userRepository')).default;
 const assignmentRepository = _interopRequireDefault(require('../repositories/assignmentRepository')).default;
 const notificationRepository = _interopRequireDefault(require('../repositories/notificationRepository')).default;
+const prisma = require('../utils/prisma').default;
 
 class ClassService {
   /**
@@ -69,6 +70,7 @@ class ClassService {
       teacherName: c.teacher ? `${c.teacher.firstName} ${c.teacher.lastName}` : 'Unknown Teacher',
       totalStudents: c._count.students,
       totalAssignments: c._count.assignments,
+      allowStudentUploads: c.allowStudentUploads,
       createdAt: c.createdAt
     }));
   }
@@ -94,7 +96,17 @@ class ClassService {
       throw new ValidationError('You are already enrolled in this class.');
     }
 
-    const prisma = require('../utils/prisma').default;
+    if (!classItem.isEnrollmentOpen) {
+      throw new ValidationError('Enrollment is currently closed for this class.');
+    }
+
+    if (classItem.maxStudents && classItem.maxStudents > 0) {
+      const currentCount = await prisma.classStudent.count({ where: { classId: classItem.id } });
+      if (currentCount >= classItem.maxStudents) {
+        throw new ValidationError('This class has reached its maximum student limit.');
+      }
+    }
+
     await prisma.$transaction([
       prisma.classStudent.create({
         data: { classId: classItem.id, studentId: Number(studentId) }
@@ -158,7 +170,6 @@ class ClassService {
 
     if (!classItem) throw new Error('Class not found');
 
-    const prisma = require('../utils/prisma').default;
     await prisma.classStudent.deleteMany({
       where: { classId: Number(classId), studentId: Number(studentId) }
     });
@@ -174,9 +185,17 @@ class ClassService {
       where: { id: Number(classId), teacherId: Number(teacherId) }
     });
 
-    if (!classItem) throw new Error('Class not found');
+    if (!classItem || classItem.teacherId !== Number(teacherId)) {
+      throw new Error('Class not found or access denied');
+    }
 
-    const prisma = require('../utils/prisma').default;
+    if (classItem.maxStudents && classItem.maxStudents > 0) {
+      const currentCount = await prisma.classStudent.count({ where: { classId: Number(classId) } });
+      if (currentCount >= classItem.maxStudents) {
+        throw new Error('Max student limit reached for this class.');
+      }
+    }
+
     await prisma.classStudent.upsert({
       where: { classId_studentId: { classId: Number(classId), studentId: Number(studentId) } },
       update: {},
@@ -275,8 +294,6 @@ class ClassService {
       select: { id: true }
     })).map(a => a.id);
 
-    const prisma = require('../utils/prisma').default;
-    
     // Get all submissions for these assignments that are 'submitted' or 'graded'
     const submissions = await prisma.submission.findMany({
       where: { 
@@ -303,6 +320,57 @@ class ClassService {
       totalSubmissions,
       gradedSubmissions: gradedCount
     };
+  }
+
+  /**
+   * Update classroom settings (Teams-like)
+   */
+  async updateClassSettings(classId, teacherId, data) {
+    const classItem = await classRepository.findFirst({
+      where: { id: Number(classId), teacherId: Number(teacherId) }
+    });
+
+    if (!classItem) {
+      const error = new Error('Class not found or access denied');
+      error.status = 404;
+      throw error;
+    }
+
+    const { name, description, maxStudents, archived, isEnrollmentOpen, allowStudentUploads } = data;
+
+    return await classRepository.update({
+      where: { id: Number(classId) },
+      data: {
+        name: name !== undefined ? name : undefined,
+        description: description !== undefined ? description : undefined,
+        maxStudents: maxStudents !== undefined ? (maxStudents === null || maxStudents === '' ? null : Number(maxStudents)) : undefined,
+        archived: archived !== undefined ? Boolean(archived) : undefined,
+        isEnrollmentOpen: isEnrollmentOpen !== undefined ? Boolean(isEnrollmentOpen) : undefined,
+        allowStudentUploads: allowStudentUploads !== undefined ? Boolean(allowStudentUploads) : undefined
+      }
+    });
+  }
+
+  /**
+   * Regenerate class join code
+   */
+  async regenerateClassCode(classId, teacherId) {
+    const classItem = await classRepository.findFirst({
+      where: { id: Number(classId), teacherId: Number(teacherId) }
+    });
+
+    if (!classItem) {
+      const error = new Error('Class not found or access denied');
+      error.status = 404;
+      throw error;
+    }
+
+    const newCode = this._generateClassCode(classItem.name);
+
+    return await classRepository.update({
+      where: { id: Number(classId) },
+      data: { code: newCode }
+    });
   }
 
   /**

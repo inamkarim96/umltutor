@@ -27,6 +27,8 @@ model User {
   submissions     Submission[]
   evaluations     Evaluation[]   @relation("EvaluatedBy")
   notifications   Notification[] @relation("UserNotifications")
+  announcements   Announcement[]
+  resources       Resource[]
 }
 
 model Class {
@@ -40,9 +42,16 @@ model Class {
   teacherId   Int
   teacher     User     @relation("TeacherClasses", fields: [teacherId], references: [id])
   
+  maxStudents      Int?
+  archived         Boolean  @default(false)
+  isEnrollmentOpen Boolean  @default(true)
+  allowStudentUploads Boolean @default(false)
+
   // Relations
-  students    ClassStudent[]
-  assignments Assignment[]
+  students     ClassStudent[]
+  assignments  Assignment[]
+  announcements Announcement[]
+  resources    Resource[]
 }
 
 model ClassStudent {
@@ -160,5 +169,36 @@ model Notification {
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  classId   Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  parentId  Int?
+  parent    Announcement?  @relation("AnnouncementReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Announcement[] @relation("AnnouncementReplies")
+
+  class     Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  author    User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Resource {
+  id          Int      @id @default(autoincrement())
+  classId     Int
+  name        String
+  url         String
+  type        String?
+  folder      String?
+  size        Int?
+  uploadedBy  Int
+  createdAt   DateTime @default(now())
+
+  class       Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  uploader    User  @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import {
@@ -17,8 +17,13 @@ import {
     ArrowLeft,
     Calendar,
     FileText,
-    ArrowUpRight
+    ArrowUpRight,
+    MessageSquare,
+    Files,
+    Hash
 } from 'lucide-react';
+import AnnouncementBoard from '../../features/teacher/components/AnnouncementBoard';
+import FileBrowser from '../../features/teacher/components/FileBrowser';
 
 const StudentClassDetail = () => {
     const { name } = useParams();
@@ -28,6 +33,9 @@ const StudentClassDetail = () => {
     const assignments = useAppSelector(selectAllAssignments) || [];
     const submissionsMap = useAppSelector(selectSubmissions);
     const user = useAppSelector(selectUser);
+    
+    // UI State
+    const [activeTab, setActiveTab] = useState('posts'); // posts, files, assignments, grades
 
     useEffect(() => {
         // Ensure data is loaded
@@ -58,10 +66,28 @@ const StudentClassDetail = () => {
         );
     }
 
+    const tabs = [
+        { id: 'posts', label: 'Post', icon: <MessageSquare size={18} /> },
+        { id: 'files', label: 'File', icon: <Files size={18} /> },
+        { id: 'assignments', label: 'Assignment', icon: <BookOpen size={18} /> },
+    ];
+
     return (
         <div className="min-h-screen bg-[#f8fafc] pb-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+                <button
+                    onClick={() => navigate('/student/dashboard')}
+                    className="mb-6 text-gray-500 font-extrabold text-sm hover:text-indigo-600 transition-all flex items-center gap-2 group"
+                >
+                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-100 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-all">
+                        <ArrowLeft size={16} />
+                    </div>
+                    Back to Dashboard
+                </button>
+            </div>
+
             {/* Class Hero Header */}
-            <div className="bg-white border-b border-gray-100 shadow-sm mb-8">
+            <div className="bg-white border-b border-gray-100 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Breadcrumbs */}
                     <nav className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-6 uppercase tracking-widest">
@@ -79,27 +105,32 @@ const StudentClassDetail = () => {
                                     {currentClass.name.charAt(0)}
                                 </div>
                                 <div>
-                                    <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest mb-2 inline-block">
-                                        {currentClass.code}
-                                    </span>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest">
+                                            {currentClass.code}
+                                        </span>
+                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center gap-1">
+                                            <GraduationCap size={10} /> Student View
+                                        </span>
+                                    </div>
                                     <h1 className="text-4xl font-black text-gray-900 leading-tight">
                                         {currentClass.name}
                                     </h1>
                                 </div>
                             </div>
                             <p className="text-gray-500 max-w-2xl font-medium leading-relaxed">
-                                {currentClass.description || "Welcome to your class dashboard. Here you can find all assignments and resources for this course."}
+                                {currentClass.description || "Welcome back to your workspace. Stay updated with announcements and manage your assignments."}
                             </p>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
                             <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm flex items-center gap-3">
                                 <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                                    <GraduationCap size={20} />
+                                    <Hash size={20} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Instructor</p>
-                                    <p className="text-sm font-bold text-gray-900">{currentClass.teacherName || 'Standard Instructor'}</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Access Code</p>
+                                    <p className="text-sm font-bold text-gray-900 font-mono">{currentClass.code}</p>
                                 </div>
                             </div>
                             <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm flex items-center gap-3">
@@ -108,27 +139,58 @@ const StudentClassDetail = () => {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Assignments</p>
-                                    <p className="text-sm font-bold text-gray-900">{classAssignments.length} Total</p>
+                                    <p className="text-sm font-bold text-gray-900">{classAssignments.length} Active</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Navigation Tabs */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-8 overflow-x-auto no-scrollbar pt-2">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 py-4 border-b-4 transition-all whitespace-nowrap ${
+                                    activeTab === tab.id 
+                                    ? 'border-indigo-600 text-indigo-600 font-black scale-105 px-2' 
+                                    : 'border-transparent text-gray-400 font-bold hover:text-gray-600 px-2'
+                                }`}
+                            >
+                                {tab.icon}
+                                <span className="uppercase tracking-widest text-xs">{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Assignments List */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-2xl font-black text-gray-900">Current Assignments</h2>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+                {activeTab === 'posts' && (
+                    <div className="animate-in fade-in duration-500">
+                        <AnnouncementBoard classId={classId} />
+                    </div>
+                )}
+
+                {activeTab === 'files' && (
+                    <div className="animate-in fade-in duration-500 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden min-h-[600px]">
+                        <FileBrowser classId={classId} allowStudentUploads={currentClass.allowStudentUploads} />
+                    </div>
+                )}
+
+                {activeTab === 'assignments' && (
+                    <div className="animate-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-black text-gray-900">Class Assignments</h2>
                             <div className="flex gap-2">
-                                <span className="px-3 py-1 bg-white border border-gray-200 text-gray-400 text-[10px] font-bold rounded-lg uppercase tracking-widest">Latest First</span>
+                                <span className="px-3 py-1 bg-white border border-gray-200 text-gray-400 text-[10px] font-bold rounded-lg uppercase tracking-widest">Sorted by Date</span>
                             </div>
                         </div>
 
                         {classAssignments.length > 0 ? (
-                            <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {classAssignments.map(asgn => {
                                     const submission = mySubmissions.find(s => s.assignmentId === asgn.id);
                                     const status = submission?.status?.toLowerCase();
@@ -139,56 +201,49 @@ const StudentClassDetail = () => {
                                         <div
                                             key={asgn.id}
                                             onClick={() => navigate(`/student/assignments/${asgn.title.toLowerCase().replace(/\s+/g, '-')}/work`)}
-                                            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-50 transition-all cursor-pointer group"
+                                            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-200 hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between h-full"
                                         >
-                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-3">
-                                                        <span className={`px-2 py-0.5 text-[10px] font-black rounded uppercase tracking-widest ${status === 'graded' ? 'bg-indigo-50 text-indigo-600' :
-                                                                status === 'submitted' ? 'bg-emerald-50 text-emerald-600' :
-                                                                    isOverdue ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
-                                                            }`}>
-                                                            {status === 'graded' ? 'Reviewed' :
-                                                                status === 'submitted' ? 'Submitted' :
-                                                                    isOverdue ? 'Late' : 'Open'}
-                                                        </span>
-                                                        <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
-                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                                            {asgn.type || 'Text'} Exploration
-                                                        </span>
-                                                    </div>
-                                                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors mb-2">
-                                                        {asgn.title}
-                                                    </h3>
-                                                    <p className="text-gray-500 text-sm line-clamp-2 font-medium">
-                                                        {asgn.description || "No description provided."}
-                                                    </p>
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <span className={`px-2 py-0.5 text-[10px] font-black rounded uppercase tracking-widest ${
+                                                        status === 'graded' ? 'bg-indigo-50 text-indigo-600' :
+                                                        status === 'submitted' ? 'bg-emerald-50 text-emerald-600' :
+                                                        isOverdue ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+                                                    }`}>
+                                                        {status === 'graded' ? 'Reviewed' :
+                                                            status === 'submitted' ? 'Submitted' :
+                                                                isOverdue ? 'Late' : 'Open'}
+                                                    </span>
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                                        {asgn.type || 'Standard'} Task
+                                                    </span>
                                                 </div>
+                                                <h3 className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors mb-2">
+                                                    {asgn.title}
+                                                </h3>
+                                                <p className="text-gray-500 text-sm line-clamp-2 font-medium mb-6">
+                                                    {asgn.description || "No specific instructions provided."}
+                                                </p>
+                                            </div>
 
-                                                <div className="flex flex-wrap items-center justify-between sm:justify-start gap-4 sm:gap-8 border-t md:border-t-0 md:border-l border-gray-50 pt-4 md:pt-0 md:pl-8 mt-4 md:mt-0">
-                                                    <div className="text-center md:text-left">
-                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Deadline</p>
-                                                        <div className="flex items-center gap-2 text-gray-900 font-bold">
-                                                            <Calendar size={14} className="text-indigo-500" />
-                                                            <span className="text-sm">{asgn.deadline ? new Date(asgn.deadline).toLocaleDateString() : 'No Date'}</span>
+                                            <div className="flex items-center justify-between border-t border-gray-50 pt-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Deadline</p>
+                                                        <div className="flex items-center gap-1.5 text-gray-900 font-bold text-xs mt-0.5">
+                                                            <Calendar size={12} className="text-indigo-500" />
+                                                            {asgn.deadline ? new Date(asgn.deadline).toLocaleDateString() : '—'}
                                                         </div>
                                                     </div>
-
-                                                    {submission?.score !== null && submission?.score !== undefined ? (
-                                                        <div className="text-center md:text-right">
-                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Grade</p>
-                                                            <p className="text-xl font-black text-indigo-600">{submission.score}%</p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center md:text-right">
-                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Max Score</p>
-                                                            <p className="text-xl font-black text-gray-900">{asgn.maxScore ?? '—'}</p>
+                                                    {submission?.score !== undefined && submission?.score !== null && (
+                                                        <div>
+                                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Score</p>
+                                                            <p className="text-indigo-600 font-black text-sm">{submission.score}%</p>
                                                         </div>
                                                     )}
-
-                                                    <div className="hidden md:flex w-10 h-10 bg-gray-50 text-gray-400 rounded-xl items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                                        <ArrowUpRight size={20} />
-                                                    </div>
+                                                </div>
+                                                <div className="w-8 h-8 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                                    <ArrowUpRight size={18} />
                                                 </div>
                                             </div>
                                         </div>
@@ -201,17 +256,11 @@ const StudentClassDetail = () => {
                                     <FileText size={32} className="text-gray-300" />
                                 </div>
                                 <h3 className="text-2xl font-black text-gray-900 mb-2">No Assignments Yet</h3>
-                                <p className="text-gray-500 font-medium max-w-xs mx-auto">
-                                    Your instructor hasn't posted any assignments for this class yet. Check back later!
-                                </p>
+                                <p className="text-gray-500 font-medium max-w-xs mx-auto">Your instructor hasn't posted any assignments yet.</p>
                             </div>
                         )}
                     </div>
-
-                    {/* Sidebar */}
-                    <div className="space-y-8">
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );
