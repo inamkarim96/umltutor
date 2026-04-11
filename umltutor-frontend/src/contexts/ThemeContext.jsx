@@ -4,22 +4,39 @@ const ThemeContext = createContext(undefined);
 
 export const ThemeProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
-        // Check for saved theme preference or default to light
+        // Check for saved theme preference or default to system/light
         const savedTheme = localStorage.getItem('theme');
-        return savedTheme || 'light';
+        return savedTheme || 'system';
     });
 
-    const toggleTheme = () => {
-        const newTheme = theme === 'light' ? 'dark' : 'light';
+    // Apply theme class to document
+    useEffect(() => {
+        const root = window.document.documentElement;
+        
+        let effectiveTheme = theme;
+        if (theme === 'system') {
+            effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        root.classList.remove('light', 'dark');
+        root.classList.add(effectiveTheme);
+        
+        // Listen for system changes if system is selected
+        if (theme === 'system') {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const handleChange = () => {
+                root.classList.remove('light', 'dark');
+                root.classList.add(mediaQuery.matches ? 'dark' : 'light');
+            };
+            mediaQuery.addEventListener('change', handleChange);
+            return () => mediaQuery.removeEventListener('change', handleChange);
+        }
+    }, [theme]);
+
+    const toggleTheme = (newTheme) => {
         setTheme(newTheme);
         localStorage.setItem('theme', newTheme);
-        document.documentElement.classList.toggle('dark', newTheme === 'dark');
     };
-
-    // Apply theme class to document on mount and change
-    useEffect(() => {
-        document.documentElement.classList.toggle('dark', theme === 'dark');
-    }, [theme]);
 
     return (
         <ThemeContext.Provider value={{ theme, toggleTheme }}>

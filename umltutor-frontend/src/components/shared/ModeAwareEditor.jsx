@@ -114,9 +114,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   const effectivelyReadOnly = isReadOnly || (isStudentWork && isSubmitted && !isTutorialActive);
 
   useEffect(() => {
-    if (isStudentWork) {
-      console.log(`[Workspace] Status: ${currentSubmission?.status}, IsSubmitted: ${isSubmitted}, Mode: ${currentMode}`);
-    }
+    // Submission status tracking effect
   }, [currentSubmission?.status, isSubmitted, currentMode]);
 
   const tutorialStep = useAppSelector(selectTutorialStep);

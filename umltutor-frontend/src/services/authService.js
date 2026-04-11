@@ -56,6 +56,15 @@ class AuthService {
     }
   }
 
+  async deleteAccount() {
+    return apiClient.delete('/api/auth/account');
+  }
+
+  async changePassword(newPassword) {
+    return apiClient.put('/api/auth/change-password', { newPassword });
+  }
+
+
   getToken() {
     return localStorage.getItem('token');
   }
@@ -67,4 +76,6 @@ export const login = authService.login.bind(authService);
 export const register = authService.register.bind(authService);
 export const logout = authService.logout.bind(authService);
 export const getCurrentUser = authService.getCurrentUser.bind(authService);
+export const deleteAccount = authService.deleteAccount.bind(authService);
+export const changePassword = authService.changePassword.bind(authService);
 export const getToken = authService.getToken.bind(authService);

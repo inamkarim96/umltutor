@@ -5,7 +5,11 @@ import {
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
     signOut, 
-    sendEmailVerification
+    sendEmailVerification,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    deleteUser
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -178,7 +182,6 @@ export const AuthProvider = ({ children }) => {
                 if (!isVerificationError) {
                     throw error;
                 }
-                console.log('Registration successful, profile fetch pending verification.');
             }
 
             const isEmailVerified = firebaseUser.emailVerified;
@@ -234,6 +237,52 @@ export const AuthProvider = ({ children }) => {
         setAuthState(prev => ({ ...prev, redirectPath: null }));
     };
 
+    const changePassword = async (oldPassword, newPassword) => {
+        const user = auth.currentUser;
+        if (!user || !user.email) throw new Error("No authenticated user found");
+
+        try {
+            // Re-authenticate user
+            const credential = EmailAuthProvider.credential(user.email, oldPassword);
+            await reauthenticateWithCredential(user, credential);
+            
+            // Update password in Firebase
+            await updatePassword(user, newPassword);
+
+            // Update password in local database
+            await authService.changePassword(newPassword);
+
+            return true;
+        } catch (error) {
+            console.error('Change password error:', error);
+            throw error;
+        }
+    };
+
+    const deleteUserAccount = async (password) => {
+        const user = auth.currentUser;
+        if (!user || !user.email) throw new Error("No authenticated user found");
+
+        try {
+            // Re-authenticate user
+            const credential = EmailAuthProvider.credential(user.email, password);
+            await reauthenticateWithCredential(user, credential);
+            
+            // Delete from Backend first (to clean up linked data)
+            await authService.deleteAccount();
+            
+            // Delete from Firebase
+            await deleteUser(user);
+            
+            // Clean up state
+            await logout();
+            return true;
+        } catch (error) {
+            console.error('Delete account error:', error);
+            throw error;
+        }
+    };
+
     const value = {
         authState,
         isLoading,
@@ -242,6 +291,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         setRedirectPath,
         clearRedirectPath,
+        changePassword,
+        deleteUserAccount
     };
 
     return (

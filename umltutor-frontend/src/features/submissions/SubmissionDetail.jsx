@@ -50,12 +50,6 @@ const SubmissionDetail = () => {
 
         if (!cancelled) {
           setSubmission(data);
-          console.log('=== SUBMISSION DATA DEBUG ===');
-          console.log('Full submission object:', data);
-          console.log('Assignment object:', data?.assignment);
-          console.log('Assignment maxScore:', data?.assignment?.maxScore, '(type:', typeof data?.assignment?.maxScore, ')');
-          console.log('Assignment title:', data?.assignment?.title);
-          console.log('=== END DEBUG ===');
           setRemarks(initialRemarks);
           setMarks(data?.evaluation?.totalScore !== undefined && data?.evaluation?.totalScore !== null ? data.evaluation.totalScore : '');
           if (validationReport) {

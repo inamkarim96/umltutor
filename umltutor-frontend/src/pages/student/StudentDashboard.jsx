@@ -12,8 +12,9 @@ import { selectSubmissions, fetchMySubmissions } from '../../features/submission
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../../config/firebase';
 import { sendEmailVerification, reload } from 'firebase/auth';
-import { BookOpen, Clock, CheckCircle, Plus, X, Users, GraduationCap, LogOut, Mail, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BookOpen, Clock, CheckCircle, Plus, X, Users, GraduationCap, LogOut, Mail, RefreshCw, CheckCircle2, AlertCircle, Settings as SettingsIcon } from 'lucide-react';
 import NotificationDropdown from '../../components/shared/NotificationDropdown';
+import SettingsPanel from '../../components/shared/SettingsPanel';
 
 const StudentDashboard = () => {
     const user = useAppSelector(selectUser);
@@ -26,6 +27,7 @@ const StudentDashboard = () => {
     const [isChecking, setIsChecking] = useState(false);
     const [verifMessage, setVerifMessage] = useState('');
     const [verifType, setVerifType] = useState('warning');
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const handleResendEmail = async () => {
         if (!auth.currentUser) return;
@@ -145,6 +147,13 @@ const StudentDashboard = () => {
                 <div className="flex gap-4 items-center">
                     <NotificationDropdown />
                     <button
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="p-3 bg-white border border-gray-100 text-gray-500 rounded-xl font-bold shadow-sm hover:bg-gray-50 hover:border-gray-200 hover:text-indigo-600 transition-all flex items-center justify-center"
+                        title="Settings"
+                    >
+                        <SettingsIcon size={20} />
+                    </button>
+                    <button
                         onClick={authLogout}
                         className="p-3 bg-white border border-red-100 text-red-500 rounded-xl font-bold shadow-sm hover:bg-red-50 hover:border-red-200 transition-all flex items-center justify-center"
                         title="Logout"
@@ -153,6 +162,8 @@ const StudentDashboard = () => {
                     </button>
                 </div>
             </div>
+
+            <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
             {/* Email Verification Banner */}
             {authState.needsEmailVerification && (

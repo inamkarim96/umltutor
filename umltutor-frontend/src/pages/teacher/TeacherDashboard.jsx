@@ -23,7 +23,6 @@ import {
     Send,
     Layout,
     Plus,
-    Settings,
     ChevronRight,
     History,
     GraduationCap,
@@ -32,12 +31,14 @@ import {
     Mail,
     RefreshCw,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    Settings as SettingsIcon
 } from 'lucide-react';
 import { useState } from 'react';
 import { auth } from '../../config/firebase';
 import { sendEmailVerification, reload } from 'firebase/auth';
 import NotificationDropdown from '../../components/shared/NotificationDropdown';
+import SettingsPanel from '../../components/shared/SettingsPanel';
 
 const TeacherDashboard = () => {
     const dispatch = useAppDispatch();
@@ -49,6 +50,7 @@ const TeacherDashboard = () => {
     const [isChecking, setIsChecking] = useState(false);
     const [verifMessage, setVerifMessage] = useState('');
     const [verifType, setVerifType] = useState('warning');
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const handleResendEmail = async () => {
         if (!auth.currentUser) return;
@@ -170,6 +172,13 @@ const TeacherDashboard = () => {
                 <div className="flex gap-4 items-center">
                     <NotificationDropdown />
                     <button
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="p-3 bg-white border border-gray-100 text-gray-500 rounded-xl font-bold shadow-sm hover:bg-gray-50 hover:border-gray-200 hover:text-indigo-600 transition-all flex items-center justify-center"
+                        title="Settings"
+                    >
+                        <SettingsIcon size={20} />
+                    </button>
+                    <button
                         onClick={logout}
                         className="p-3 bg-white border border-red-100 text-red-500 rounded-xl font-bold shadow-sm hover:bg-red-50 hover:border-red-200 transition-all flex items-center justify-center"
                         title="Logout"
@@ -178,6 +187,8 @@ const TeacherDashboard = () => {
                     </button>
                 </div>
             </div>
+
+            <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
             {/* Email Verification Banner */}
             {authState.needsEmailVerification && (

@@ -336,7 +336,6 @@ const SSDDiagramEditorInner = ({
     // Tool Actions
     // ─────────────────────────────────────────────────────────────────────────────
     const createCallMessage = () => {
-        console.log('Creating Call Message...');
         const { actor, system } = getActorAndSystemLifelines();
 
         if (!actor || !system) {
@@ -377,7 +376,6 @@ const SSDDiagramEditorInner = ({
     };
 
     const createReturnMessage = () => {
-        console.log('Creating Return Message...');
         const { actor, system } = getActorAndSystemLifelines();
 
         if (!actor || !system) {
@@ -438,7 +436,6 @@ const SSDDiagramEditorInner = ({
     };
 
     const createSelfMessage = () => {
-        console.log('Creating Self Message...');
 
         // Prefer System lifeline. If none, use the first available lifeline.
         const { system } = getActorAndSystemLifelines();
