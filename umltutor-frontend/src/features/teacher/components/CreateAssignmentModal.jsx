@@ -15,6 +15,24 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileError, setFileError] = useState('');
     const [removeExistingFile, setRemoveExistingFile] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    // Reset form when modal opens or initialData changes
+    React.useEffect(() => {
+        if (isOpen) {
+            setFormData({
+                title: initialData?.title || '',
+                deadline: initialData?.dueDate || initialData?.deadline ? new Date(initialData.dueDate || initialData.deadline).toISOString().split('T')[0] : '',
+                assignmentType: initialData?.type || initialData?.assignmentType || 'TEXT',
+                releaseDate: initialData?.releaseDate ? new Date(initialData.releaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                maxScore: initialData?.maxScore?.toString() || '',
+                textContent: initialData?.textContent || '',
+            });
+            setSelectedFile(null);
+            setFileError('');
+            setRemoveExistingFile(false);
+        }
+    }, [isOpen, initialData]);
 
     if (!isOpen) return null;
 

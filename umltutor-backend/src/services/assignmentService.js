@@ -89,7 +89,6 @@ class AssignmentService {
       dueDate: data.dueDate,
       releaseDate: data.releaseDate || new Date(),
       textContent: data.textContent,
-      instructions: data.instructions,
       assignmentFileUrl: data.assignmentFileUrl,
       assignmentFileName: data.assignmentFileName,
       assignmentFileType: data.assignmentFileType,
