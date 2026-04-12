@@ -706,7 +706,7 @@ const SSDDiagramEditorInner = ({
                 label: lifeline.label || lifeline.name || `Lifeline ${index + 1}`,
                 lifelineType: lifeline.type,
                 height: lifeline.height || 150,
-                iconSize: lifeline.iconSize || 48,
+                iconSize: lifeline.iconSize || 24,
                 isReadOnly: isReadOnly // Pass read-only state to node
             },
             zIndex: 10
