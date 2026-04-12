@@ -330,7 +330,11 @@ const TeacherDashboard = () => {
                                         const submissionId = sub?.submissionId ?? sub?.id;
                                         const numericId = Number(submissionId);
                                         if (Number.isFinite(numericId) && numericId > 0) {
-                                            navigate(`/teacher/submissions/${numericId}`);
+                                            const assignmentName = assignmentsMap[sub.assignmentId]?.title || sub.assignmentTitle || 'assignment';
+                                            const studentName = sub.studentName || 'student';
+                                            const aSlug = assignmentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                            const sSlug = studentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                            navigate(`/teacher/submissions/${aSlug}/${sSlug}/${numericId}`);
                                         }
                                     }}
                                     className={`p-4 flex items-center gap-4 hover:bg-emerald-50 rounded-2xl transition-all cursor-pointer group`}

@@ -36,6 +36,14 @@ const AllSubmissions = () => {
         dispatch(fetchAllSubmissionsForTeacher());
     }, [dispatch]);
 
+    const handleNavigate = (sub) => {
+        const assignmentTitle = assignments.find(a => a.id === sub.assignmentId)?.title || sub.assignmentTitle || 'Standard Task';
+        const studentName = sub.studentName || (sub.studentEmail ? sub.studentEmail.split('@')[0] : 'Unknown Student');
+        const aSlug = assignmentTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'assignment';
+        const sSlug = studentName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'student';
+        navigate(`/teacher/submissions/${aSlug}/${sSlug}/${sub.id}`);
+    };
+
     const filteredSubmissions = submissions.filter(sub => {
         if (!sub || sub.status?.toLowerCase() === 'draft') return false;
         const studentName = sub.studentName?.toLowerCase() || '';
@@ -141,7 +149,7 @@ const AllSubmissions = () => {
                                             <td className="px-8 py-6 text-right">
                                                 <button 
                                                     disabled={!sub.id}
-                                                    onClick={() => navigate(`/teacher/submissions/${sub.id}`)}
+                                                    onClick={() => handleNavigate(sub)}
                                                     className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 text-indigo-600 rounded-xl text-xs font-black shadow-sm hover:bg-indigo-600 hover:text-white transition-all group/btn"
                                                 >
                                                     Evaluation <ArrowUpRight size={14} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />

@@ -312,7 +312,12 @@ const AssignmentDetails = () => {
                                                                     </td>
                                                                     <td className="px-8 py-5 text-right">
                                                                         <button
-                                                                            onClick={() => navigate(`/teacher/submissions/${sub.submissionId || sub.id}`)}
+                                                                            onClick={() => {
+                                                                                const assignmentName = assignment?.title || 'assignment';
+                                                                                const aSlug = assignmentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                                                                const sSlug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                                                                navigate(`/teacher/submissions/${aSlug}/${sSlug}/${sub.submissionId || sub.id}`);
+                                                                            }}
                                                                             className="p-2 hover:bg-white rounded-xl text-gray-400 hover:text-indigo-600 border border-transparent hover:border-gray-100 hover:shadow-sm transition-all"
                                                                         >
                                                                             <ChevronRight size={20} />

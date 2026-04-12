@@ -67,6 +67,13 @@ const AssignmentSubmissions = () => {
         }
     }, [id, dispatch]);
 
+    const handleNavigate = (sub) => {
+        const aSlug = assignment?.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'assignment';
+        const studentName = sub.studentName || (sub.studentEmail ? sub.studentEmail.split('@')[0] : 'Unknown Student');
+        const sSlug = studentName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'student';
+        navigate(`/teacher/submissions/${aSlug}/${sSlug}/${sub.submissionId}`);
+    };
+
     if (!assignment) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -285,7 +292,7 @@ const AssignmentSubmissions = () => {
                                                 )}
                                                 <button 
                                                     disabled={!sub.submissionId}
-                                                    onClick={() => navigate(`/teacher/submissions/${sub.submissionId}`)}
+                                                    onClick={() => handleNavigate(sub)}
                                                     className={`inline-flex items-center gap-3 px-8 py-3.5 border rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 group/btn ${
                                                         !sub.submissionId
                                                         ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'

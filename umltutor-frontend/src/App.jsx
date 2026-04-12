@@ -181,6 +181,15 @@ function App() {
                 />
 
                 <Route
+                  path="/teacher/submissions/:assignmentName/:userName/:submissionId"
+                  element={
+                    <ProtectedRoute requiredRole="TEACHER">
+                      <SubmissionDetail />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
                   path="/teacher/messages/:studentId"
                   element={
                     <ProtectedRoute requiredRole="TEACHER">

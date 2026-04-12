@@ -407,7 +407,7 @@ const SubmissionDetail = () => {
                   <CheckingModePanel
                     activeSection="usecase"
                     modelOverride={modelPayload}
-                    reportOverride={checkReport?.useCaseDiagramReport || checkReport?.useCaseDiagram}
+                    reportOverride={checkReport?.useCaseDiagramReport || checkReport?.useCaseDiagram || checkReport}
                     onRunChecker={!isStudent ? handleRunCheck : undefined}
                     onLocalReport={!isStudent ? ((r) => {
                       const h = (r?.issues || []).filter(i => i.context?.useCaseId).map(i => ({
@@ -431,7 +431,7 @@ const SubmissionDetail = () => {
               assignmentId={submissionId}
               isReadOnly
               isCheckingActive={true}
-              reportOverride={checkReport?.useCaseDescriptionReport || checkReport?.useCaseDescription}
+              reportOverride={checkReport?.useCaseDescriptionReport || checkReport?.useCaseDescription || checkReport}
               onRunChecker={!isStudent ? handleRunCheck : undefined}
               onLocalReport={!isStudent ? ((r, tid) => handleLocalReportUpdate('description', r, tid)) : undefined}
               modelOverride={modelPayload}
@@ -445,7 +445,7 @@ const SubmissionDetail = () => {
               assignmentId={submissionId}
               isReadOnly
               isCheckingActive={true}
-              reportOverride={checkReport?.sequenceDiagramReport || checkReport?.systemSequence}
+              reportOverride={checkReport?.sequenceDiagramReport || checkReport?.systemSequence || checkReport}
               onRunChecker={!isStudent ? handleRunCheck : undefined}
               modelOverride={modelPayload}
               highlights={localSSDHighlights}

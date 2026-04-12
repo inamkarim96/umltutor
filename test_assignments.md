@@ -85,7 +85,8 @@ This document contains 4 distinct assignments designed specifically to trigger e
 
 ---
 
-## 📝 Assignment 3: E-Commerce Store (5 Use Cases)
+
+Assignment 3: E-Commerce Store (5 Use Cases)
 **Focus Area:** Missing Steps & Chronological Order Mismatch
 
 **1. Case Study (Scenario):**
@@ -95,36 +96,87 @@ This document contains 4 distinct assignments designed specifically to trigger e
 *   **System Name:** `E-Commerce App`
 *   **Actors:** `Shopper`, `Seller`
 *   **Use Cases (5):** `Purchase Product`, `View Catalog`, `Track Order`, `Manage Inventory`, `Process Refund`
+E-Commerce App
+System Name: E-Commerce App
+Actors: Shopper, Seller
 
-*   **Use Case Descriptions (5):**
-    *   **Description 1 (Purchase Product):**
-        *   **Primary Actor:** `Shopper`
-        *   **Precondition:** `The cart is not empty.`
-        *   **Postcondition:** `Order is placed successfully.`
-        *   **Main Flow:**
-            1. Shopper adds item to cart.
-            2. Shopper enters shipping details.
-            3. System calculates total.
-            4. Shopper confirms payment.
-            5. System generates order ID.
-    *   **Description 2 (View Catalog):**
-        *   Flow: 1. Shopper searches item. 2. System displays results.
-    *   **Description 3 (Track Order):**
-        *   Flow: 1. Shopper enters ID. 2. System shows status.
-    *   **Description 4 (Manage Inventory):**
-        *   Flow: 1. Seller updates stock. 2. System confirms update.
-    *   **Description 5 (Process Refund):**
-        *   Flow: 1. Seller approves refund. 2. System processes refund.
+Use Case Descriptions (Corrected)
+1. Purchase Product
 
-*   **System Sequence Diagrams (5):**
-    *   **SSD 1 (Purchase Product):** 
-        Messages: `addItem()`, `calculateTotal()` *(Trigger: Order Mismatch - happened before shipping details in SSD)*, `confirmPayment()` *(Trigger: Missing Step - skipped "shipping details" completely)*
-    *   **SSD 2 (View Catalog):** `searchItem()`, `displayResults()`
-    *   **SSD 3 (Track Order):** `enterID()`, `showStatus()`
-    *   **SSD 4 (Manage Inventory):** `updateStock()`, `confirmUpdate()`
-    *   **SSD 5 (Process Refund):** `approveRefund()`, `processRefund()`
+Primary Actor: Shopper
 
----
+Precondition: Cart is not empty; Shopper is logged in
+
+Postcondition: Order is placed successfully with a unique order ID
+
+Main Flow:
+
+Shopper adds item to cart
+
+Shopper enters shipping details
+
+System calculates total
+
+Shopper confirms payment
+
+System generates order ID
+
+2. View Catalog
+
+Primary Actor: Shopper
+
+Precondition: Shopper is logged in or guest access enabled
+
+Postcondition: Catalog results are displayed
+
+Main Flow:
+
+Shopper searches item
+
+System displays results
+
+3. Track Order
+
+Primary Actor: Shopper
+
+Precondition: Shopper has a valid order ID
+
+Postcondition: Order status is displayed
+
+Main Flow:
+
+Shopper enters order ID
+
+System shows order status
+
+4. Manage Inventory
+
+Primary Actor: Seller
+
+Precondition: Seller is authenticated
+
+Postcondition: Inventory database updated successfully
+
+Main Flow:
+
+Seller updates stock
+
+System confirms update
+
+5. Process Refund
+
+Primary Actor: Seller
+
+Precondition: Refund request exists and is valid
+
+Postcondition: Refund processed successfully
+
+Main Flow:
+
+Seller approves refund
+
+System processes refund
+
 
 ## 📝 Assignment 4: Hospital System (4 Use Cases)
 **Focus Area:** Structural Errors & Empty Flow Steps
@@ -137,23 +189,170 @@ This document contains 4 distinct assignments designed specifically to trigger e
 *   **Actors:** `Patient`, `Receptionist`, `Doctor`
 *   **Diagram Error:** Do not connect the `Receptionist` actor to any Use Case. *(Trigger: Actor Not Connected Error)*
 *   **Use Cases (4):** `Book Appointment`, `Cancel Appointment`, `View History`, `Prescribe Medicine`
+🏥 Corrected Assignment 4: Hospital System
+System Name: Hospital System
+Actors: Patient, Receptionist, Doctor
 
-*   **Use Case Descriptions (4):**
-    *   **Description 1 (Book Appointment):**
-        *   **Primary Actor:** `Patient`
-        *   **Main Flow:**
-            1. Patient requests appointment.
-            2. *(Leave this step completely empty in the UI)* *(Trigger: Empty Main Flow Step Error)*
-            3. System confirms slot.
-    *   **Description 2 (Cancel Appointment):**
-        *   Flow: 1. Patient requests cancel. 2. System updates database. 
-    *   **Description 3 (View History):**
-        *   Flow: 1. Doctor enters patient ID. 2. System shows records.
-    *   **Description 4 (Prescribe Medicine):**
-        *   Flow: 1. Doctor adds prescription. 2. System saves prescription.
+Use Case Descriptions (Corrected)
+1. Book Appointment
 
-*   **System Sequence Diagrams (4):**
-    *   **SSD 1 (Book Appointment):** Add only 1 lifeline (Patient) and no System lifeline. *(Trigger: Incomplete SSD Error - minimum 2 lifelines required)*
-    *   **SSD 2 (Cancel Appointment):** `requestCancel()`, `updateDatabase()`
-    *   **SSD 3 (View History):** `enterPatientID()`, `showRecords()`
-    *   **SSD 4 (Prescribe Medicine):** `addPrescription()`, `savePrescription()`
+Primary Actor: Patient
+
+Precondition: Patient is registered in the system
+
+Postcondition: Appointment slot confirmed and stored in database
+
+Main Flow:
+
+Patient requests appointment
+
+Receptionist checks availability
+
+System confirms slot
+
+2. Cancel Appointment
+
+Primary Actor: Patient
+
+Precondition: Patient has an existing appointment
+
+Postcondition: Appointment canceled and database updated
+
+Main Flow:
+
+Patient requests cancellation
+
+Receptionist verifies request
+
+System updates database
+
+3. View History
+
+Primary Actor: Doctor
+
+Precondition: Patient record exists in system
+
+Postcondition: Patient history displayed to doctor
+
+Main Flow:
+
+Doctor enters patient ID
+
+System shows records
+
+4. Prescribe Medicine
+
+Primary Actor: Doctor
+
+Precondition: Patient record is accessible
+
+Postcondition: Prescription saved in system
+
+Main Flow:
+
+Doctor adds prescription
+
+System saves prescription
+
+
+
+SSD 1 – Purchase Product
+
+Lifelines: Shopper, System
+
+Messages (Correct Order):
+
+addItem()
+
+enterShippingDetails()
+
+calculateTotal()
+
+confirmPayment()
+
+generateOrderID()
+
+SSD 2 – View Catalog
+
+Lifelines: Shopper, System
+
+Messages:
+
+searchItem()
+
+displayResults()
+
+SSD 3 – Track Order
+
+Lifelines: Shopper, System
+
+Messages:
+
+enterID()
+
+showStatus()
+
+SSD 4 – Manage Inventory
+
+Lifelines: Seller, System
+
+Messages:
+
+updateStock()
+
+confirmUpdate()
+
+SSD 5 – Process Refund
+
+Lifelines: Seller, System
+
+Messages:
+
+approveRefund()
+
+processRefund()
+
+🏥 Corrected SSDs for Hospital System
+SSD 1 – Book Appointment
+
+Lifelines: Patient, Receptionist, System
+
+Messages:
+
+requestAppointment()
+
+checkAvailability()
+
+confirmSlot()
+
+SSD 2 – Cancel Appointment
+
+Lifelines: Patient, Receptionist, System
+
+Messages:
+
+requestCancel()
+
+verifyRequest()
+
+updateDatabase()
+
+SSD 3 – View History
+
+Lifelines: Doctor, System
+
+Messages:
+
+enterPatientID()
+
+showRecords()
+
+SSD 4 – Prescribe Medicine
+
+Lifelines: Doctor, System
+
+Messages:
+
+addPrescription()
+
+savePrescription()
