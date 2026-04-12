@@ -713,7 +713,8 @@ const SSDDiagramEditorInner = ({
         })) || [];
 
         const newEdges = ssdData.messages?.map((msg) => {
-            const y = msg.y || msg.yPosition || msg.positionY || MESSAGE_BASE_Y;
+            const rawY = msg.y || msg.yPosition || msg.positionY || MESSAGE_BASE_Y;
+            const y = Math.round(rawY / 10) * 10;
             return {
                 id: msg.id || uid(),
                 source: msg.fromLifelineId,
@@ -739,7 +740,15 @@ const SSDDiagramEditorInner = ({
 
         setNodes(newNodes);
         setEdges(newEdges);
-        setActivationBars(ssdData.activations || []);
+        const loadedActivations = (ssdData.activations || []).map(bar => ({
+            id: bar.id || bar.startMessageId || uid(),
+            lifelineId: bar.lifelineId || bar.participantId,
+            depth: bar.depth || bar.depthLevel || 0,
+            startY: bar.startY,
+            endY: bar.endY,
+            height: bar.height
+        }));
+        setActivationBars(loadedActivations);
 
         lastLoadedRef.current = dataString;
 
