@@ -6,6 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserRole } from '../../../types/auth';
 import { useErrorToast } from '../../../components/ui/Toast';
+import { Eye, EyeOff } from 'lucide-react';
 
 // Validation schema
 const registerSchema = z.object({
@@ -27,6 +28,8 @@ const RegisterPage = () => {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const {
         register,
@@ -209,15 +212,25 @@ const RegisterPage = () => {
 
 <div className={authState.needsProfileCompletion ? "hidden" : ""}>
                                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Password</label>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    {...register('password')}
-                                    className={`mt-1.5 block w-full px-4 py-2.5 border ${errors.password ? 'border-red-300' : 'border-gray-200'
-                                        } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50`}
-                                    placeholder="••••••••"
-                                />
+                                <div className="relative mt-1.5">
+                                    <input
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        autoComplete="new-password"
+                                        {...register('password')}
+                                        className={`block w-full px-4 py-2.5 border ${errors.password ? 'border-red-300' : 'border-gray-200'
+                                            } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 pr-12`}
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-gray-100"
+                                        tabIndex="-1"
+                                    >
+                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
+                                </div>
                                 {errors.password && (
                                     <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
                                 )}
@@ -225,15 +238,25 @@ const RegisterPage = () => {
 
                             <div className={authState.needsProfileCompletion ? "hidden" : ""}>
                                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Confirm password</label>
-                                <input
-                                    id="confirmPassword"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    {...register('confirmPassword')}
-                                    className={`mt-1.5 block w-full px-4 py-2.5 border ${errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
-                                        } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50`}
-                                    placeholder="••••••••"
-                                />
+                                <div className="relative mt-1.5">
+                                    <input
+                                        id="confirmPassword"
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        autoComplete="new-password"
+                                        {...register('confirmPassword')}
+                                        className={`block w-full px-4 py-2.5 border ${errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
+                                            } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 pr-12`}
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-gray-100"
+                                        tabIndex="-1"
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
+                                </div>
                                 {errors.confirmPassword && (
                                     <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
                                 )}

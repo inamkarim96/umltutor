@@ -7,8 +7,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { auth } from '../../../config/firebase';
-import { reload, sendEmailVerification } from 'firebase/auth';
-import { Mail, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { reload, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth';
+import { Mail, RefreshCw, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 // Validation schema
 const loginSchema = z.object({
@@ -25,6 +25,8 @@ const LoginPage = () => {
     const [isResending, setIsResending] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [isForgotPassword, setIsForgotPassword] = useState(false);
 
     const handleResendEmail = async () => {
         if (!auth.currentUser) return;
@@ -63,6 +65,7 @@ const LoginPage = () => {
         register,
         handleSubmit,
         setValue,
+        getValues,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(loginSchema),
@@ -100,16 +103,43 @@ const LoginPage = () => {
         }
     };
 
+    const handleForgotPassword = async () => {
+        const email = getValues('email');
+        if (!email || !email.includes('@')) {
+            setErrorMessage('Please enter a valid email address first.');
+            return;
+        }
+        try {
+            setIsLoading(true);
+            setErrorMessage('');
+            await sendPasswordResetEmail(auth, email);
+            setSuccessMessage('Password reset email sent. Please check your inbox.');
+            setIsForgotPassword(false);
+        } catch (error) {
+            setErrorMessage(error.message || 'Failed to send reset email.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12">
             <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl transition-all hover:shadow-2xl">
                 <div className="space-y-2">
-                    <h2 className="text-center text-3xl font-extrabold text-gray-900 tracking-tight">Sign in to UML Tutor</h2>
+                    <h2 className="text-center text-3xl font-extrabold text-gray-900 tracking-tight">
+                        {isForgotPassword ? 'Reset Password' : 'Sign in to UML Tutor'}
+                    </h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
-                        Don't have an account?{' '}
-                        <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500 underline-offset-4 hover:underline transition-all">
-                            Sign up here
-                        </Link>
+                        {isForgotPassword ? (
+                            'Enter your email to receive a password reset link.'
+                        ) : (
+                            <>
+                                Don't have an account?{' '}
+                                <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500 underline-offset-4 hover:underline transition-all">
+                                    Sign up here
+                                </Link>
+                            </>
+                        )}
                     </p>
                 </div>
 
@@ -129,8 +159,8 @@ const LoginPage = () => {
                         </div>
                     )}
 
-                    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-                        <div className="space-y-4">
+                    {isForgotPassword ? (
+                        <div className="space-y-5">
                             <div>
                                 <label htmlFor="email" className="block text-sm font-bold text-gray-700 ml-1">Email address</label>
                                 <input
@@ -142,30 +172,76 @@ const LoginPage = () => {
                                 />
                                 {errors.email && <p className="mt-1.5 text-xs font-bold text-red-500 ml-1">{errors.email.message}</p>}
                             </div>
-
-                            <div>
-                                <label htmlFor="password" className="block text-sm font-bold text-gray-700 ml-1">Password</label>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    {...register('password')}
-                                    className={`mt-1.5 block w-full px-4 py-3 border-2 ${errors.password ? 'border-red-200' : 'border-gray-100'} rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
-                                    placeholder="••••••••"
-                                />
-                                {errors.password && <p className="mt-1.5 text-xs font-bold text-red-500 ml-1">{errors.password.message}</p>}
+                            <button
+                                type="button"
+                                onClick={handleForgotPassword}
+                                disabled={isLoading}
+                                className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white transition-all transform active:scale-98 ${
+                                    isLoading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200'
+                                }`}
+                            >
+                                {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Send Reset Link'}
+                            </button>
+                            <div className="text-center">
+                                <button type="button" onClick={() => { setIsForgotPassword(false); setErrorMessage(''); setSuccessMessage(''); }} className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 hover:underline">
+                                    Back to Login
+                                </button>
                             </div>
                         </div>
+                    ) : (
+                        <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="email" className="block text-sm font-bold text-gray-700 ml-1">Email address</label>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        {...register('email')}
+                                        className={`mt-1.5 block w-full px-4 py-3 border-2 ${errors.email ? 'border-red-200' : 'border-gray-100'} rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
+                                        placeholder="you@example.com"
+                                    />
+                                    {errors.email && <p className="mt-1.5 text-xs font-bold text-red-500 ml-1">{errors.email.message}</p>}
+                                </div>
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white transition-all transform active:scale-98 ${
-                                isLoading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200'
-                            }`}
-                        >
-                            {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Log In'}
-                        </button>
-                    </form>
+                                <div>
+                                    <div className="flex items-center justify-between ml-1 mb-1.5">
+                                        <label htmlFor="password" className="block text-sm font-bold text-gray-700">Password</label>
+                                        <button type="button" onClick={() => setIsForgotPassword(true)} className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 hover:underline">
+                                            Forgot password?
+                                        </button>
+                                    </div>
+                                    <div className="relative">
+                                        <input
+                                            id="password"
+                                            type={showPassword ? 'text' : 'password'}
+                                            {...register('password')}
+                                            className={`block w-full px-4 py-3 border-2 ${errors.password ? 'border-red-200' : 'border-gray-100'} rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all pr-12`}
+                                            placeholder="••••••••"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-gray-100"
+                                            tabIndex="-1"
+                                        >
+                                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
+                                    </div>
+                                    {errors.password && <p className="mt-1.5 text-xs font-bold text-red-500 ml-1">{errors.password.message}</p>}
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white transition-all transform active:scale-98 ${
+                                    isLoading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200'
+                                }`}
+                            >
+                                {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Log In'}
+                            </button>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>
