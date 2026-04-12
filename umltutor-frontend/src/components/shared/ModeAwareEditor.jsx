@@ -111,7 +111,14 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   // Strictly enforce tutorial UI if approved by teacher, even if Redux mode hasn't switched yet
   const isTutorialActive = currentMode === 'tutorial';
   const isSubmitted = ['submitted', 'graded', 'reviewed', 'completed', 'approved'].includes(currentSubmission?.status?.toLowerCase()) || !!currentSubmission?.fullReport;
-  const effectivelyReadOnly = (isStudentWork && isTutorialActive) ? false : (isReadOnly || (isStudentWork && isSubmitted && !isTutorialActive));
+  let effectivelyReadOnly = isReadOnly;
+  if (isStudentWork && isSubmitted) {
+    if (isTutorialActive) {
+      effectivelyReadOnly = false; // Override to allow edits strictly in tutorial mode
+    } else {
+      effectivelyReadOnly = true;  // Strictly enforce lock in development mode after submission
+    }
+  }
 
   useEffect(() => {
     // Submission status tracking effect
