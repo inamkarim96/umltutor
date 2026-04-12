@@ -180,22 +180,35 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Developer Information Section */}
+      {/* Project Information Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Developer Information</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Project Information</h2>
             <div className="w-20 h-1 bg-indigo-600 mx-auto rounded" />
           </div>
-          <div className="max-w-2xl mx-auto bg-gray-50 rounded-xl p-8 text-center">
-            <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-white"><UsersIcon /></span>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="bg-gray-50 rounded-xl p-8 text-center">
+              <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-white"><UsersIcon /></span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Inam Karim</h3>
+              <p className="text-gray-600 mb-4">Developer & Creator of UMLTutor</p>
+              <div className="flex items-center justify-center gap-2 text-gray-700">
+                <MailIcon />
+                <a href="mailto:inamkarim96@gmail.com" className="text-indigo-600 hover:text-indigo-700 font-medium">inamkarim96@gmail.com</a>
+              </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Inam karim</h3>
-            <p className="text-gray-600 mb-4">Developer & Creator of UMLTutor</p>
-            <div className="flex items-center justify-center gap-2 text-gray-700">
-              <MailIcon />
-              <a href="mailto:inamkarim96@gmail.com" className="text-indigo-600 hover:text-indigo-700 font-medium">inamkarim96@gmail.com</a>
+
+            <div className="bg-gray-50 rounded-xl p-8 text-center">
+              <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-white"><GraduationCapIcon /></span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr. Onaiza Maqbool</h3>
+              <p className="text-gray-600 mb-4">Project Supervisor</p>
+              <div className="flex items-center justify-center gap-2 text-gray-700 h-6">
+                {/* Placeholder for future contact info or links if needed */}
+              </div>
             </div>
           </div>
         </div>
@@ -225,8 +238,9 @@ const LandingPage = () => {
             <div>
               <h4 className="text-white font-semibold mb-4">Contact</h4>
               <ul className="space-y-2">
-                <li className="text-gray-400">Developer: Inam karim</li>
+                <li className="text-gray-400">Developer: Inam Karim</li>
                 <li><a href="mailto:inamkarim96@gmail.com" className="text-gray-400 hover:text-white transition-colors">inamkarim96@gmail.com</a></li>
+                <li className="text-gray-400 mt-2">Supervisor: Dr. Onaiza Maqbool</li>
               </ul>
             </div>
           </div>
