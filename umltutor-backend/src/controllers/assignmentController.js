@@ -146,14 +146,7 @@ const getAssignmentStats = async (req, res, next) => {
     }
 }; exports.getAssignmentStats = getAssignmentStats;
 
-const getTeacherStudents = async (req, res, next) => {
-    try {
-        const students = await assignmentService.getTeacherStudents(req.user.id);
-        res.json({ success: true, data: students });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getTeacherStudents = getTeacherStudents;
+
 
 const getTeacherSubmission = async (req, res, next) => {
     try {

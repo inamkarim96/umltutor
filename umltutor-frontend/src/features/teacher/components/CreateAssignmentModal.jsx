@@ -6,7 +6,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
-        deadline: initialData?.deadline ? new Date(initialData.deadline).toISOString().split('T')[0] : '',
+        deadline: initialData?.deadline ? new Date(initialData.deadline).toISOString().slice(0, 16) : '',
         assignmentType: initialData?.assignmentType || 'TEXT',
         releaseDate: initialData?.releaseDate ? new Date(initialData.releaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         maxScore: initialData?.maxScore?.toString() || '',
@@ -22,7 +22,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
         if (isOpen) {
             setFormData({
                 title: initialData?.title || '',
-                deadline: initialData?.dueDate || initialData?.deadline ? new Date(initialData.dueDate || initialData.deadline).toISOString().split('T')[0] : '',
+                deadline: initialData?.dueDate || initialData?.deadline ? new Date(initialData.dueDate || initialData.deadline).toISOString().slice(0, 16) : '',
                 assignmentType: initialData?.type || initialData?.assignmentType || 'TEXT',
                 releaseDate: initialData?.releaseDate ? new Date(initialData.releaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 maxScore: initialData?.maxScore?.toString() || '',
@@ -87,7 +87,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
             fd.append('title', formData.title);
             fd.append('assignmentType', 'FILE');
             fd.append('releaseDate', formData.releaseDate);
-            fd.append('deadline', formData.deadline);
+            fd.append('deadline', new Date(formData.deadline).toISOString());
             fd.append('maxScore', formData.maxScore);
             
             if (selectedFile) {
@@ -104,10 +104,13 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                 title: formData.title,
                 assignmentType: 'TEXT',
                 releaseDate: formData.releaseDate,
-                deadline: formData.deadline,
+                deadline: new Date(formData.deadline).toISOString(),
                 maxScore: formData.maxScore,
                 textContent: formData.textContent,
             };
+            if (isEditMode) {
+                submissionData.id = initialData.id;
+            }
             onSubmit(submissionData);
         }
     };
@@ -146,15 +149,14 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                <Calendar size={16} className="text-indigo-500"/> Deadline (Due Date)
+                                <Calendar size={16} className="text-indigo-500"/> Deadline (Due Date & Time)
                             </label>
                             <input
-                                type="date"
+                                type="datetime-local"
                                 name="deadline"
                                 value={formData.deadline}
                                 onChange={handleChange}
                                 required
-                                min={!isEditMode ? new Date().toISOString().split('T')[0] : undefined}
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-gray-900 font-medium"
                             />
                         </div>

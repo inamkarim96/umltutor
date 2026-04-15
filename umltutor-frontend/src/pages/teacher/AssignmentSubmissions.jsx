@@ -121,7 +121,7 @@ const AssignmentSubmissions = () => {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-8 py-10">
+            <div className="px-8 py-10">
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                     <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-6">
@@ -135,15 +135,18 @@ const AssignmentSubmissions = () => {
                             </p>
                         </div>
                     </div>
-                    <div className="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-100 flex items-center gap-6 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg">
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-6 relative overflow-hidden group hover:shadow-xl transition-all">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
+                        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner relative z-10 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
                             <CheckCircle size={28} />
                         </div>
-                        <div>
-                            <p className="text-xs font-black text-indigo-200 uppercase tracking-widest mb-1">Submissions</p>
-                            <p className="text-3xl font-black">
-                                {submissionsForThisAsgn.filter(s => s.status && s.status.toLowerCase() !== 'pending').length}
+                        <div className="relative z-10">
+                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-indigo-600 transition-colors">Submissions</p>
+                            <p className="text-3xl font-black text-gray-900">
+                                {submissionsForThisAsgn.filter(s => {
+                                    const status = s.status?.toLowerCase();
+                                    return status === 'submitted' || status === 'graded' || status === 'reviewed' || status === 'completed';
+                                }).length}
                             </p>
                         </div>
                     </div>
@@ -154,10 +157,7 @@ const AssignmentSubmissions = () => {
                         <div>
                             <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Awaiting Grade</p>
                             <p className="text-3xl font-black text-gray-900">
-                                {submissionsForThisAsgn.filter(s => s.status && 
-                                    s.status.toLowerCase() !== 'graded' && 
-                                    s.status.toLowerCase() !== 'pending' && 
-                                    s.status.toLowerCase() !== 'not_submitted').length}
+                                {submissionsForThisAsgn.filter(s => s.status?.toLowerCase() === 'submitted').length}
                             </p>
                         </div>
                     </div>
@@ -201,9 +201,7 @@ const AssignmentSubmissions = () => {
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {(() => {
-                                    const visibleSubmissions = submissionsForThisAsgn.filter(sub => 
-                                        sub.status && sub.status.toLowerCase() !== 'pending' && sub.status.toLowerCase() !== 'not_submitted'
-                                    );
+                                    const visibleSubmissions = submissionsForThisAsgn;
                                     
                                     if (visibleSubmissions.length === 0) {
                                         return (
@@ -243,7 +241,7 @@ const AssignmentSubmissions = () => {
                                                                 ? 'bg-red-50 text-red-600 border-red-100'
                                                                 : 'bg-blue-50 text-blue-600 border-blue-100'
                                                     }`}>
-                                                        {sub.status?.replace('_', ' ') || 'SUBMITTED'}
+                                                        {sub.status?.replace(/_/g, ' ') || 'NOT STARTED'}
                                                     </span>
                                                     {sub.isUpdated && (
                                                         <span className="ml-3 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border bg-purple-50 text-purple-700 border-purple-100">

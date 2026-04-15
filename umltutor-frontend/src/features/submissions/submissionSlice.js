@@ -285,9 +285,11 @@ const submissionSlice = createSlice({
 
 export const { resetStatus, setCurrentSubmission } = submissionSlice.actions;
 
-export const selectSubmissions = (state) => state.submission.submissions;
+const EMPTY_ARRAY = [];
+
+export const selectSubmissions = (state) => state.submission.submissions || EMPTY_ARRAY;
 export const selectCurrentSubmission = (state) => state.submission.currentSubmission;
-export const selectAssignmentSubmissions = (state, aid) => state.submission.assignmentSubmissions[aid] || [];
+export const selectAssignmentSubmissions = (state, aid) => state.submission.assignmentSubmissions[aid] || EMPTY_ARRAY;
 export const selectSubmissionLoading = (state) => state.submission.isLoading;
 export const selectIsSubmitting = (state) => state.submission.isSubmitting;
 export const selectSubmissionError = (state) => state.submission.error;

@@ -3,7 +3,6 @@ import classroomReducer from './classroomSlice';
 // --- Classroom Exports ---
 export {
   fetchClasses,
-  fetchStudents,
   fetchClassStudents,
   createClass,
   joinClass,

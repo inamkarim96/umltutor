@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
-import { 
-    selectClasses, 
-    selectStudents, 
+import {
+    selectClasses,
+    selectStudents,
     fetchClasses,
-    fetchStudents,
-    createClass, 
-    addStudentToClass, 
-    removeStudentFromClass 
+    createClass,
+    removeStudentFromClass
 } from '../../features/classroom';
-import { 
-    Search, 
-    Plus, 
-    Trash2, 
-    GraduationCap, 
-    UserPlus, 
-    X, 
-    CheckCircle, 
+import {
+    Search,
+    Plus,
+    Trash2,
+    GraduationCap,
+    UserPlus,
+    X,
+    CheckCircle,
     Shield,
     Users,
     ChevronRight,
@@ -44,7 +42,6 @@ const ClassesManagement = () => {
 
     useEffect(() => {
         dispatch(fetchClasses());
-        dispatch(fetchStudents());
     }, [dispatch]);
 
     // Set initial selection if none
@@ -55,14 +52,14 @@ const ClassesManagement = () => {
     }, [classes, selectedClassId]);
 
     const activeClass = classes.find(c => c.id === selectedClassId);
-    
+
     const classStudents = activeClass?.students || activeClass?.studentIds?.map(id => studentsMap[id]).filter(Boolean) || [];
 
-    const filteredStudents = classStudents.filter(s => 
-        (s.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         s.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         s.email?.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredStudents = classStudents.filter(s =>
+    (s.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.email?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const handleCreateClass = async (e) => {
@@ -83,35 +80,19 @@ const ClassesManagement = () => {
     const handleAddStudent = async (e) => {
         e.preventDefault();
         if (selectedClassId && newStudentEmail) {
-            setErrorMessage('');
-            const student = Object.values(studentsMap).find(s => s.email.toLowerCase() === newStudentEmail.toLowerCase());
-            if (student) {
-                try {
-                    await dispatch(addStudentToClass({
-                        classId: selectedClassId,
-                        studentId: student.id
-                    })).unwrap();
-                    setNewStudentEmail('');
-                    setSuccessMessage('Student enrolled successfully!');
-                    setTimeout(() => setSuccessMessage(''), 3000);
-                } catch (error) {
-                    setErrorMessage('Add student failed: ' + (error?.message || error));
-                }
-            } else {
-                setErrorMessage('Student not found. They must have an account first.');
-            }
+            setErrorMessage('Enrolment by direct search is currently being updated. Please use the class code to invite students.');
         }
     };
 
     const handleRemoveStudent = async () => {
         const studentId = confirmDelete.studentId;
         if (!studentId) return;
-        
+
         setErrorMessage('');
         try {
-            await dispatch(removeStudentFromClass({ 
-                classId: selectedClassId, 
-                studentId 
+            await dispatch(removeStudentFromClass({
+                classId: selectedClassId,
+                studentId
             })).unwrap();
             setSuccessMessage('Student removed successfully.');
             setTimeout(() => setSuccessMessage(''), 3000);
@@ -122,19 +103,19 @@ const ClassesManagement = () => {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] p-8 md:p-12">
-            <div className="max-w-7xl mx-auto">
+            <div>
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
                     <div>
                         <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                            <GraduationCap className="text-indigo-600" size={40} /> 
+                            <GraduationCap className="text-indigo-600" size={40} />
                             Classrooms
                         </h1>
                         <p className="text-gray-500 mt-2 font-medium text-lg italic">
                             Manage your academic spaces and student enrollments.
                         </p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => setIsCreateClassModalOpen(true)}
                         className="group relative px-8 py-4 bg-indigo-600 text-white rounded-[1.5rem] font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-3 active:scale-95 overflow-hidden"
                     >
@@ -154,8 +135,8 @@ const ClassesManagement = () => {
                             <p className="font-black text-sm uppercase tracking-tight">{errorMessage ? 'Action Failed' : 'Success'}</p>
                             <p className="text-sm font-medium opacity-90">{errorMessage || successMessage}</p>
                         </div>
-                        <button 
-                            onClick={() => {setErrorMessage(''); setSuccessMessage('');}}
+                        <button
+                            onClick={() => { setErrorMessage(''); setSuccessMessage(''); }}
                             className="p-2 hover:bg-black/5 rounded-xl transition-colors"
                         >
                             <X size={18} />
@@ -164,14 +145,14 @@ const ClassesManagement = () => {
                 )}
 
                 {/* Classes Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
                     {classes.map(c => (
                         <div
                             key={c.id}
                             className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all group flex flex-col h-full relative overflow-hidden"
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/30 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
-                            
+
                             <div className="relative z-10 flex-1">
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
@@ -227,8 +208,8 @@ const ClassesManagement = () => {
                                     <h2 className="text-3xl font-black text-gray-900 tracking-tight italic">New Classroom</h2>
                                     <p className="text-gray-500 font-medium text-sm mt-1 uppercase tracking-tighter">Enter details to initiate space</p>
                                 </div>
-                                <button 
-                                    onClick={() => setIsCreateClassModalOpen(false)} 
+                                <button
+                                    onClick={() => setIsCreateClassModalOpen(false)}
                                     className="w-12 h-12 flex items-center justify-center bg-gray-50 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all text-gray-400 active:scale-90"
                                 >
                                     <X size={24} />

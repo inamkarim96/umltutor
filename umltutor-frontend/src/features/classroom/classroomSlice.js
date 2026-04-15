@@ -19,16 +19,7 @@ export const fetchClasses = createAsyncThunk(
   }
 );
 
-export const fetchStudents = createAsyncThunk(
-  'classroom/fetchStudents',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await classroomService.getStudents();
-    } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch students');
-    }
-  }
-);
+
 
 export const fetchClassStudents = createAsyncThunk(
   'classroom/fetchClassStudents',
@@ -240,16 +231,7 @@ const classroomSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      // Fetch Students
-      .addCase(fetchStudents.fulfilled, (state, action) => {
-        const studentsMap = {};
-        if (Array.isArray(action.payload)) {
-          action.payload.forEach(std => {
-            studentsMap[std.id] = std;
-          });
-        }
-        state.students = studentsMap;
-      })
+
       // Create Class
       .addCase(createClass.pending, (state) => {
         state.isLoading = true;

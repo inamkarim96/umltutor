@@ -8,7 +8,7 @@
 // Default rate limiter (increased for development to prevent loops from blocking access)
  const apiLimiter = _expressratelimit2.default.call(void 0, {
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000, 
+  max: 100000, // Significantly increased for local/dev environments to prevent loops from blocking access
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again later.'
@@ -18,14 +18,14 @@
   validate: { trustProxy: false },
 }); exports.apiLimiter = apiLimiter;
 
-// Strict rate limiter for authentication
+// Strict rate limiter for authentication routes (login/register/profile)
  const authLimiter = _expressratelimit2.default.call(void 0, {
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500,
+  max: 5000, // Increased to avoid blocking rapid profile syncs in dev
   skipSuccessfulRequests: true,
   message: {
     success: false,
-    error: 'Too many login attempts, please try again later.'
+    error: 'Too many authentication attempts, please try again later.'
   },
   standardHeaders: true,
   legacyHeaders: false,

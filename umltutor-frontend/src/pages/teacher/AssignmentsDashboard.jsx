@@ -103,11 +103,18 @@ const AssignmentsDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight">Assignments Management</h1>
-                    <p className="text-gray-500 font-medium">Create and track assignments across all your classes.</p>
+                    <p className="text-gray-500 font-medium italic">Create, manage, and track assignments across all your classes.</p>
                 </div>
+                <button
+                    onClick={() => { setEditingAssignment(null); setIsModalOpen(true); }}
+                    className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100"
+                >
+                    <Plus size={18} />
+                    Create Assignment
+                </button>
             </div>
             
             {/* Status Messages */}
@@ -131,15 +138,15 @@ const AssignmentsDashboard = () => {
 
 
             {/* Assignments Table */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
+            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-gray-50/50 border-b border-gray-100">
+                    <thead className="bg-gray-50/30 border-b border-gray-100">
                         <tr>
-                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Assignment Name</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Class</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Deadline</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Assignment Info</th>
+                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Classroom</th>
+                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Format</th>
+                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Deadline</th>
+                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -153,34 +160,34 @@ const AssignmentsDashboard = () => {
                         ) : assignments.length > 0 ? (
                             assignments.map(asgn => (
                                 <tr key={asgn.id} className="hover:bg-indigo-50/30 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black">
-                                                <Layout size={18} />
+                                    <td className="px-10 py-5">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black shadow-inner">
+                                                <Layout size={20} />
                                             </div>
                                             <div>
-                                                <div className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{asgn.title}</div>
-                                                <div className="text-xs text-gray-400 font-medium max-w-xs truncate">{asgn.description}</div>
+                                                <div className="font-extrabold text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-sm">{asgn.title}</div>
+                                                <div className="text-xs text-gray-400 font-medium max-w-xs truncate">{asgn.description || 'No description provided.'}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-3 py-1.5 bg-indigo-50/50 text-indigo-600 rounded-lg text-xs font-black uppercase tracking-tight">
+                                    <td className="px-10 py-5">
+                                        <span className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100/50">
                                             {classes.find(c => c.id === asgn.classId)?.name || 'Unknown'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${asgn.assignmentType === 'FILE' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    <td className="px-10 py-5">
+                                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${asgn.assignmentType === 'FILE' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
                                             {asgn.assignmentType || 'TEXT'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600 font-bold">
-                                            <Calendar size={14} className="text-gray-400" />
-                                            {asgn.dueDate || asgn.deadline ? new Date(asgn.dueDate || asgn.deadline).toLocaleDateString() : 'No date'}
+                                    <td className="px-10 py-5">
+                                        <div className="flex items-center gap-3 text-xs text-gray-700 font-bold tabular-nums">
+                                            <Calendar size={14} className="text-gray-300" />
+                                            {asgn.dueDate || asgn.deadline ? new Date(asgn.dueDate || asgn.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date'}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-10 py-5 text-right">
                                         <div className="flex justify-end gap-1">
                                             <button 
                                                 onClick={() => handleEditClick(asgn)}

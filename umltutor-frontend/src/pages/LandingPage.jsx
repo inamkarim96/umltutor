@@ -85,29 +85,32 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
             {/* Logo */}
             <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center gap-2">
-                <span className="text-xl font-bold text-gray-900">UMLTutor</span>
+              <div className="flex-shrink-0 flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100">
+                  <GraduationCapIcon />
+                </div>
+                <span className="text-2xl font-black text-gray-900 tracking-tighter">UML<span className="text-indigo-600">Tutor</span></span>
               </div>
             </div>
 
             {/* Auth Buttons */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-8">
               <Link
                 to="/login"
-                className="text-gray-700 hover:text-indigo-600 font-medium transition-colors"
+                className="text-gray-500 hover:text-indigo-600 font-bold text-sm uppercase tracking-widest transition-all"
               >
                 Log In
               </Link>
               <Link
                 to="/signup"
-                className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-100 transition-all active:scale-95"
               >
-                Sign Up
+                Get Started
               </Link>
             </div>
           </div>
@@ -115,28 +118,40 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-16 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h1 className="text-[clamp(2.5rem,5vw+1rem,4rem)] md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight leading-tight">
-              The Smart Way to Learn and Build UML
-              <span className="text-indigo-600 block sm:inline mt-2 sm:mt-0"> Interactive Guidance</span>
+      <section className="bg-white py-24 md:py-32 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 -z-10"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 -z-10"></div>
+        
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="text-center w-full">
+
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 mb-8 tracking-tight leading-[1.1]">
+              The Smart Way to <br />
+              <span className="text-indigo-600 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Master UML</span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              The intelligent platform for building professional UML diagrams with deep semantic analysis, consistency checks, and guided modeling.
+            <p className="text-xl md:text-2xl text-gray-500 max-w-2xl mx-auto font-medium leading-relaxed mb-12">
+              The intelligent platform for building professional diagrams with deep semantic analysis, consistency checks, and guided modeling.
             </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link to="/signup" className="w-full sm:w-auto bg-indigo-600 text-white px-10 py-5 rounded-[2rem] font-black text-lg shadow-2xl shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-1 transition-all active:scale-95">
+                Start Learning Free
+              </Link>
+              <Link to="/login" className="w-full sm:w-auto bg-white text-gray-900 border-2 border-gray-100 px-10 py-5 rounded-[2rem] font-black text-lg hover:border-indigo-600 hover:text-indigo-600 transition-all active:scale-95">
+                Teacher Access
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* About UMLTutor Section */}
       <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">About UMLTutor</h2>
             <div className="w-20 h-1 bg-indigo-600 mx-auto rounded" />
           </div>
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="w-full text-center">
             <p className="text-lg text-gray-600 leading-relaxed">
               UMLTutor is an intelligent platform specifically designed for teaching and learning Unified Modeling Language (UML). The platform bridges the gap between theoretical UML knowledge and practical application, providing students with a hands-on environment to create, manage, and refine their UML models within a structured assignment workflow.
             </p>
@@ -146,13 +161,13 @@ const LandingPage = () => {
 
       {/* Key Features Section */}
       <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Key Modules</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Focused tools designed for the core UML modeling workflow</p>
+            <p className="text-gray-600 w-full mx-auto font-medium">Focused tools designed for the core UML modeling workflow</p>
             <div className="w-20 h-1 bg-indigo-600 mx-auto rounded mt-4" />
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
               <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-indigo-600"><LayoutIcon /></span>
@@ -182,12 +197,12 @@ const LandingPage = () => {
 
       {/* Project Information Section */}
       <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Project Information</h2>
             <div className="w-20 h-1 bg-indigo-600 mx-auto rounded" />
           </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 w-full">
             <div className="bg-gray-50 rounded-xl p-8 text-center">
               <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-white"><UsersIcon /></span>
@@ -216,7 +231,7 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-2">
               <div className="mb-4">

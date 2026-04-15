@@ -18,11 +18,7 @@ import {
     Shield,
     Users,
     BookOpen,
-    ChevronRight,
     GraduationCap,
-    Calendar,
-    Layout,
-    Clock,
     Plus,
     Mail,
     UserCheck,
@@ -37,14 +33,13 @@ import AnnouncementBoard from '../../features/teacher/components/AnnouncementBoa
 import FileBrowser from '../../features/teacher/components/FileBrowser';
 import ClassSettingsPanel from '../../features/teacher/components/ClassSettingsPanel';
 import ConfirmModal from '../../components/shared/ConfirmModal';
-import apiClient from '../../services/apiClient';
 import { getEnrolledStudentsLogic, removeStudentLogic } from '../../features/teacher/teacherLogic';
-import { 
-    MessageSquare, 
-    FileText, 
+import {
+    MessageSquare,
+
     Settings as SettingsIcon,
     FolderOpen,
-    Info
+
 } from 'lucide-react';
 
 const ClassDetail = () => {
@@ -195,7 +190,7 @@ const ClassDetail = () => {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            <div className="max-w-6xl mx-auto">
+            <div>
                 <button
                     onClick={() => navigate('/teacher/dashboard')}
                     className="mb-10 text-gray-500 font-extrabold text-sm hover:text-indigo-600 transition-all flex items-center gap-2 group"
@@ -265,8 +260,10 @@ const ClassDetail = () => {
                     </div>
                 </div>
 
-                {/* Tab Navigation (Teams Style) */}
-                <div className="flex items-center gap-2 mb-8 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm w-fit max-w-full overflow-x-auto no-scrollbar">
+                {/* Tab Navigation — Full-width sticky navbar */}
+            </div>
+            <div className="w-full bg-white border-y border-gray-100 flex overflow-x-auto no-scrollbar sticky top-0 z-20 shadow-sm shadow-gray-50/50">
+                <div className="flex items-center gap-12 px-8 md:px-12">
                     {[
                         { id: 'posts', label: 'Post', icon: MessageSquare },
                         { id: 'files', label: 'File', icon: FolderOpen },
@@ -277,18 +274,27 @@ const ClassDetail = () => {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all whitespace-nowrap ${
-                                activeTab === tab.id 
-                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' 
-                                : 'text-gray-400 hover:text-indigo-600 hover:bg-gray-50'
-                            }`}
+                            className={`py-6 relative font-black text-[10px] uppercase tracking-[0.2em] transition-all whitespace-nowrap group ${activeTab === tab.id
+                                ? 'text-indigo-600'
+                                : 'text-gray-400 hover:text-gray-600'
+                                }`}
                         >
-                            <tab.icon size={16} />
-                            {tab.label}
+                            <div className="flex items-center gap-2.5">
+                                <span className={`transition-transform duration-300 ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110 opacity-70 group-hover:opacity-100'}`}>
+                                    <tab.icon size={18} />
+                                </span>
+                                {tab.label}
+                            </div>
+                            {activeTab === tab.id ? (
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full shadow-[0_-4px_12px_rgba(79,70,229,0.3)]" />
+                            ) : (
+                                <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-0.5 bg-gray-200 transition-all duration-300" />
+                            )}
                         </button>
                     ))}
                 </div>
-
+            </div>
+            <div className="min-h-screen bg-[#f8fafc] p-8 md:p-12">
                 {/* Tab Content */}
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {activeTab === 'posts' && (
@@ -391,9 +397,9 @@ const ClassDetail = () => {
                     )}
 
                     {activeTab === 'settings' && (
-                        <ClassSettingsPanel 
-                            classroom={targetClass} 
-                            onUpdate={() => dispatch(fetchClasses())} 
+                        <ClassSettingsPanel
+                            classroom={targetClass}
+                            onUpdate={() => dispatch(fetchClasses())}
                         />
                     )}
                 </div>

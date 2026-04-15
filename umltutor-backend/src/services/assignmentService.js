@@ -484,18 +484,7 @@ class AssignmentService {
     };
   }
 
-  // Teacher: Get all students ever seen by teacher
-  async getTeacherStudents(teacherId) {
-    // This is a bit complex, usually means students in any class of this teacher
-    const classes = await classRepository.findMany({ teacherId: Number(teacherId) }, { students: true });
-    const students = new Map();
-    classes.forEach(c => {
-        c.students.forEach(s => {
-            students.set(s.id, s);
-        });
-    });
-    return Array.from(students.values());
-  }
+
 
   // Teacher: Get specific student submission for an assignment
   async getTeacherSubmission(assignmentId, studentId, teacherId) {

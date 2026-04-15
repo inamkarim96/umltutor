@@ -55,8 +55,7 @@ router.post('/:id/review', _routeMiddleware.authorize('TEACHER'), _assignmentCon
 // Grade a specific submission
 router.post('/submissions/:submissionId/grade', _routeMiddleware.authorize('TEACHER'), _assignmentController.gradeSubmission);
 
-// Get list of all students for teacher reference
-router.get('/students/all', _routeMiddleware.authorize('TEACHER'), _assignmentController.getTeacherStudents);
+
 
 
 /**

@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-    onAuthStateChanged, 
-    signInWithEmailAndPassword, 
-    createUserWithEmailAndPassword, 
-    signOut, 
+import {
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
     sendEmailVerification,
     updatePassword,
     reauthenticateWithCredential,
@@ -33,13 +33,24 @@ export const AuthProvider = ({ children }) => {
         redirectPath: null,
     });
     const [isLoading, setIsLoading] = useState(true);
+    const lastCheckedUid = useRef(null);
+    const checkingInProgress = useRef(false);
 
     // Listen for Firebase Auth state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            // Prevent redundant checks if we already have this user and didn't sign out
+            if (firebaseUser?.uid === lastCheckedUid.current && authState.user && !checkingInProgress.current) {
+                setIsLoading(false);
+                return;
+            }
+
             setIsLoading(true);
             try {
                 if (firebaseUser) {
+                    lastCheckedUid.current = firebaseUser.uid;
+                    checkingInProgress.current = true;
+                    
                     const isEmailVerified = firebaseUser.emailVerified;
                     const token = await firebaseUser.getIdToken();
                     localStorage.setItem('token', token);
@@ -47,7 +58,7 @@ export const AuthProvider = ({ children }) => {
                     try {
                         // Sync with our backend to get the full user profile (role, etc.)
                         const currentUser = await authService.getCurrentUser();
-                        
+
                         if (currentUser) {
                             setAuthState(prev => ({
                                 isAuthenticated: true, // Allow session even if not verified
@@ -58,7 +69,7 @@ export const AuthProvider = ({ children }) => {
                                 needsEmailVerification: !isEmailVerified,
                                 redirectPath: prev.redirectPath,
                             }));
-                            
+
                             if (isEmailVerified) {
                                 dispatch(setReduxUser(currentUser));
                                 dispatch(setReduxToken(token));
@@ -69,10 +80,10 @@ export const AuthProvider = ({ children }) => {
                         if (error?.needsRegistration || error?.raw?.needsRegistration) {
                             setAuthState(prev => ({
                                 isAuthenticated: false,
-                                user: { 
-                                    email: firebaseUser.email, 
+                                user: {
+                                    email: firebaseUser.email,
                                     firebaseUid: firebaseUser.uid,
-                                    displayName: firebaseUser.displayName 
+                                    displayName: firebaseUser.displayName
                                 },
                                 token,
                                 isGuest: false,
@@ -81,7 +92,7 @@ export const AuthProvider = ({ children }) => {
                                 redirectPath: prev.redirectPath,
                             }));
                         } else if (error?.needsEmailVerification || error?.raw?.needsEmailVerification || !isEmailVerified) {
-                             setAuthState(prev => ({
+                            setAuthState(prev => ({
                                 isAuthenticated: false,
                                 user: { email: firebaseUser.email, firebaseUid: firebaseUser.uid },
                                 token,
@@ -96,6 +107,7 @@ export const AuthProvider = ({ children }) => {
                     }
                 } else {
                     // User is signed out
+                    lastCheckedUid.current = null;
                     localStorage.removeItem('token');
                     setAuthState(prev => ({
                         isAuthenticated: false,
@@ -114,6 +126,7 @@ export const AuthProvider = ({ children }) => {
                     dispatch(reduxLogout());
                 }
             } finally {
+                checkingInProgress.current = false;
                 setIsLoading(false);
             }
         });
@@ -131,7 +144,7 @@ export const AuthProvider = ({ children }) => {
                 clearRedirectPath();
                 navigate(path, { replace: true });
             }
-        } 
+        }
         else if (authState.needsProfileCompletion && !isLoading) {
             if (location.pathname !== '/register') {
                 navigate('/register', { replace: true });
@@ -152,7 +165,7 @@ export const AuthProvider = ({ children }) => {
     const register = async (email, password, firstName, lastName, role) => {
         try {
             let firebaseUser = auth.currentUser;
-            
+
             if (!firebaseUser) {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 firebaseUser = userCredential.user;
@@ -174,8 +187,8 @@ export const AuthProvider = ({ children }) => {
                 // If the error is just that email verification is required, 
                 // or any other profile-fetch error during registration,
                 // we treat the registration as successful but not yet fully authenticated.
-                const isVerificationError = 
-                    error?.needsEmailVerification || 
+                const isVerificationError =
+                    error?.needsEmailVerification ||
                     error?.raw?.needsEmailVerification ||
                     (error?.message && error.message.toLowerCase().includes('verification'));
 
@@ -245,7 +258,7 @@ export const AuthProvider = ({ children }) => {
             // Re-authenticate user
             const credential = EmailAuthProvider.credential(user.email, oldPassword);
             await reauthenticateWithCredential(user, credential);
-            
+
             // Update password in Firebase
             await updatePassword(user, newPassword);
 
@@ -267,13 +280,13 @@ export const AuthProvider = ({ children }) => {
             // Re-authenticate user
             const credential = EmailAuthProvider.credential(user.email, password);
             await reauthenticateWithCredential(user, credential);
-            
+
             // Delete from Backend first (to clean up linked data)
             await authService.deleteAccount();
-            
+
             // Delete from Firebase
             await deleteUser(user);
-            
+
             // Clean up state
             await logout();
             return true;

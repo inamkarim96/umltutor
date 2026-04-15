@@ -31,7 +31,8 @@ import {
     ChevronRight,
     Layout,
     Edit,
-    X
+    X,
+    Upload
 } from 'lucide-react';
 import { SubmitAssignment } from '../features/classroom';
 import { CreateAssignmentModal } from '../features/teacher';
@@ -84,8 +85,8 @@ const AssignmentDetails = () => {
         }
     };
 
-    const assignments = useAppSelector(selectAllAssignments) || [];
-    const submissionsArr = useAppSelector(selectSubmissions) || [];
+    const assignments = useAppSelector(selectAllAssignments);
+    const submissionsArr = useAppSelector(selectSubmissions);
     const classes = useAppSelector(selectClasses);
     const studentsMap = useAppSelector(selectStudents);
     // Find assignment by slugified title
@@ -154,7 +155,7 @@ const AssignmentDetails = () => {
     return (
         <>
             <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
-                <div className="max-w-6xl mx-auto">
+                <div className="w-full">
                     {/* Back Button */}
                     <button
                         onClick={() => navigate(-1)}
@@ -185,9 +186,9 @@ const AssignmentDetails = () => {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="space-y-8 w-full mx-auto">
                         {/* Main Content */}
-                        <div className="lg:col-span-2 space-y-8">
+                        <div className="space-y-8">
                             {/* Assignment Card */}
                             <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-start relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16"></div>
@@ -198,8 +199,8 @@ const AssignmentDetails = () => {
 
                                 <div className="flex-1 space-y-4 relative z-10">
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="flex items-center gap-3 mb-2">
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap items-center gap-3">
                                                 <span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-indigo-100">Assignment</span>
                                                 {myOfficialSubmission ? (
                                                     <span className="px-3 py-1 bg-emerald-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-emerald-100 uppercase">
@@ -211,7 +212,13 @@ const AssignmentDetails = () => {
                                                         {!isOverdue && <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black rounded-full uppercase tracking-widest uppercase">In Progress</span>}
                                                     </>
                                                 )}
+                                                {targetClass && (
+                                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-amber-100">
+                                                        {targetClass.name}
+                                                    </span>
+                                                )}
                                             </div>
+
                                             <div className="flex items-center gap-4">
                                                 <h1 className="text-4xl font-black text-gray-900 leading-tight">{assignment.title}</h1>
                                                 {role === 'TEACHER' && (
@@ -224,8 +231,109 @@ const AssignmentDetails = () => {
                                                     </button>
                                                 )}
                                             </div>
+
+                                            <div className="flex flex-wrap items-center gap-6 pt-2">
+                                                <div className="flex items-center gap-2 text-gray-500">
+                                                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-indigo-500">
+                                                        <Calendar size={14} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Due Date</p>
+                                                        <p className="text-sm font-bold text-gray-700">
+                                                            {new Date(assignment.deadline).toLocaleDateString(undefined, {
+                                                                weekday: 'short',
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 text-gray-500">
+                                                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-indigo-500">
+                                                        <Clock size={14} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Due Time</p>
+                                                        <p className="text-sm font-bold text-gray-700">
+                                                            {new Date(assignment.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Problem Description Section */}
+                            <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-gray-100 space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black shadow-sm">
+                                        <FileText size={20} />
+                                    </div>
+                                    <h2 className="text-xl font-black text-gray-900">Problem Description</h2>
+                                </div>
+
+                                <div className="prose prose-indigo max-w-none">
+                                    {assignment.assignmentType === 'TEXT' ? (
+                                        <div className="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 text-gray-700 leading-relaxed font-medium whitespace-pre-wrap">
+                                            {assignment.textContent}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            {assignment.assignmentFileName && (
+                                                <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
+                                                            <Upload size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-indigo-900 leading-none mb-1">{assignment.assignmentFileName}</p>
+                                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{assignment.assignmentFileType?.split('/')[1]?.toUpperCase() || 'FILE'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => window.open(assignment.assignmentFileUrl, '_blank')}
+                                                        className="px-4 py-2 bg-white text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest shadow-sm hover:shadow-md transition-all active:scale-95 border border-indigo-50"
+                                                    >
+                                                        Open Full
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Preview Component */}
+                                            <div className="rounded-[2rem] border-2 border-dashed border-gray-100 overflow-hidden bg-gray-50/50 min-h-[300px] flex items-center justify-center relative group">
+                                                {assignment.assignmentFileType?.startsWith('image/') ? (
+                                                    <div className="w-full relative">
+                                                        <img
+                                                            src={assignment.assignmentFileUrl}
+                                                            alt="Assignment Preview"
+                                                            className="w-full h-auto object-contain max-h-[600px] rounded-[1.8rem] transition-all group-hover:scale-[1.01]"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                            <span className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-indigo-600 shadow-xl border border-white/20">Preview Mode</span>
+                                                        </div>
+                                                    </div>
+                                                ) : assignment.assignmentFileType === 'application/pdf' ? (
+                                                    <iframe
+                                                        src={`${assignment.assignmentFileUrl}#toolbar=0`}
+                                                        className="w-full h-[600px] rounded-[1.8rem] border-none shadow-inner"
+                                                        title="PDF Preview"
+                                                    />
+                                                ) : (
+                                                    <div className="text-center p-20">
+                                                        <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-gray-300 shadow-sm">
+                                                            <FileText size={32} />
+                                                        </div>
+                                                        <p className="text-gray-400 font-bold">Preview not available for this file type.</p>
+                                                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mt-1">Please use "Open Full" to view content</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -278,54 +386,54 @@ const AssignmentDetails = () => {
                                                         {assignmentSubmissions
                                                             .filter(s => s.status && s.status.toLowerCase() !== 'pending')
                                                             .map((sub) => {
-                                                            const student = studentsMap[sub.studentId];
-                                                            const displayName = sub.studentName ||
-                                                                student?.name ||
-                                                                (sub.studentEmail ? sub.studentEmail.split('@')[0] : '') ||
-                                                                'Unknown Student';
-                                                            const displayEmail = sub.studentEmail || student?.email || '';
-                                                            return (
-                                                                <tr key={sub.id} className="hover:bg-gray-50/80 transition-all group">
-                                                                    <td className="px-8 py-5">
-                                                                        <div className="flex items-center gap-4">
-                                                                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-full flex items-center justify-center font-black text-sm shadow-sm ring-4 ring-indigo-50 group-hover:ring-indigo-100 transition-all">
-                                                                                {displayName?.charAt(0).toUpperCase() || '?'}
+                                                                const student = studentsMap[sub.studentId];
+                                                                const displayName = sub.studentName ||
+                                                                    student?.name ||
+                                                                    (sub.studentEmail ? sub.studentEmail.split('@')[0] : '') ||
+                                                                    'Unknown Student';
+                                                                const displayEmail = sub.studentEmail || student?.email || '';
+                                                                return (
+                                                                    <tr key={sub.id} className="hover:bg-gray-50/80 transition-all group">
+                                                                        <td className="px-8 py-5">
+                                                                            <div className="flex items-center gap-4">
+                                                                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-full flex items-center justify-center font-black text-sm shadow-sm ring-4 ring-indigo-50 group-hover:ring-indigo-100 transition-all">
+                                                                                    {displayName?.charAt(0).toUpperCase() || '?'}
+                                                                                </div>
+                                                                                <div>
+                                                                                    <p className="font-bold text-gray-900">{displayName}</p>
+                                                                                    <p className="text-xs text-gray-400">{displayEmail}</p>
+                                                                                </div>
                                                                             </div>
-                                                                            <div>
-                                                                                <p className="font-bold text-gray-900">{displayName}</p>
-                                                                                <p className="text-xs text-gray-400">{displayEmail}</p>
+                                                                        </td>
+                                                                        <td className="px-8 py-5">
+                                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-sm ${sub.status?.toLowerCase() === 'graded' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                                'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                                }`}>
+                                                                                {sub.status}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-8 py-5">
+                                                                            <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase tracking-tighter">
+                                                                                <Clock size={12} />
+                                                                                {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : 'Pending'}
                                                                             </div>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-8 py-5">
-                                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-sm ${sub.status?.toLowerCase() === 'graded' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                                            'bg-blue-50 text-blue-600 border border-blue-100'
-                                                                            }`}>
-                                                                            {sub.status}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="px-8 py-5">
-                                                                        <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase tracking-tighter">
-                                                                            <Clock size={12} />
-                                                                            {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : 'Pending'}
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-8 py-5 text-right">
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                const assignmentName = assignment?.title || 'assignment';
-                                                                                const aSlug = assignmentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                                                                                const sSlug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                                                                                navigate(`/teacher/submissions/${aSlug}/${sSlug}/${sub.submissionId || sub.id}`);
-                                                                            }}
-                                                                            className="p-2 hover:bg-white rounded-xl text-gray-400 hover:text-indigo-600 border border-transparent hover:border-gray-100 hover:shadow-sm transition-all"
-                                                                        >
-                                                                            <ChevronRight size={20} />
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
+                                                                        </td>
+                                                                        <td className="px-8 py-5 text-right">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const assignmentName = assignment?.title || 'assignment';
+                                                                                    const aSlug = assignmentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                                                                    const sSlug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                                                                    navigate(`/teacher/submissions/${aSlug}/${sSlug}/${sub.submissionId || sub.id}`);
+                                                                                }}
+                                                                                className="p-2 hover:bg-white rounded-xl text-gray-400 hover:text-indigo-600 border border-transparent hover:border-gray-100 hover:shadow-sm transition-all"
+                                                                            >
+                                                                                <ChevronRight size={20} />
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -408,81 +516,7 @@ const AssignmentDetails = () => {
                                 </div>
                             )}
                         </div>
-
-                        {/* Sidebar Info */}
-                        <div className="space-y-8">
-                            {/* Deadlines Card */}
-                            <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-                                        <Clock size={20} />
-                                    </div>
-                                    <h3 className="text-lg font-black uppercase tracking-tighter">Deadline</h3>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/10">
-                                        <div className="flex items-center gap-2 text-indigo-100 text-[10px] font-bold uppercase tracking-widest mb-1">
-                                            <Calendar size={12} /> Due Date
-                                        </div>
-                                        <p className="text-xl font-black leading-tight">
-                                            {new Date(assignment.deadline).toLocaleDateString(undefined, {
-                                                weekday: 'long',
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
-                                            })}
-                                        </p>
-                                        <p className="text-indigo-200 font-bold mt-1 tabular-nums">
-                                            {new Date(assignment.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                    </div>
-
-                                    {targetClass && (
-                                        <div className="p-6 bg-indigo-700/50 rounded-3xl flex items-center gap-4">
-                                            <div className="text-3xl">🏛️</div>
-                                            <div>
-                                                <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Target Class</p>
-                                                <p className="text-sm font-black">{targetClass.name}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Resources Card */}
-                            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
-                                <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-3">
-                                    <FileText size={20} className="text-indigo-600" />
-                                    Resources
-                                </h3>
-                                <div className="space-y-3">
-                                    {assignment.assignmentFileName ? (
-                                        <div
-                                            onClick={() => window.open(assignment.assignmentFileUrl, '_blank')}
-                                            className="p-4 bg-gray-50 border border-transparent hover:border-indigo-100 hover:bg-white rounded-2xl transition-all cursor-pointer flex items-center justify-between group"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-[10px] font-bold uppercase">
-                                                    {assignment.assignmentFileType?.split('/')[1]?.toUpperCase() || 'FILE'}
-                                                </div>
-                                                <span className="text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors truncate max-w-[150px]">
-                                                    {assignment.assignmentFileName}
-                                                </span>
-                                            </div>
-                                            <ChevronRight size={16} className="text-gray-300 group-hover:text-indigo-600" />
-                                        </div>
-                                    ) : (
-                                        <div className="p-8 text-center text-gray-400 space-y-2">
-                                            <div className="text-2xl opacity-20">📂</div>
-                                            <p className="text-[10px] font-bold uppercase tracking-widest">No files uploaded</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div> {/* Close sidebar */}
-                    </div> {/* Close grid */}
+                    </div>
                 </div>
             </div>
 

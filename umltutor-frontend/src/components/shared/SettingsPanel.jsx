@@ -180,7 +180,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
             />
 
             {/* Panel */}
-            <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[101] transition-transform duration-500 ease-in-out border-l border-gray-100 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className={`fixed top-0 right-0 h-full w-full max-w-xl bg-white shadow-2xl z-[101] transition-transform duration-500 ease-in-out border-l border-gray-100 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 
                 {/* Header */}
                 <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
@@ -210,15 +210,20 @@ const SettingsPanel = ({ isOpen, onClose }) => {
                     {activeSection === 'main' && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
                             {/* Profile Peek */}
-                            <div className="mb-8 p-6 bg-indigo-600 rounded-[2rem] text-white shadow-lg shadow-indigo-100 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full translate-x-1/2 -translate-y-1/2 group-hover:scale-110 transition-transform duration-700"></div>
-                                <div className="relative z-10 flex items-center gap-4">
-                                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl font-black">
+                            <div className="mb-8 p-6 bg-white rounded-[2.5rem] border border-gray-100 text-gray-900 shadow-sm relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full translate-x-1/2 -translate-y-1/2 group-hover:scale-110 transition-transform duration-700"></div>
+                                <div className="relative z-10 flex items-center gap-5">
+                                    <div className="w-20 h-20 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-[1.75rem] flex items-center justify-center text-4xl font-black shadow-inner">
                                         {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-black">{user?.firstName} {user?.lastName}</h3>
-                                        <p className="text-indigo-100 text-sm font-bold uppercase tracking-widest opacity-80">{user?.role || 'User'}</p>
+                                        <h3 className="text-xl font-black tracking-tight">{user?.firstName} {user?.lastName}</h3>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest border border-indigo-100/50">
+                                                {user?.role || 'User'}
+                                            </span>
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Active Session</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

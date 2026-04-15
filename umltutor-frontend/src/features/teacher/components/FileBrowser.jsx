@@ -111,7 +111,7 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto py-8 px-4">
+        <div className="w-full mx-auto py-8 px-4">
             <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
                 {/* Toolbar */}
                 <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex flex-wrap items-center justify-between gap-4">

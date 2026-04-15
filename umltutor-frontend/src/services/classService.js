@@ -160,10 +160,7 @@ class ClassroomService {
 
   // === COMMON OPERATIONS ===
   
-  // Student Management (for teacher)
-  async getStudents() {
-    return apiClient.get('/api/assignments/students/all');
-  }
+
 
   async searchStudents(query) {
     return apiClient.get(`/api/student/search?query=${query}`);

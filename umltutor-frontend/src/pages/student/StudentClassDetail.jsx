@@ -74,7 +74,7 @@ const StudentClassDetail = () => {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] pb-12">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+            <div className="px-4 sm:px-6 lg:px-8 pt-8">
                 <button
                     onClick={() => navigate('/student/dashboard')}
                     className="mb-6 text-gray-500 font-extrabold text-sm hover:text-indigo-600 transition-all flex items-center gap-2 group"
@@ -86,9 +86,8 @@ const StudentClassDetail = () => {
                 </button>
             </div>
 
-            {/* Class Hero Header */}
-            <div className="bg-white border-b border-gray-100 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white border-b border-gray-100 shadow-sm p-4 md:p-12 mb-10 overflow-hidden relative">
+                <div>
                     {/* Breadcrumbs */}
                     <nav className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-6 uppercase tracking-widest">
                         <Link to="/student/dashboard" className="hover:text-indigo-600 transition-colors">Dashboard</Link>
@@ -101,7 +100,7 @@ const StudentClassDetail = () => {
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div className="flex-1">
                             <div className="flex items-center gap-4 mb-4">
-                                <div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-indigo-100">
+                                <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-100">
                                     {currentClass.name.charAt(0)}
                                 </div>
                                 <div>
@@ -110,64 +109,63 @@ const StudentClassDetail = () => {
                                             {currentClass.code}
                                         </span>
                                         <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center gap-1">
-                                            <GraduationCap size={10} /> Student View
+                                            <GraduationCap size={10} /> Enrolled
                                         </span>
                                     </div>
-                                    <h1 className="text-4xl font-black text-gray-900 leading-tight">
-                                        {currentClass.name}
-                                    </h1>
                                 </div>
                             </div>
-                            <p className="text-gray-500 max-w-2xl font-medium leading-relaxed">
+                            <h1 className="text-5xl font-black text-gray-900 tracking-tight mb-4 leading-tight">
+                                {currentClass.name}
+                            </h1>
+                            <p className="text-gray-500 max-w-2xl font-medium text-lg leading-relaxed">
                                 {currentClass.description || "Welcome back to your workspace. Stay updated with announcements and manage your assignments."}
                             </p>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
-                            <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm flex items-center gap-3">
-                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                                    <Hash size={20} />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Access Code</p>
-                                    <p className="text-sm font-bold text-gray-900 font-mono">{currentClass.code}</p>
-                                </div>
-                            </div>
-                            <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm flex items-center gap-3">
-                                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
-                                    <BookOpen size={20} />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Assignments</p>
-                                    <p className="text-sm font-bold text-gray-900">{classAssignments.length} Active</p>
+                            <div className="bg-[#f1f5f9] px-6 py-6 rounded-3xl border border-white shadow-inner flex flex-col items-center min-w-[140px]">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <p className="text-xs font-bold text-gray-700 uppercase tracking-tighter tracking-wider">Active</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Navigation Tabs */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-8 overflow-x-auto no-scrollbar pt-2">
-                        {tabs.map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 py-4 border-b-4 transition-all whitespace-nowrap ${
-                                    activeTab === tab.id 
-                                    ? 'border-indigo-600 text-indigo-600 font-black scale-105 px-2' 
-                                    : 'border-transparent text-gray-400 font-bold hover:text-gray-600 px-2'
-                                }`}
-                            >
-                                {tab.icon}
-                                <span className="uppercase tracking-widest text-xs">{tab.label}</span>
-                            </button>
-                        ))}
-                    </div>
+            <div className="w-full bg-white border-y border-gray-100 flex overflow-x-auto no-scrollbar sticky top-0 z-20 shadow-sm shadow-gray-50/50">
+                <div className="flex items-center gap-12 px-8 md:px-12">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`py-6 relative font-black text-[10px] uppercase tracking-[0.2em] transition-all whitespace-nowrap group ${
+                                activeTab === tab.id 
+                                ? 'text-indigo-600' 
+                                : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2.5">
+                                <span className={`transition-transform duration-300 ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110 opacity-70 group-hover:opacity-100'}`}>
+                                    {React.cloneElement(tab.icon, { size: 18 })}
+                                </span>
+                                {tab.label}
+                            </div>
+                            
+                            {/* Active Indicator */}
+                            {activeTab === tab.id ? (
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full shadow-[0_-4px_12px_rgba(79,70,229,0.3)]" />
+                            ) : (
+                                <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-0.5 bg-gray-200 transition-all duration-300" />
+                            )}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+            <div className="px-4 sm:px-6 lg:px-8 mt-8">
                 {activeTab === 'posts' && (
                     <div className="animate-in fade-in duration-500">
                         <AnnouncementBoard classId={classId} />
@@ -183,14 +181,14 @@ const StudentClassDetail = () => {
                 {activeTab === 'assignments' && (
                     <div className="animate-in slide-in-from-bottom-4 duration-500">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-black text-gray-900">Class Assignments</h2>
-                            <div className="flex gap-2">
-                                <span className="px-3 py-1 bg-white border border-gray-200 text-gray-400 text-[10px] font-bold rounded-lg uppercase tracking-widest">Sorted by Date</span>
-                            </div>
+                            <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                                <BookOpen size={24} className="text-indigo-600" /> Assignments
+                                <span className="ml-2 px-3 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">{classAssignments.length}</span>
+                            </h2>
                         </div>
 
                         {classAssignments.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                                 {classAssignments.map(asgn => {
                                     const submission = mySubmissions.find(s => s.assignmentId === asgn.id);
                                     const status = submission?.status?.toLowerCase();

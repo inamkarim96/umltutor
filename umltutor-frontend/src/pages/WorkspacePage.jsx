@@ -131,14 +131,15 @@ const WorkspacePage = ({ mode }) => {
     return (
         <div className="h-screen flex flex-col bg-white">
             {/* Mode Banner */}
-            <div className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-center flex items-center justify-center gap-4 ${currentMode === 'tutorial'
-                ? 'bg-green-600 text-white'
+            <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-center flex items-center justify-center gap-4 shadow-sm relative z-50 ${currentMode === 'tutorial'
+                ? 'bg-emerald-600 text-white'
                 : 'bg-indigo-600 text-white'
                 }`}>
-                <span>
+                <span className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
                     {currentMode === 'tutorial'
-                        ? 'Tutorial Mode Guided Constraints Active'
-                        : 'Development Mode Free Editing'}
+                        ? 'Guided Tutorial Session Active'
+                        : 'Free Development Workspace'}
                 </span>
             </div>
 

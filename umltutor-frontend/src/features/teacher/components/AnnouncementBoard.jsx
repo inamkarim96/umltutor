@@ -93,7 +93,7 @@ const AnnouncementBoard = ({ classId }) => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="w-full mx-auto py-8 px-4">
             {/* Create Post - Only for Teachers */}
             {isTeacher && (
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 mb-10 overflow-hidden relative">

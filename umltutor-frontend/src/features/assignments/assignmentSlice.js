@@ -144,7 +144,9 @@ const assignmentSlice = createSlice({
 
 export const { clearStatus, setAssignments, setAssignmentDetail } = assignmentSlice.actions;
 
-export const selectAllAssignments = (state) => state.assignments.assignments;
+const EMPTY_ARRAY = [];
+
+export const selectAllAssignments = (state) => state.assignments.assignments || EMPTY_ARRAY;
 export const selectAssignmentDetail = (state) => state.assignments.assignmentDetail;
 export const selectAssignmentLoading = (state) => state.assignments.isLoading;
 export const selectAssignmentError = (state) => state.assignments.error;

@@ -22,7 +22,7 @@ const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const ClassesManagement = lazy(() => import('./pages/teacher/ClassesManagement'));
 const ClassDetail = lazy(() => import('./pages/teacher/ClassDetail'));
-const StudentsList = lazy(() => import('./pages/teacher/StudentsList'));
+
 const AllSubmissions = lazy(() => import('./pages/teacher/AllSubmissions'));
 const StudentAssignmentsList = lazy(() => import('./pages/student/AssignmentsList'));
 const StudentClassDetail = lazy(() => import('./pages/student/StudentClassDetail'));
@@ -153,14 +153,7 @@ function App() {
                   }
                 />
 
-                <Route
-                  path="/teacher/students"
-                  element={
-                    <ProtectedRoute requiredRole="TEACHER">
-                      <StudentsList />
-                    </ProtectedRoute>
-                  }
-                />
+
 
                 <Route
                   path="/teacher/submissions"

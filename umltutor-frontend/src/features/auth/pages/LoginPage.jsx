@@ -123,20 +123,22 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12">
-            <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl transition-all hover:shadow-2xl">
-                <div className="space-y-2">
-                    <h2 className="text-center text-3xl font-extrabold text-gray-900 tracking-tight">
-                        {isForgotPassword ? 'Reset Password' : 'Sign in to UML Tutor'}
+        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4 py-12">
+            <div className="max-w-md w-full bg-white p-12 rounded-[2.5rem] border border-gray-100 shadow-2xl transition-all relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                
+                <div className="relative z-10">
+                    <h2 className="text-center text-4xl font-black text-gray-900 tracking-tight mb-3">
+                        {isForgotPassword ? 'Reset Access' : 'Welcome Back'}
                     </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
+                    <p className="text-center text-sm text-gray-500 font-medium mb-10">
                         {isForgotPassword ? (
-                            'Enter your email to receive a password reset link.'
+                            'Enter your email to receive a recovery link.'
                         ) : (
                             <>
-                                Don't have an account?{' '}
-                                <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500 underline-offset-4 hover:underline transition-all">
-                                    Sign up here
+                                New to UML Tutor?{' '}
+                                <Link to="/signup" className="text-indigo-600 font-black hover:text-indigo-700 transition-all underline-offset-4 decoration-2">
+                                    Create account
                                 </Link>
                             </>
                         )}
