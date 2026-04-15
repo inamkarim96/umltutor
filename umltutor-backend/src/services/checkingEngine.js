@@ -598,16 +598,25 @@ class CheckingEngine {
             // We must convert it to semantic lifelines/messages before validating
             const { semanticData } = this.processSSDData(ssdRawData);
 
-            if (!semanticData || !semanticData.lifelines?.length) {
+            if (!semanticData || !semanticData.lifelines || semanticData.lifelines.length === 0) {
                 issues.push({
                     type: 'ssd',
-                    severity: 'warning',
-                    code: 'NO_SSDS',
-                    message: `SSD for "${ucName}" is missing lifelines.`,
+                    severity: 'error',
+                    code: 'SSD_NOT_FOUND',
+                    message: `System Sequence Diagram for "${ucName}" is not found or empty.`,
                     relatedId: nodeId,
                     location: 'ssd'
                 });
                 return;
+            } else if (semanticData.lifelines.length < 2) {
+                issues.push({
+                    type: 'ssd',
+                    severity: 'error',
+                    code: 'INCOMPLETE_SSD',
+                    message: `SSD for "${ucName}" is incomplete.`,
+                    relatedId: nodeId,
+                    location: 'ssd'
+                });
             }
 
             // Use the centralized SSD validation on the SEMANTIC data

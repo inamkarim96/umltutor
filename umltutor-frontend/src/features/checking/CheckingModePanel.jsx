@@ -424,209 +424,246 @@ const CheckingModePanel = ({
                 });
             }
 
-            Object.entries(descriptions).forEach(([useCaseId, description]) => {
-                // If targetUseCaseId is provided, skip others
-                if (targetUseCaseId && useCaseId !== targetUseCaseId) return;
+            if (targetUseCaseId && !descriptions[targetUseCaseId]) {
+                issues.push({
+                    id: `description-not-found-${targetUseCaseId}`,
+                    code: 'DESCRIPTION_NOT_FOUND',
+                    severity: 'error',
+                    location: 'description',
+                    message: `Use Case Description is not found or empty.`,
+                    context: { useCaseId: targetUseCaseId }
+                });
+                report.score = 0;
+            } else {
+                Object.entries(descriptions).forEach(([useCaseId, description]) => {
+                    // If targetUseCaseId is provided, skip others
+                    if (targetUseCaseId && useCaseId !== targetUseCaseId) return;
 
-                // Check Title/Use Case Name
-                if (!description.useCaseName || description.useCaseName.trim() === '') {
-                    issues.push({
-                        id: `no-title-${useCaseId}`,
-                        code: 'NO_TITLE',
-                        severity: 'error',
-                        location: 'description',
-                        message: `Use Case title is missing.`,
-                        context: { useCaseId, suggestion: 'Add a name for the use case description' }
-                    });
-                    report.score -= 20;
-                } else {
-                    passes.push(`Title defined: ${description.useCaseName}`);
-                }
-
-                // Check primary actor
-                const isNotSetActor = !description.primaryActor ||
-                    description.primaryActor.trim() === '' ||
-                    description.primaryActor.toLowerCase() === 'not set';
-
-                if (isNotSetActor) {
-                    issues.push({
-                        id: `no-primary-actor-${useCaseId}`,
-                        code: 'NO_PRIMARY_ACTOR',
-                        severity: 'error',
-                        location: 'description',
-                        message: `Primary actor not set, please set it.`,
-                        context: { useCaseId, suggestion: 'Please set up Primary Actor' }
-                    });
-                    report.score -= 20;
-                } else {
-                    // Check if selected actor exists in diagram
-                    const actorLabels = (model.diagram?.nodes || [])
-                        .filter(n => n.type === 'actor')
-                        .map(n => (n.data?.label || '').trim().toLowerCase());
-
-                    const selectedActorLower = description.primaryActor.trim().toLowerCase();
-
-                    if (actorLabels.length > 0 && !actorLabels.includes(selectedActorLower)) {
+                    // Check Title/Use Case Name
+                    if (!description.useCaseName || description.useCaseName.trim() === '') {
                         issues.push({
-                            id: `invalid-primary-actor-${useCaseId}`,
-                            code: 'INVALID_PRIMARY_ACTOR',
+                            id: `no-title-${useCaseId}`,
+                            code: 'NO_TITLE',
                             severity: 'error',
                             location: 'description',
-                            message: `Primary Actor "${description.primaryActor}" does not exist in the diagram.`,
-                            context: { useCaseId, suggestion: 'Ensure Primary Actor name matches the one in the Use Case Diagram.' }
+                            message: `Use Case title is missing.`,
+                            context: { useCaseId, suggestion: 'Add a name for the use case description' }
                         });
-                        report.score -= 10;
+                        report.score -= 20;
                     } else {
-                        passes.push(`Primary actor defined: ${description.primaryActor}`);
+                        passes.push(`Title defined: ${description.useCaseName}`);
                     }
-                }
 
-                // Check preconditions
-                const isNoPre = !description.preconditions ||
-                    description.preconditions.trim() === '' ||
-                    description.preconditions.toLowerCase() === 'none';
+                    // Check primary actor
+                    const isNotSetActor = !description.primaryActor ||
+                        description.primaryActor.trim() === '' ||
+                        description.primaryActor.toLowerCase() === 'not set';
 
-                if (isNoPre) {
-                    issues.push({
-                        id: `no-preconditions-${useCaseId}`,
-                        code: 'NO_PRECONDITIONS',
-                        severity: 'error',
-                        location: 'description',
-                        message: `Precondition missing, please define it.`,
-                        context: { useCaseId, suggestion: 'Please write Precondition' }
-                    });
-                    report.score -= 15;
-                } else {
-                    const validation = validateSentence(description.preconditions);
-                    if (!validation.isValid) {
+                    if (isNotSetActor) {
                         issues.push({
-                            id: `invalid-preconditions-${useCaseId}`,
-                            code: 'INVALID_PRECONDITIONS',
+                            id: `no-primary-actor-${useCaseId}`,
+                            code: 'NO_PRIMARY_ACTOR',
                             severity: 'error',
                             location: 'description',
-                            message: `Invalid Precondition: ${validation.error}`,
-                            context: { useCaseId, suggestion: 'Precondition: Write a proper sentence (e.g., "The user is logged in.").' }
+                            message: `Primary actor not set, please set it.`,
+                            context: { useCaseId, suggestion: 'Please set up Primary Actor' }
                         });
-                        report.score -= 10;
+                        report.score -= 20;
                     } else {
-                        passes.push('Preconditions defined');
-                    }
-                }
+                        // Check if selected actor is connected to this use case in the diagram
+                        const edges = model.diagram?.edges || [];
+                        const nodes = model.diagram?.nodes || [];
 
-                // Check postconditions
-                const isNoPost = !description.postconditions ||
-                    description.postconditions.trim() === '' ||
-                    description.postconditions.toLowerCase() === 'none';
+                        const neighborIds = edges
+                            .filter(e => e.source === useCaseId || e.target === useCaseId)
+                            .map(e => e.source === useCaseId ? e.target : e.source);
 
-                if (isNoPost) {
-                    issues.push({
-                        id: `no-postconditions-${useCaseId}`,
-                        code: 'NO_POSTCONDITIONS',
-                        severity: 'error',
-                        location: 'description',
-                        message: `Postcondition missing, please define it.`,
-                        context: { useCaseId, suggestion: 'Please write Postcondition' }
-                    });
-                    report.score -= 15;
-                } else {
-                    const validation = validateSentence(description.postconditions);
-                    if (!validation.isValid) {
-                        issues.push({
-                            id: `invalid-postconditions-${useCaseId}`,
-                            code: 'INVALID_POSTCONDITIONS',
-                            severity: 'error',
-                            location: 'description',
-                            message: `Invalid Postcondition: ${validation.error}`,
-                            context: { useCaseId, suggestion: 'Postcondition: Write a proper sentence (e.g., "The order is saved in the database.").' }
-                        });
-                        report.score -= 10;
-                    } else {
-                        passes.push('Postconditions defined');
-                    }
-                }
+                        const connectedActors = nodes
+                            .filter(n => n.type === 'actor' && neighborIds.includes(n.id))
+                            .map(n => (n.data?.label || '').trim());
 
-                // Check main flow
-                if (!description.mainFlow || description.mainFlow.length === 0) {
-                    issues.push({
-                        id: `no-main-flow-${useCaseId}`,
-                        code: 'NO_MAIN_FLOW',
-                        severity: 'error',
-                        location: 'description',
-                        message: `Main success scenario is empty.`,
-                        context: { useCaseId, suggestion: 'Add at least one step to the main flow' }
-                    });
-                    report.score -= 30;
-                } else {
-                    passes.push(`Main flow defined`);
-                    // Check each step is not empty
-                    description.mainFlow.forEach((step, index) => {
-                        if (!step.action || step.action.trim() === '') {
+                        const connectedActorLabelsLower = connectedActors.map(l => l.toLowerCase());
+                        const selectedActorLower = description.primaryActor.trim().toLowerCase();
+
+                        if (connectedActorLabelsLower.length > 0 && !connectedActorLabelsLower.includes(selectedActorLower)) {
                             issues.push({
-                                id: `empty-main-flow-step-${useCaseId}-${index}`,
-                                code: 'EMPTY_MAIN_FLOW_STEP',
+                                id: `invalid-primary-actor-${useCaseId}`,
+                                code: 'INVALID_PRIMARY_ACTOR',
                                 severity: 'error',
                                 location: 'description',
-                                message: `Main Success Scenario step ${index + 1} is empty.`,
-                                context: { useCaseId, stepIndex: index + 1, suggestion: `Fill in the action for step ${index + 1}` }
+                                message: `Primary Actor "${description.primaryActor}" is not connected to this Use Case in the diagram.`,
+                                context: {
+                                    useCaseId,
+                                    suggestion: `Ensure Primary Actor name matches the one in the Use Case Diagram. (Expected: ${connectedActors.join(' or ')})`
+                                }
                             });
-                            report.score -= 5;
+                            report.score -= 10;
+                        } else if (connectedActorLabelsLower.length === 0 && selectedActorLower !== '' && selectedActorLower !== 'not set') {
+                            // Edge case: if no actors are connected but they entered one
+                            issues.push({
+                                id: `invalid-primary-actor-${useCaseId}`,
+                                code: 'INVALID_PRIMARY_ACTOR',
+                                severity: 'error',
+                                location: 'description',
+                                message: `Primary Actor "${description.primaryActor}" cannot be validated because no actors are connected to this Use Case in the diagram.`,
+                                context: {
+                                    useCaseId,
+                                    suggestion: `Connect an Actor to this Use Case in the Use Case Diagram first.`
+                                }
+                            });
+                            report.score -= 10;
+                        } else if (selectedActorLower !== '') {
+                            passes.push(`Primary actor defined: ${description.primaryActor}`);
+                        }
+                    }
+
+                    // Check preconditions
+                    const isNoPre = !description.preconditions ||
+                        description.preconditions.trim() === '' ||
+                        description.preconditions.toLowerCase() === 'none';
+
+                    if (isNoPre) {
+                        issues.push({
+                            id: `no-preconditions-${useCaseId}`,
+                            code: 'NO_PRECONDITIONS',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Precondition missing, please define it.`,
+                            context: { useCaseId, suggestion: 'Please write Precondition' }
+                        });
+                        report.score -= 15;
+                    } else {
+                        const validation = validateSentence(description.preconditions);
+                        if (!validation.isValid) {
+                            issues.push({
+                                id: `invalid-preconditions-${useCaseId}`,
+                                code: 'INVALID_PRECONDITIONS',
+                                severity: 'error',
+                                location: 'description',
+                                message: `Invalid Precondition: ${validation.error}`,
+                                context: { useCaseId, suggestion: 'Precondition: Write a proper sentence (e.g., "The user is logged in.").' }
+                            });
+                            report.score -= 10;
                         } else {
-                            // Check if step content is a proper sentence
-                            const validation = validateSentence(step.action);
-                            if (!validation.isValid) {
+                            passes.push('Preconditions defined');
+                        }
+                    }
+
+                    // Check postconditions
+                    const isNoPost = !description.postconditions ||
+                        description.postconditions.trim() === '' ||
+                        description.postconditions.toLowerCase() === 'none';
+
+                    if (isNoPost) {
+                        issues.push({
+                            id: `no-postconditions-${useCaseId}`,
+                            code: 'NO_POSTCONDITIONS',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Postcondition missing, please define it.`,
+                            context: { useCaseId, suggestion: 'Please write Postcondition' }
+                        });
+                        report.score -= 15;
+                    } else {
+                        const validation = validateSentence(description.postconditions);
+                        if (!validation.isValid) {
+                            issues.push({
+                                id: `invalid-postconditions-${useCaseId}`,
+                                code: 'INVALID_POSTCONDITIONS',
+                                severity: 'error',
+                                location: 'description',
+                                message: `Invalid Postcondition: ${validation.error}`,
+                                context: { useCaseId, suggestion: 'Postcondition: Write a proper sentence (e.g., "The order is saved in the database.").' }
+                            });
+                            report.score -= 10;
+                        } else {
+                            passes.push('Postconditions defined');
+                        }
+                    }
+
+                    // Check main flow
+                    if (!description.mainFlow || description.mainFlow.length === 0) {
+                        issues.push({
+                            id: `no-main-flow-${useCaseId}`,
+                            code: 'NO_MAIN_FLOW',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Main success scenario is empty.`,
+                            context: { useCaseId, suggestion: 'Add at least one step to the main flow' }
+                        });
+                        report.score -= 30;
+                    } else {
+                        passes.push(`Main flow defined`);
+                        // Check each step is not empty
+                        description.mainFlow.forEach((step, index) => {
+                            if (!step.action || step.action.trim() === '') {
                                 issues.push({
-                                    id: `invalid-main-flow-step-${useCaseId}-${index}`,
-                                    code: 'INVALID_MAIN_FLOW_STEP',
+                                    id: `empty-main-flow-step-${useCaseId}-${index}`,
+                                    code: 'EMPTY_MAIN_FLOW_STEP',
                                     severity: 'error',
                                     location: 'description',
-                                    message: `Main Success Scenario step ${index + 1} is invalid: ${validation.error}`,
-                                    context: { useCaseId, stepIndex: index + 1, suggestion: `Step ${index + 1}: Write a clear and complete sentence.` }
+                                    message: `Main Success Scenario step ${index + 1} is empty.`,
+                                    context: { useCaseId, stepIndex: index + 1, suggestion: `Fill in the action for step ${index + 1}` }
                                 });
                                 report.score -= 5;
                             } else {
-                                passes.push(`Step ${index + 1} content`);
+                                // Check if step content is a proper sentence
+                                const validation = validateSentence(step.action);
+                                if (!validation.isValid) {
+                                    issues.push({
+                                        id: `invalid-main-flow-step-${useCaseId}-${index}`,
+                                        code: 'INVALID_MAIN_FLOW_STEP',
+                                        severity: 'error',
+                                        location: 'description',
+                                        message: `Main Success Scenario step ${index + 1} is invalid: ${validation.error}`,
+                                        context: { useCaseId, stepIndex: index + 1, suggestion: `Step ${index + 1}: Write a clear and complete sentence.` }
+                                    });
+                                    report.score -= 5;
+                                } else {
+                                    passes.push(`Step ${index + 1} content`);
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
 
-                // Check alternative flows - only if they exist
-                if (description.alternativeFlows && description.alternativeFlows.length > 0) {
-                    description.alternativeFlows.forEach((altFlow, index) => {
-                        const hasCondition = altFlow.condition && altFlow.condition.trim() !== '';
-                        const hasResponse = altFlow.response && altFlow.response.trim() !== '';
+                    // Check alternative flows - only if they exist
+                    if (description.alternativeFlows && description.alternativeFlows.length > 0) {
+                        description.alternativeFlows.forEach((altFlow, index) => {
+                            const hasCondition = altFlow.condition && altFlow.condition.trim() !== '';
+                            const hasResponse = altFlow.response && altFlow.response.trim() !== '';
 
-                        // Skip completely empty optional rows
-                        if (!hasCondition && !hasResponse) return;
+                            // Skip completely empty optional rows
+                            if (!hasCondition && !hasResponse) return;
 
-                        if (!hasCondition) {
-                            issues.push({
-                                id: `empty-alt-flow-condition-${useCaseId}-${index}`,
-                                code: 'EMPTY_ALT_FLOW_CONDITION',
-                                severity: 'error',
-                                location: 'description',
-                                message: `Alternative Flow ${index + 1} condition is empty.`,
-                                context: { useCaseId, altFlowIndex: index + 1, suggestion: `Fill in the condition for alt flow ${index + 1}` }
-                            });
-                        } else {
-                            passes.push(`Alt Flow ${index + 1} condition`);
-                        }
+                            if (!hasCondition) {
+                                issues.push({
+                                    id: `empty-alt-flow-condition-${useCaseId}-${index}`,
+                                    code: 'EMPTY_ALT_FLOW_CONDITION',
+                                    severity: 'error',
+                                    location: 'description',
+                                    message: `Alternative Flow ${index + 1} condition is empty.`,
+                                    context: { useCaseId, altFlowIndex: index + 1, suggestion: `Fill in the condition for alt flow ${index + 1}` }
+                                });
+                            } else {
+                                passes.push(`Alt Flow ${index + 1} condition`);
+                            }
 
-                        if (!hasResponse) {
-                            issues.push({
-                                id: `empty-alt-flow-response-${useCaseId}-${index}`,
-                                code: 'EMPTY_ALT_FLOW_RESPONSE',
-                                severity: 'error',
-                                location: 'description',
-                                message: `Alternative Flow ${index + 1} response is empty.`,
-                                context: { useCaseId, altFlowIndex: index + 1, suggestion: `Fill in the response for alt flow ${index + 1}` }
-                            });
-                        } else {
-                            passes.push(`Alt Flow ${index + 1} response`);
-                        }
-                    });
-                }
-            });
+                            if (!hasResponse) {
+                                issues.push({
+                                    id: `empty-alt-flow-response-${useCaseId}-${index}`,
+                                    code: 'EMPTY_ALT_FLOW_RESPONSE',
+                                    severity: 'error',
+                                    location: 'description',
+                                    message: `Alternative Flow ${index + 1} response is empty.`,
+                                    context: { useCaseId, altFlowIndex: index + 1, suggestion: `Fill in the response for alt flow ${index + 1}` }
+                                });
+                            } else {
+                                passes.push(`Alt Flow ${index + 1} response`);
+                            }
+                        });
+                    }
+                });
+            }
 
         } else if (activeSection === 'ssd') {
             // Dynamic SSD validation
@@ -675,16 +712,27 @@ const CheckingModePanel = ({
                     ssd = ssd.diagramData;
                 }
 
-                if (!ssd || !ssd.lifelines || ssd.lifelines.length < 2) {
+                if (!ssd || !ssd.lifelines || ssd.lifelines.length === 0) {
+                    issues.push({
+                        id: `ssd-not-found-${useCaseId}`,
+                        code: 'SSD_NOT_FOUND',
+                        severity: 'error',
+                        location: 'ssd',
+                        message: `System Sequence Diagram is not found or empty.`,
+                        context: { useCaseId }
+                    });
+                    report.score = 0;
+                    return; // early return so consistency check doesn't run
+                } else if (ssd.lifelines.length < 2) {
                     issues.push({
                         id: `incomplete-ssd-${useCaseId}`,
                         code: 'INCOMPLETE_SSD',
                         severity: 'error',
                         location: 'ssd',
-                        message: `SSD is incomplete or missing lifelines (minimum 2 required).`,
+                        message: `SSD is incomplete.`,
                         context: { useCaseId }
                     });
-                    report.score -= 15;
+                    report.score = 0;
                 } else {
                     passes.push(`SSD has ${ssd.lifelines.length} lifelines`);
                 }
@@ -841,7 +889,6 @@ const CheckingModePanel = ({
             textReport += '\n--- VALIDATION SUMMARY ---\n';
             textReport += `✗ ${errors.length} Error(s) found\n`;
             if (warnings.length > 0) textReport += `! ${warnings.length} Warning(s) found\n`;
-            textReport += `\nOverall Score: ${Math.max(0, report?.score ?? 0)}%\n`;
             textReport += '---------------------------------';
             return textReport;
         }
@@ -889,7 +936,7 @@ const CheckingModePanel = ({
         } else if (activeSection === 'description') {
             // Use Case Description specific report
             const hasNoTitle = issues.some(i => i.code === 'NO_TITLE');
-            const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR');
+            const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR' || i.code === 'INVALID_PRIMARY_ACTOR');
             const hasNoPre = issues.some(i =>
                 i.code === 'NO_PRECONDITIONS' ||
                 i.code === 'INVALID_PRECONDITIONS' ||
@@ -911,7 +958,7 @@ const CheckingModePanel = ({
             );
 
             textReport += `${hasNoTitle ? '✗' : '✓'} Use Case Name defined\n`;
-            textReport += `${hasNoActor ? '✗' : '✓'} Primary Actor selected\n`;
+            textReport += `${hasNoActor ? '✗' : '✓'} Primary Actor defined\n`;
             textReport += `${hasNoPre ? '✗' : '✓'} Preconditions defined\n`;
             textReport += `${hasNoPost ? '✗' : '✓'} Postconditions defined\n`;
             textReport += `${hasNoFlow ? '✗' : '✓'} Main Success Scenario defined\n`;
@@ -919,7 +966,7 @@ const CheckingModePanel = ({
         } else if (activeSection === 'ssd') {
             // SSD specific report
             const ssdIssues = issues.filter(i => i.location === 'ssd');
-            const hasNoSSDs = issues.some(i => i.code === 'NO_SSDS' || i.code === 'SSD_MISSING' || i.code === 'SSD_ACTOR_MISSING' || i.code === 'SSD_SYSTEM_MISSING');
+            const hasNoSSDs = issues.some(i => i.code === 'NO_SSDS' || i.code === 'SSD_MISSING' || i.code === 'SSD_ACTOR_MISSING' || i.code === 'SSD_SYSTEM_MISSING' || i.code === 'SSD_NOT_FOUND' || i.code === 'INCOMPLETE_SSD');
             const structuralIssues = ssdIssues.filter(i =>
                 !i.code?.includes('CONSISTENCY') &&
                 i.code !== 'SYSTEM_NAME_MISMATCH' &&
@@ -931,7 +978,7 @@ const CheckingModePanel = ({
             );
 
             if (hasNoSSDs) {
-                const specificIssue = issues.find(i => i.code === 'SSD_MISSING' || i.code === 'NO_SSDS' || i.code === 'SSD_ACTOR_MISSING' || i.code === 'SSD_SYSTEM_MISSING');
+                const specificIssue = issues.find(i => i.code === 'SSD_NOT_FOUND' || i.code === 'INCOMPLETE_SSD' || i.code === 'SSD_MISSING' || i.code === 'NO_SSDS' || i.code === 'SSD_ACTOR_MISSING' || i.code === 'SSD_SYSTEM_MISSING');
                 textReport += `✗ ${specificIssue?.message || 'SSD Participants missing or incorrectly defined.'}\n`;
             } else if (structuralIssues.length > 0) {
                 textReport += '✗ SSD structural errors found.\n';
@@ -1026,42 +1073,36 @@ const CheckingModePanel = ({
         }
 
         // Summary Section
-        textReport += '\n--- VALIDATION SUMMARY ---\n';
         const errorCount = issues.filter(i => i.severity === 'error').length;
         const warningCount = issues.filter(i => i.severity === 'warning').length;
 
-        if (errorCount === 0 && warningCount === 0) {
-            textReport += '✓ All elements are correct.\n';
-        } else {
-            textReport += `✗ ${errorCount} Error(s) found\n`;
-            if (warningCount > 0) textReport += `! ${warningCount} Warning(s) found\n`;
+        textReport += `✗ ${errorCount} Error(s) found\n`;
+        textReport += `! ${warningCount} Warning(s) found\n`;
 
-            textReport += '\nSuggestions:\n';
-            const suggestions = new Set();
-            issues.forEach(issue => {
-                if (issue.context && issue.context.suggestion) {
-                    let stepPrefix = '';
-                    if (issue.context.stepNumber && issue.context.stepNumber !== '?') {
-                        stepPrefix = `Step ${issue.context.stepNumber}: `;
-                    }
-                    let line = `• ${stepPrefix}${issue.context.suggestion}`;
-                    // Append smart suggestions inline if available
-                    if (issue.context.suggestions) {
-                        const sg = issue.context.suggestions;
-                        line += `\n    → Nearest Message : "${sg.nearestMessage}"`;
-                        line += `\n    → Function Name   : ${sg.nearestFunction}()`;
-                        line += `\n    → With Parameter  : ${sg.nearestFunctionWithParam}`;
-                    }
-                    suggestions.add(line);
-                } else {
-                    // Fallback for code-based suggestions
-                    if (issue.code === 'USE_CASE_INVALID_NAME') suggestions.add('• Rename Use Case to use "Verb + Object"');
+        textReport += '\nSuggestions:\n';
+        const suggestions = new Set();
+        issues.forEach(issue => {
+            if (issue.context && issue.context.suggestion) {
+                let stepPrefix = '';
+                if (issue.context.stepNumber && issue.context.stepNumber !== '?') {
+                    stepPrefix = `Step ${issue.context.stepNumber}: `;
                 }
-            });
-            suggestions.forEach(s => textReport += `${s}\n`);
-        }
+                let line = `• ${stepPrefix}${issue.context.suggestion}`;
+                // Append smart suggestions inline if available
+                if (issue.context.suggestions) {
+                    const sg = issue.context.suggestions;
+                    line += `\n    → Nearest Message : "${sg.nearestMessage}"`;
+                    line += `\n    → Function Name   : ${sg.nearestFunction}()`;
+                    line += `\n    → With Parameter  : ${sg.nearestFunctionWithParam}`;
+                }
+                suggestions.add(line);
+            } else {
+                // Fallback for code-based suggestions
+                if (issue.code === 'USE_CASE_INVALID_NAME') suggestions.add('• Rename Use Case to use "Verb + Object"');
+            }
+        });
+        suggestions.forEach(s => textReport += `${s}\n`);
 
-        textReport += `\nOverall Score: ${Math.max(0, report?.score ?? 0)}%\n`;
         textReport += '---------------------------------';
 
         return textReport;
@@ -1147,62 +1188,60 @@ const CheckingModePanel = ({
 
     return (
         <div data-testid="checking-report" className="flex flex-col h-full bg-white overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex flex-col gap-3">
-                <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        Checking Report {label && <span className="text-sm bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100 font-black">{label}</span>}
-                    </h2>
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-200 shadow-sm" title="Adjust text size">
-                            <button onClick={handleDecreaseFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95"><Minus size={14} strokeWidth={2.5} /></button>
-                            <span className="text-[11px] font-black text-gray-400 w-6 text-center select-none">{fontSize}</span>
-                            <button onClick={handleIncreaseFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95"><Plus size={14} strokeWidth={2.5} /></button>
-                            <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                            <button onClick={handleResetFontSize} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-95" title="Reset text size"><RotateCcw size={12} strokeWidth={3} /></button>
-                        </div>
-                        {onRunChecker && !isStudent && (
-                            <button
-                                onClick={runChecks}
-                                disabled={isRunning}
-                                className="px-3 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
-                            >
-                                {isRunning ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/30 border-t-white" />
-                                        Running...
-                                    </>
-                                ) : (
-                                    <>🔍 Run Checker</>
-                                )}
-                            </button>
+            <div className="p-4 border-b border-gray-100 flex flex-col gap-4 shrink-0 bg-slate-50/20">
+                {/* Header Row: Title & Button */}
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col min-w-0 overflow-hidden">
+                        <h2 className="text-base font-black text-gray-900 truncate">
+                            Checking Report
+                        </h2>
+                        {label && (
+                            <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest truncate mt-0.5">
+                                {label}
+                            </span>
                         )}
                     </div>
+
+                    {onRunChecker && !isStudent && (
+                        <button
+                            onClick={runChecks}
+                            disabled={isRunning}
+                            className="shrink-0 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-[10px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-1.5 active:scale-95 disabled:bg-gray-400"
+                        >
+                            {isRunning ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/30 border-t-white" />
+                                    Running...
+                                </>
+                            ) : (
+                                <>🔍 RUN CHECKER</>
+                            )}
+                        </button>
+                    )}
                 </div>
-                {/* Score Display (Hidden for Students) */}
-                {!isStudent && (
-                    <div className="flex items-center gap-4 text-sm">
+
+                {/* Stats & Controls Row */}
+                <div className="flex items-center justify-between gap-2">
+                    {!isStudent && (
                         <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-700">Score:</span>
-                            <span className={`font-bold text-lg ${(report?.score ?? 0) >= 80 ? 'text-green-600' : (report?.score ?? 0) >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                {report?.score ?? 0}%
-                            </span>
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 shadow-sm">
+                                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                                <span className="text-[10px] font-black">{errorsCount} ERRORS</span>
+                            </div>
+                            <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-50 text-yellow-700 rounded border border-yellow-100 shadow-sm">
+                                <span className="text-[10px] font-black">{warningsCount} WARNINGS</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs">
-                            <span className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-green-500 rounded-full" />
-                                {passedChecks} Passed
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-yellow-500 rounded-full" />
-                                {warningsCount} Warnings
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-red-500 rounded-full" />
-                                {errorsCount} Errors
-                            </span>
-                        </div>
+                    )}
+
+                    <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 border border-gray-200" title="Adjust text size">
+                        <button onClick={handleDecreaseFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90"><Minus size={11} strokeWidth={3} /></button>
+                        <span className="text-[10px] font-black text-gray-500 w-5 text-center select-none">{fontSize}</span>
+                        <button onClick={handleIncreaseFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90"><Plus size={11} strokeWidth={3} /></button>
+                        <div className="w-px h-3 bg-gray-300 mx-0.5"></div>
+                        <button onClick={handleResetFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90" title="Reset font size"><RotateCcw size={9} strokeWidth={3} /></button>
                     </div>
-                )}
+                </div>
             </div>
             {/* Text Report Display */}
             <div className="flex-1 p-4 overflow-auto">

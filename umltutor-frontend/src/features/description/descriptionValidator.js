@@ -2,7 +2,7 @@
  * Validator for Use Case Descriptions in Tutorial Mode.
  * Aligned with the simplified UML structure.
  */
-export const validateUseCaseDescriptionTutorial = (description) => {
+export const validateUseCaseDescriptionTutorial = (description, connectedActors = []) => {
     // 1. Use Case Name Validation
     if (!description?.useCaseName || description.useCaseName.trim() === '') {
         return {
@@ -15,8 +15,20 @@ export const validateUseCaseDescriptionTutorial = (description) => {
     if (!description?.primaryActor || description.primaryActor.trim() === '') {
         return {
             isValid: false,
-            message: `Primary Actor must be selected for "${description.useCaseName}".`
+            message: `Primary Actor must be provided for "${description.useCaseName}".`
         };
+    }
+
+    // Check if the typed primary actor matches an actor connected to this use case
+    if (connectedActors.length > 0) {
+        const typedActor = description.primaryActor.trim().toLowerCase();
+        const isValidActor = connectedActors.some(actor => actor.toLowerCase() === typedActor);
+        if (!isValidActor) {
+            return {
+                isValid: false,
+                message: `Primary Actor "${description.primaryActor}" must match an actor connected to this use case in the diagram.`
+            };
+        }
     }
 
     // 3. Preconditions / Postconditions (Basic presence checks)
@@ -34,7 +46,7 @@ export const validateUseCaseDescriptionTutorial = (description) => {
         };
     }
 
-    // 3. Main Success Scenario Validation
+    // 4. Main Success Scenario Validation
     const steps = description?.mainFlow || [];
     if (steps.length === 0) {
         return {
@@ -57,7 +69,7 @@ export const validateUseCaseDescriptionTutorial = (description) => {
 /**
  * Validates that ALL use cases from the diagram have descriptions.
  */
-export const validateAllDescriptionsTutorial = (useCaseNodes, descriptions) => {
+export const validateAllDescriptionsTutorial = (useCaseNodes, descriptions, allNodes = [], allEdges = []) => {
     if (!useCaseNodes || useCaseNodes.length === 0) return { isValid: true };
 
     for (const node of useCaseNodes) {
@@ -69,7 +81,16 @@ export const validateAllDescriptionsTutorial = (useCaseNodes, descriptions) => {
             };
         }
 
-        const validation = validateUseCaseDescriptionTutorial(desc);
+        // Find connected actors for this use case
+        const neighborIds = allEdges
+            .filter(e => e.source === node.id || e.target === node.id)
+            .map(e => e.source === node.id ? e.target : e.source);
+
+        const connectedActors = allNodes
+            .filter(n => n.type === 'actor' && neighborIds.includes(n.id))
+            .map(n => n.data?.label || 'Unnamed Actor');
+
+        const validation = validateUseCaseDescriptionTutorial(desc, connectedActors);
         if (!validation.isValid) {
             return {
                 isValid: false,

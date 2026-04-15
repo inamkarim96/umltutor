@@ -132,7 +132,6 @@ export const DescriptionForm = ({
                     </div>
                 )}
 
-                {/* 2. Primary Actor Dropdown */}
                 <div className="space-y-4">
                     <label className="flex items-center justify-between text-sm font-black uppercase tracking-widest text-slate-400">
                         <div className="flex items-center gap-2">
@@ -140,23 +139,15 @@ export const DescriptionForm = ({
                             2. Primary Actor
                         </div>
                     </label>
-                    {connectedActors.length > 0 ? (
-                        <select
-                            {...register('primaryActor')}
-                            disabled={isReadOnly}
-                            className={`${inputClass} ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} bg-slate-50/50 shadow-inner`}
-                            onBlur={handleFieldBlur}
-                        >
-                            <option value="" disabled>Select the primary actor...</option>
-                            {connectedActors.map((actor, i) => (
-                                <option key={i} value={actor}>{actor}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <div className="p-4 w-full bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400 text-center text-sm italic">
-                            No actors connected to this use case in the diagram.
-                        </div>
-                    )}
+                    <input
+                        type="text"
+                        {...register('primaryActor')}
+                        disabled={isReadOnly}
+                        className={`${inputClass} ${isReadOnly ? 'cursor-default' : 'cursor-text'} bg-slate-50/50 shadow-inner`}
+                        placeholder="Type the primary actor..."
+                        autoComplete="off"
+                        onBlur={handleFieldBlur}
+                    />
                     {errors.primaryActor && <p className="mt-2 text-xs text-red-500 font-bold">{errors.primaryActor.message}</p>}
                 </div>
 

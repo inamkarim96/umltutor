@@ -264,7 +264,12 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
       if (step1.isValid) {
         // Step 1 is done, check Step 2 (Descriptions)
         const useCaseNodes = model.diagram?.nodes?.filter(n => n.type === 'usecase' || n.type === 'useCase') || [];
-        const step2 = validateAllDescriptionsTutorial(useCaseNodes, model.descriptions || {});
+        const step2 = validateAllDescriptionsTutorial(
+            useCaseNodes, 
+            model.descriptions || {}, 
+            model.diagram?.nodes || [], 
+            model.diagram?.edges || []
+        );
 
         if (step2.isValid) {
           // Both Step 1 and 2 are done
@@ -344,7 +349,9 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         const useCaseNodes = model.diagram?.nodes?.filter(n => n.type === 'usecase' || n.type === 'useCase') || [];
         const validation = validateAllDescriptionsTutorial(
           useCaseNodes,
-          model.descriptions || {}
+          model.descriptions || {},
+          model.diagram?.nodes || [],
+          model.diagram?.edges || []
         );
 
         if (!validation.isValid) {
