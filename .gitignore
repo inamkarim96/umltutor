@@ -23,6 +23,9 @@ pids
 
 # Uploads
 uploads/
+
+# Documentation
+checking_engine_documentation.md
 temp/
 
 # IDE

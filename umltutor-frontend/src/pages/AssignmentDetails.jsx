@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { resolveResourceUrl } from '../utils/urlHelper';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import {
@@ -32,7 +33,9 @@ import {
     Layout,
     Edit,
     X,
-    Upload
+    Upload,
+    Eye,
+    Download
 } from 'lucide-react';
 import { SubmitAssignment } from '../features/classroom';
 import { CreateAssignmentModal } from '../features/teacher';
@@ -50,6 +53,7 @@ const AssignmentDetails = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [previewFile, setPreviewFile] = useState(null);
 
     // Edit functions
     const handleEditAssignment = () => {
@@ -294,12 +298,26 @@ const AssignmentDetails = () => {
                                                             <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{assignment.assignmentFileType?.split('/')[1]?.toUpperCase() || 'FILE'}</p>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => window.open(assignment.assignmentFileUrl, '_blank')}
-                                                        className="px-4 py-2 bg-white text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest shadow-sm hover:shadow-md transition-all active:scale-95 border border-indigo-50"
-                                                    >
-                                                        Open Full
-                                                    </button>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => setPreviewFile({
+                                                                url: assignment.assignmentFileUrl,
+                                                                name: assignment.assignmentFileName || 'Resource File',
+                                                                type: assignment.assignmentFileType
+                                                            })}
+                                                            className="px-4 py-2 bg-white text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest shadow-sm hover:shadow-md transition-all active:scale-95 border border-indigo-50"
+                                                        >
+                                                            View
+                                                        </button>
+                                                        <a
+                                                            href={resolveResourceUrl(assignment.assignmentFileUrl)}
+                                                            download={assignment.assignmentFileName || 'Resource'}
+                                                            className="p-2 bg-white text-gray-400 hover:text-indigo-600 rounded-lg shadow-sm border border-indigo-50 transition-all active:scale-95"
+                                                            title="Download File"
+                                                        >
+                                                            <Download size={14} />
+                                                        </a>
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -308,7 +326,7 @@ const AssignmentDetails = () => {
                                                 {assignment.assignmentFileType?.startsWith('image/') ? (
                                                     <div className="w-full relative">
                                                         <img
-                                                            src={assignment.assignmentFileUrl}
+                                                            src={resolveResourceUrl(assignment.assignmentFileUrl)}
                                                             alt="Assignment Preview"
                                                             className="w-full h-auto object-contain max-h-[600px] rounded-[1.8rem] transition-all group-hover:scale-[1.01]"
                                                         />
@@ -529,6 +547,70 @@ const AssignmentDetails = () => {
                     isSubmitting={isSubmitting}
                     initialData={assignment}
                 />
+            )}
+            {/* Resource Preview Modal */}
+            {previewFile && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                                    <FileText size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-gray-900 leading-none">{previewFile.name}</h3>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Resource Preview</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={resolveResourceUrl(previewFile.url)}
+                                    download={previewFile.name}
+                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-all"
+                                >
+                                    <Download size={16} /> Download
+                                </a>
+                                <button
+                                    onClick={() => setPreviewFile(null)}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-auto bg-gray-50/50 p-8 flex items-center justify-center">
+                            {previewFile.url && (previewFile.type?.startsWith('image/') ||
+                                ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.url.toLowerCase().endsWith('.' + ext)) ||
+                                ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.name.toLowerCase().endsWith('.' + ext))) ? (
+                                <img
+                                    src={resolveResourceUrl(previewFile.url)}
+                                    alt={previewFile.name}
+                                    className="max-w-full h-auto object-contain rounded-2xl shadow-lg border border-white"
+                                />
+                            ) : (previewFile.type === 'application/pdf' || previewFile.url.toLowerCase().endsWith('.pdf') || previewFile.name.toLowerCase().endsWith('.pdf')) ? (
+                                <iframe
+                                    src={resolveResourceUrl(previewFile.url)}
+                                    className="w-full h-[70vh] rounded-2xl border border-gray-100 shadow-lg"
+                                    title="PDF Preview"
+                                />
+                            ) : (
+                                <div className="text-center p-20">
+                                    <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-gray-300 shadow-sm border border-gray-50">
+                                        <FileText size={32} />
+                                    </div>
+                                    <p className="text-gray-400 font-bold">No interactive preview for this file type.</p>
+                                    <button
+                                        onClick={() => window.open(resolveResourceUrl(previewFile.url), '_blank')}
+                                        className="mt-4 px-6 py-2 bg-indigo-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest"
+                                    >
+                                        Open in New Tab
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );
