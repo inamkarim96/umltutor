@@ -900,390 +900,268 @@ const CheckingModePanel = ({
                     textReport += '\n';
                 }
             }
-
-            textReport += '\n--- VALIDATION SUMMARY ---\n';
-            textReport += `✗ ${errors.length} Error(s) found\n`;
-            if (warnings.length > 0) textReport += `! ${warnings.length} Warning(s) found\n`;
-            textReport += '---------------------------------';
             return textReport;
         }
-
-        let textReport = '---------------------------------\n';
-        textReport += 'CHECKING REPORT\n';
-        textReport += '---------------------------------\n\n';
-
-        const issues = report?.issues ?? [];
-
-        if (activeSection === 'usecase') {
-            // Check for empty diagram first
-            const emptyDiagramIssue = issues.find(i => i.code === 'DIAGRAM_EMPTY' || i.code === 'NO_NODES');
-            if (emptyDiagramIssue) {
-                textReport += `✗ ${emptyDiagramIssue.message || 'The Use Case Diagram is empty.'}\n`;
-                textReport += `! Please add a System Boundary, Actors, and Use Cases to proceed.\n\n`;
-                textReport += '---------------------------------';
-                return textReport;
-            }
-
-            // Use Case Diagram specific report
-            const sysBoundaryIssues = issues.filter(i => i.code === 'SYSTEM_BOUNDARY_MISSING');
-            const sysNameIssues = issues.filter(i => i.code === 'SYSTEM_NAME_MISSING' || i.code === 'SYSTEM_NAME_INVALID');
-            const ucIssues = issues.filter(i => i.location === 'diagram' && i.code?.includes('USE_CASE'));
-            const actorIssues = issues.filter(i => i.location === 'diagram' && i.code?.includes('ACTOR'));
-
-            textReport += `${sysBoundaryIssues.length === 0 ? '✓' : '✗'} System Boundary exists\n`;
-
-
-            if (sysNameIssues.length === 0) {
-                textReport += '✓ System has a valid name\n';
-            } else {
-                sysNameIssues.forEach(i => {
-                    textReport += `✗ ${i.message}\n`;
-                });
-            }
-
-            if (ucIssues.length === 0) {
-                textReport += '✓ Use Cases properly defined\n';
-            } else {
-                ucIssues.forEach(i => {
-                    textReport += `✗ ${i.message}\n`;
-                });
-            }
-
-            if (actorIssues.length === 0) {
-                textReport += '✓ Actors properly defined\n';
-            } else {
-                actorIssues.forEach(i => {
-                    textReport += `✗ ${i.message}\n`;
-                });
-            }
-
-        } else if (activeSection === 'description') {
-            // Use Case Description specific report
-            const hasNoTitle = issues.some(i => i.code === 'NO_TITLE');
-            const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR' || i.code === 'INVALID_PRIMARY_ACTOR');
-            const hasNoPre = issues.some(i =>
-                i.code === 'NO_PRECONDITIONS' ||
-                i.code === 'INVALID_PRECONDITIONS' ||
-                (i.message && i.message.toLowerCase().includes('precondition') && i.severity === 'error') ||
-                (i.id && i.id.toLowerCase().includes('precondition'))
-            );
-            const hasNoPost = issues.some(i =>
-                i.code === 'NO_POSTCONDITIONS' ||
-                i.code === 'INVALID_POSTCONDITIONS' ||
-                (i.message && i.message.toLowerCase().includes('postcondition') && i.severity === 'error') ||
-                (i.id && i.id.toLowerCase().includes('postcondition'))
-            );
-            const hasNoFlow = issues.some(i =>
-                i.code === 'NO_MAIN_FLOW' ||
-                i.code === 'EMPTY_MAIN_FLOW_STEP' ||
-                i.code === 'INVALID_MAIN_FLOW_STEP' ||
-                (i.message && i.message.toLowerCase().includes('main flow') && i.severity === 'error') ||
-                (i.message && i.message.toLowerCase().includes('main success scenario') && i.severity === 'error')
-            );
-
-            textReport += `${hasNoTitle ? '✗' : '✓'} Use Case Name defined\n`;
-            textReport += `${hasNoActor ? '✗' : '✓'} Primary Actor defined\n`;
-            textReport += `${hasNoPre ? '✗' : '✓'} Preconditions defined\n`;
-            textReport += `${hasNoPost ? '✗' : '✓'} Postconditions defined\n`;
-            textReport += `${hasNoFlow ? '✗' : '✓'} Main Success Scenario defined\n`;
-
-        } else if (activeSection === 'ssd') {
-            // SSD specific report
-            const ssdIssues = issues.filter(i => i.location === 'ssd');
-            const hasNoSSDs = issues.some(i => i.code === 'NO_SSDS' || i.code === 'SSD_MISSING' || i.code === 'SSD_ACTOR_MISSING' || i.code === 'SSD_SYSTEM_MISSING' || i.code === 'SSD_NOT_FOUND' || i.code === 'INCOMPLETE_SSD');
-            const structuralIssues = ssdIssues.filter(i =>
-                !i.code?.includes('CONSISTENCY') &&
-                i.code !== 'SYSTEM_NAME_MISMATCH' &&
-                i.severity === 'error'
-            );
-            const consistencyIssues = ssdIssues.filter(i =>
-                i.code?.includes('CONSISTENCY') ||
-                i.type === 'consistency'
-            );
-
-            if (hasNoSSDs) {
-                const specificIssue = issues.find(i => i.code === 'SSD_NOT_FOUND' || i.code === 'INCOMPLETE_SSD' || i.code === 'SSD_MISSING' || i.code === 'NO_SSDS' || i.code === 'SSD_ACTOR_MISSING' || i.code === 'SSD_SYSTEM_MISSING');
-                textReport += `✗ ${specificIssue?.message || 'SSD Participants missing or incorrectly defined.'}\n`;
-            } else if (structuralIssues.length > 0) {
-                textReport += '✗ SSD structural errors found.\n';
-                structuralIssues.forEach(i => textReport += `  - ${i.message}\n`);
-            } else {
-                // Determine the mapping reference
-                let mapRef = 'Success Scenario';
-                if (label && label.includes('.')) {
-                    const sectionNum = label.split('.').pop();
-                    mapRef = `Description 2.${sectionNum}`;
-                } else if (useCaseId) {
-                    const idParts = useCaseId.split('-');
-                    const idNum = idParts[idParts.length - 1];
-                    mapRef = `Description 2.${idNum?.substring(0, 4) || 'x'}`;
-                }
-
-                textReport += `✓ SSD mapped correctly to ${mapRef}\n`;
-                textReport += '✓ SSD lifelines & structure correct\n';
-
-                if (consistencyIssues.length === 0) {
-                    textReport += `✓ SSD interaction flow matches ${mapRef}\n`;
-                } else {
-                    // Actor mismatch issues (diagram-level)
-                    const actorMismatchIssues = consistencyIssues.filter(i =>
-                        i.code === 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH'
-                    );
-                    if (actorMismatchIssues.length > 0) {
-                        actorMismatchIssues.forEach(issue => {
-                            textReport += `\n✗ Actor Mismatch:\n`;
-                            textReport += `  - ${issue.context?.problem || issue.message}\n`;
-                        });
-                    }
-
-                    // Group step-level issues by step number
-                    const stepIssues = consistencyIssues.filter(i =>
-                        i.code !== 'CONSISTENCY_ACTOR_DIAGRAM_MISMATCH'
-                    );
-
-                    if (stepIssues.length > 0) {
-                        textReport += `\nStep-by-Step Analysis:\n`;
-
-                        const byStep = {};
-                        stepIssues.forEach(issue => {
-                            const step = issue.context?.stepNumber || '?';
-                            if (!byStep[step]) byStep[step] = [];
-                            byStep[step].push(issue);
-                        });
-
-                        Object.keys(byStep)
-                            .sort((a, b) => (a === '?' ? 1 : b === '?' ? -1 : Number(a) - Number(b)))
-                            .forEach(stepNo => {
-                                const stepIssueList = byStep[stepNo];
-
-                                // Determine match status from context
-                                const matchStatus = stepIssueList[0]?.context?.matchStatus || 'unknown';
-                                const hasError = stepIssueList.some(i => i.severity === 'error');
-                                const hasWarning = stepIssueList.some(i => i.severity === 'warning');
-
-                                let icon, statusLabel;
-                                if (matchStatus === 'missing') {
-                                    icon = '✗'; statusLabel = 'Missing';
-                                } else if (matchStatus === 'partial') {
-                                    icon = '!'; statusLabel = 'Partially Matched';
-                                } else if (matchStatus === 'extra') {
-                                    icon = '!'; statusLabel = 'Extra Message';
-                                } else if (matchStatus === 'matched' && hasError) {
-                                    icon = '!'; statusLabel = 'Matched (issues found)';
-                                } else if (matchStatus === 'matched') {
-                                    icon = '✓'; statusLabel = 'Matched';
-                                } else {
-                                    icon = hasError ? '✗' : hasWarning ? '!' : '->';
-                                    statusLabel = hasError ? 'Error' : hasWarning ? 'Warning' : 'Suggestion';
-                                }
-
-                                textReport += `\n${icon} Step ${stepNo} (${statusLabel})\n`;
-
-                                stepIssueList.forEach(issue => {
-                                    const problem = issue.context?.problem || issue.message;
-                                    textReport += `  - ${problem}\n`;
-
-                                });
-                            });
-                    }
-                }
-            }
-        }
-
-        // Final filter for reporting text to focus ONLY on the specific use case if ID is provided
-        if (useCaseId) {
-            // Further trim issues by ID just in case (though entries loop above should handle most)
-            // But we keep this for consistency
-        }
-
-        // Summary Section
-        const errorCount = issues.filter(i => i.severity === 'error').length;
-        const warningCount = issues.filter(i => i.severity === 'warning').length;
-
-        textReport += `✗ ${errorCount} Error(s) found\n`;
-        textReport += `! ${warningCount} Warning(s) found\n`;
-
-        textReport += '\nSuggestions:\n';
-        const suggestions = new Set();
-        issues.forEach(issue => {
-            if (issue.context && issue.context.suggestion) {
-                let stepPrefix = '';
-                if (issue.context.stepNumber && issue.context.stepNumber !== '?') {
-                    stepPrefix = `Step ${issue.context.stepNumber}: `;
-                }
-                let line = `• ${stepPrefix}${issue.context.suggestion}`;
-                // Append smart suggestions inline if available
-                if (issue.context.suggestions) {
-                    const sg = issue.context.suggestions;
-                    line += `\n    → Nearest Message : "${sg.nearestMessage}"`;
-                    line += `\n    → Function Name   : ${sg.nearestFunction}()`;
-                    line += `\n    → With Parameter  : ${sg.nearestFunctionWithParam}`;
-                }
-                suggestions.add(line);
-            } else {
-                // Fallback for code-based suggestions
-                if (issue.code === 'USE_CASE_INVALID_NAME') suggestions.add('• Rename Use Case to use "Verb + Object"');
-            }
-        });
-        suggestions.forEach(s => textReport += `${s}\n`);
-
-        textReport += '---------------------------------';
-
-        return textReport;
+        return null;
     };
 
-    useEffect(() => {
-        // Auto-refresh validation when the active editor (activeSection) changes (dev mode only)
-        if (!isExternal && model?.id) {
-            dispatch(setCheckingResults(null)); // Reset previous report
-            runChecks();
-        }
-    }, [activeSection, model?.id, isExternal]);
+    const renderReport = () => {
+                const issues = report?.issues ?? [];
+                const errors = issues.filter(i => i.severity === 'error');
+                const warnings = issues.filter(i => i.severity === 'warning');
+                const info = issues.filter(i => i.severity === 'info' || i.severity === 'suggestion');
 
-    const summary = useMemo(() => {
-        const issues = report?.issues ?? [];
-        const errors = issues.filter(i => i.severity === 'error' || i.type === 'error').length;
-        const warnings = issues.filter(i => i.severity === 'warning' || i.type === 'warning').length;
-        const info = issues.filter(i => i.severity === 'info' || i.type === 'suggestion').length;
-        const total = report?.summary?.total ?? issues.length;
-        return { total, errors, warnings, info };
-    }, [report]);
+                const suggestions = issues
+                    .filter(i => i.context?.suggestion || i.severity === 'info')
+                    .map(i => i.context?.suggestion || i.message);
 
-    const errorsCount = report?.summary?.errors ?? summary.errors ?? 0;
-    const warningsCount = report?.summary?.warnings ?? summary.warnings ?? 0;
-    const totalIssues = report?.summary?.total ?? summary.total ?? 0;
-    const passedChecks = totalIssues > 0 ? Math.max(0, 10 - totalIssues) : 10;
+                const renderSection = (title, issuesList, successMsg) => {
+                    if (issuesList.length === 0) return <div className="text-slate-600 mb-1">✓ {successMsg}</div>;
+                    return issuesList.map((i, idx) => (
+                        <div key={idx} className="text-red-500 mb-1">✗ {i.message}</div>
+                    ));
+                };
 
-    if (!report) {
-        return (
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-full">
-                <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 mb-2">Checking Mode</h2>
-                    <p className="text-sm text-gray-600 mb-4">
-                        {onRunChecker ? (isStudent ? 'Your UML model is ready for review.' : 'Run validation checks on your UML model to identify structural issues and inconsistencies.') : 'Review the official feedback and consistency findings provided by your teacher.'}
-                    </p>
-                    {onRunChecker && !isStudent && (
-                        <button
-                            onClick={runChecks}
-                            disabled={isRunning}
-                            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isRunning ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
-                                    Running Checks...
-                                </>
-                            ) : (
-                                <>🔍 Run Checker</>
-                            )}
-                        </button>
-                    )}
-                </div>
-                <div className="flex-1 p-6 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-2xl">🔍</div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            {onRunChecker ? 'Ready to Check' : 'No report available yet'}
-                        </h3>
-                        <p className="text-sm text-gray-500 max-w-xs mx-auto">
-                            {onRunChecker ? 'Click "Run Checker" to validate your UML model and see a detailed report.' : 'Once the teacher reviews your assignment, their report will be displayed here.'}
-                        </p>
-                    </div>
-                </div>
-                <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400 font-bold uppercase tracking-widest flex justify-between">
-                    <span>Manual validation mode</span>
-                </div>
-            </div>
-        );
-    }
+                return (
+                    <div className="space-y-6 font-mono text-[11px] leading-relaxed">
+                        <div className="space-y-1">
+                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">
+                                CHECKING REPORT
+                            </h3>
+                        </div>
 
-    if (isRunning) {
-        return (
-            <div className="flex flex-col items-center justify-center h-80 bg-white/50 backdrop-blur-md rounded-2xl border border-gray-100 shadow-xl">
-                <div className="relative">
-                    <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-                    <div className="absolute inset-0 flex items-center justify-center text-xl">🔍</div>
-                </div>
-                <p className="mt-6 text-sm font-bold text-gray-900 tracking-tight">Analyzing UML Artifacts...</p>
-                <p className="mt-1 text-xs text-gray-500">Checking cross-artifact consistency rules</p>
-            </div>
-        );
-    }
+                        {activeSection === 'usecase' && (
+                            <div className="space-y-1">
+                                {(() => {
+                                    const emptyDiagramIssue = issues.find(i => i.code === 'DIAGRAM_EMPTY' || i.code === 'NO_NODES');
+                                    if (emptyDiagramIssue) {
+                                        return (
+                                            <>
+                                                <div className="text-red-600 font-bold mb-2">✗ {emptyDiagramIssue.message || 'The Use Case Diagram is empty.'}</div>
+                                                <div className="text-indigo-600">! Please add a System Boundary, Actors, and Use Cases to proceed.</div>
+                                            </>
+                                        );
+                                    }
 
-    return (
-        <div data-testid="checking-report" className="flex flex-col h-full bg-white overflow-hidden">
-            <div className="p-3 border-b border-gray-100 flex flex-col gap-3 shrink-0 bg-slate-50/20">
-                {/* Header Row: Title & Button */}
-                <div className="flex items-center justify-between gap-2">
-                    <div className="flex flex-col min-w-0 flex-1">
-                        <h2 className="text-sm font-black text-gray-900 truncate">
-                            Checking Report
-                        </h2>
-                        {label && (
-                            <span className="text-[8px] text-gray-400 font-black uppercase tracking-widest truncate mt-0.5">
-                                {label}
-                            </span>
+                                    const sysBoundaryIssues = issues.filter(i => i.code === 'SYSTEM_BOUNDARY_MISSING');
+                                    const sysNameIssues = issues.filter(i => i.code === 'SYSTEM_NAME_MISSING' || i.code === 'SYSTEM_NAME_INVALID' || i.code === 'SYSTEM_NAME_WEAK');
+                                    const ucIssues = issues.filter(i => i.location === 'diagram' && i.code?.includes('USE_CASE'));
+                                    const actorIssues = issues.filter(i => i.location === 'diagram' && i.code?.includes('ACTOR'));
+
+                                    return (
+                                        <>
+                                            {renderSection('System Boundary', sysBoundaryIssues, 'System Boundary exists')}
+                                            {renderSection('System Name', sysNameIssues, 'System has a valid name')}
+                                            {renderSection('Use Cases', ucIssues, 'Use Cases properly defined')}
+                                            {renderSection('Actors', actorIssues, 'Actors properly defined')}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        )}
+
+                        {activeSection === 'description' && (
+                            <div className="space-y-1">
+                                {(() => {
+                                    const hasNoTitle = issues.some(i => i.code === 'NO_TITLE');
+                                    const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR' || i.code === 'INVALID_PRIMARY_ACTOR');
+                                    const hasNoPre = issues.some(i => i.code === 'NO_PRECONDITIONS' || i.code === 'INVALID_PRECONDITIONS');
+                                    const hasNoPost = issues.some(i => i.code === 'NO_POSTCONDITIONS' || i.code === 'INVALID_POSTCONDITIONS');
+                                    const hasNoFlow = issues.some(i => i.code === 'NO_MAIN_FLOW' || i.code === 'EMPTY_MAIN_FLOW_STEP');
+
+                                    return (
+                                        <>
+                                            <div className={`${hasNoTitle ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoTitle ? '✗' : '✓'} Use Case Name defined</div>
+                                            <div className={`${hasNoActor ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoActor ? '✗' : '✓'} Primary Actor defined</div>
+                                            <div className={`${hasNoPre ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoPre ? '✗' : '✓'} Preconditions defined</div>
+                                            <div className={`${hasNoPost ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoPost ? '✗' : '✓'} Postconditions defined</div>
+                                            <div className={`${hasNoFlow ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoFlow ? '✗' : '✓'} Main Success Scenario defined</div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        )}
+
+                        {activeSection === 'ssd' && (
+                            <div className="space-y-1">
+                                {(() => {
+                                    const flowIssues = issues.filter(i => i.location === 'ssd' && i.type === 'error');
+                                    const consistencyIssues = issues.filter(i => i.type === 'consistency');
+
+                                    return (
+                                        <>
+                                            <div className={`${flowIssues.length > 0 ? 'text-red-500' : 'text-slate-600'} mb-1`}>{flowIssues.length > 0 ? '✗' : '✓'} Message Flow properly structured</div>
+                                            <div className={`${consistencyIssues.length > 0 ? 'text-red-500' : 'text-slate-600'} mb-1`}>{consistencyIssues.length > 0 ? '✗' : '✓'} Model Consistency maintained</div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        )}
+
+                        <div className="pt-4 border-t border-slate-100">
+                            <div className="text-red-500 font-bold mb-1">X {errors.length} Error(s) found</div>
+                            {warnings.length > 0 && <div className="text-amber-600 font-bold mb-1">! {warnings.length} Warning(s) found</div>}
+                        </div>
+
+                        {suggestions.length > 0 && (
+                            <div className="pt-4">
+                                <h4 className="font-black text-slate-800 mb-2">Suggestions:</h4>
+                                <ul className="space-y-2">
+                                    {suggestions.map((s, idx) => (
+                                        <li key={idx} className="flex gap-2 text-slate-600">
+                                            <span className="text-indigo-500">•</span>
+                                            <span>{s}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         )}
                     </div>
+                );
+            };
 
-                    {onRunChecker && !isStudent && (
-                        <button
-                            onClick={runChecks}
-                            disabled={isRunning}
-                            className="shrink-0 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-1.5 active:scale-95 disabled:bg-gray-400"
-                        >
-                            {isRunning ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/30 border-t-white" />
-                                    Running...
-                                </>
-                            ) : (
-                                <>🔍 RUN CHECKER</>
+            useEffect(() => {
+                // Auto-refresh validation when the active editor (activeSection) changes (dev mode only)
+                if (!isExternal && model?.id) {
+                    dispatch(setCheckingResults(null)); // Reset previous report
+                    runChecks();
+                }
+            }, [activeSection, model?.id, isExternal]);
+
+            const summary = useMemo(() => {
+                const issues = report?.issues ?? [];
+                const errors = issues.filter(i => i.severity === 'error' || i.type === 'error').length;
+                const warnings = issues.filter(i => i.severity === 'warning' || i.type === 'warning').length;
+                const info = issues.filter(i => i.severity === 'info' || i.type === 'suggestion').length;
+                const total = report?.summary?.total ?? issues.length;
+                return { total, errors, warnings, info };
+            }, [report]);
+
+            const errorsCount = report?.summary?.errors ?? summary.errors ?? 0;
+            const warningsCount = report?.summary?.warnings ?? summary.warnings ?? 0;
+            const totalIssues = report?.summary?.total ?? summary.total ?? 0;
+            const passedChecks = totalIssues > 0 ? Math.max(0, 10 - totalIssues) : 10;
+
+            if (!report) {
+                return (
+                    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-full">
+                        <div className="p-6 border-b border-gray-100">
+                            <h2 className="text-lg font-bold text-gray-900 mb-2">Checking Mode</h2>
+                            <p className="text-sm text-gray-600 mb-4">
+                                {onRunChecker ? (isStudent ? 'Your UML model is ready for review.' : 'Run validation checks on your UML model to identify structural issues and inconsistencies.') : 'Review the official feedback and consistency findings provided by your teacher.'}
+                            </p>
+                            {onRunChecker && !isStudent && (
+                                <button
+                                    onClick={runChecks}
+                                    disabled={isRunning}
+                                    className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isRunning ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                                            Running Checks...
+                                        </>
+                                    ) : (
+                                        <>🔍 Run Checker</>
+                                    )}
+                                </button>
                             )}
-                        </button>
-                    )}
-                </div>
-
-                {/* Stats & Controls Row */}
-                <div className="flex items-center justify-between gap-2">
-                    {!isStudent && (
-                        <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 shadow-sm">
-                                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                                <span className="text-[10px] font-black">{errorsCount} ERRORS</span>
-                            </div>
-                            <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-50 text-yellow-700 rounded border border-yellow-100 shadow-sm">
-                                <span className="text-[10px] font-black">{warningsCount} WARNINGS</span>
+                        </div>
+                        <div className="flex-1 p-6 flex items-center justify-center">
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-2xl">🔍</div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    {onRunChecker ? 'Ready to Check' : 'No report available yet'}
+                                </h3>
+                                <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                                    {onRunChecker ? 'Click "Run Checker" to validate your UML model and see a detailed report.' : 'Once the teacher reviews your assignment, their report will be displayed here.'}
+                                </p>
                             </div>
                         </div>
-                    )}
+                        <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400 font-bold uppercase tracking-widest flex justify-between">
+                            <span>Manual validation mode</span>
+                        </div>
+                    </div>
+                );
+            }
 
-                    <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 border border-gray-200" title="Adjust text size">
-                        <button onClick={handleDecreaseFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90"><Minus size={11} strokeWidth={3} /></button>
-                        <span className="text-[10px] font-black text-gray-500 w-5 text-center select-none">{fontSize}</span>
-                        <button onClick={handleIncreaseFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90"><Plus size={11} strokeWidth={3} /></button>
-                        <div className="w-px h-3 bg-gray-300 mx-0.5"></div>
-                        <button onClick={handleResetFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90" title="Reset font size"><RotateCcw size={9} strokeWidth={3} /></button>
+            if (isRunning) {
+                return (
+                    <div className="flex flex-col items-center justify-center h-80 bg-white/50 backdrop-blur-md rounded-2xl border border-gray-100 shadow-xl">
+                        <div className="relative">
+                            <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center text-xl">🔍</div>
+                        </div>
+                        <p className="mt-6 text-sm font-bold text-gray-900 tracking-tight">Analyzing UML Artifacts...</p>
+                        <p className="mt-1 text-xs text-gray-500">Checking cross-artifact consistency rules</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div data-testid="checking-report" className="flex flex-col h-full bg-white overflow-hidden">
+                    <div className="p-3 border-b border-gray-100 flex flex-col gap-3 shrink-0 bg-slate-50/20">
+                        {/* Header Row: Title & Button */}
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-col min-w-0 flex-1">
+                                <h2 className="text-sm font-black text-gray-900 truncate">
+                                    Checking Report
+                                </h2>
+                                {label && (
+                                    <span className="text-[8px] text-gray-400 font-black uppercase tracking-widest truncate mt-0.5">
+                                        {label}
+                                    </span>
+                                )}
+                            </div>
+
+                            {onRunChecker && !isStudent && (
+                                <button
+                                    onClick={runChecks}
+                                    disabled={isRunning}
+                                    className="shrink-0 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-1.5 active:scale-95 disabled:bg-gray-400"
+                                >
+                                    {isRunning ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/30 border-t-white" />
+                                            Running...
+                                        </>
+                                    ) : (
+                                        <>🔍 RUN CHECKER</>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Stats & Controls Row */}
+                        <div className="flex items-center justify-between gap-2">
+                            {!isStudent && (
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 shadow-sm">
+                                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                                        <span className="text-[10px] font-black">{errorsCount} ERRORS</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-50 text-yellow-700 rounded border border-yellow-100 shadow-sm">
+                                        <span className="text-[10px] font-black">{warningsCount} WARNINGS</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 border border-gray-200" title="Adjust text size">
+                                <button onClick={handleDecreaseFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90"><Minus size={11} strokeWidth={3} /></button>
+                                <span className="text-[10px] font-black text-gray-500 w-5 text-center select-none">{fontSize}</span>
+                                <button onClick={handleIncreaseFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90"><Plus size={11} strokeWidth={3} /></button>
+                                <div className="w-px h-3 bg-gray-300 mx-0.5"></div>
+                                <button onClick={handleResetFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90" title="Reset font size"><RotateCcw size={9} strokeWidth={3} /></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* The Structured Report Display */}
+                    <div className="flex-1 p-5 overflow-auto bg-white" style={{ fontSize: `${fontSize}px` }}>
+                        {renderReport()}
                     </div>
                 </div>
-            </div>
-            {/* Text Report Display */}
-            <div className="flex-1 p-4 overflow-auto">
-                <pre
-                    className="font-mono text-gray-800 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-200 transition-all duration-200 ease-in-out"
-                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
-                >
-                    {generateTextReport()}
-                </pre>
-            </div>
-            {/* Footer Info */}
-            <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                <div className="flex justify-between items-center">
-                </div>
-            </div>
-        </div>
-    );
-};
+            );
+    };
 
-export default CheckingModePanel;
-
+    export default CheckingModePanel;
