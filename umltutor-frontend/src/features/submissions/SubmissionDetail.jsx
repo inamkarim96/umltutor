@@ -149,7 +149,7 @@ const SubmissionDetail = () => {
 
         // Filter out old issues for this specific section/target
         const filteredOld = oldIssues.filter(i => {
-          const isSameSection = (i.type === section || i.location === section || 
+          const isSameSection = (i.type === section || i.location === section ||
             (section === 'ssd' && i.type === 'consistency') ||
             (section === 'usecase' && (i.location === 'diagram' || i.location === 'usecase' || i.type === 'diagram')));
           const isSameTarget = targetId ? (i.relatedId === targetId || i.context?.useCaseId === targetId) : true;
@@ -310,7 +310,7 @@ const SubmissionDetail = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Expandable Brief Content (Synced with Workspace logic) */}
           {isInstructionsOpen && (
             <div className="mt-8 pt-8 border-t border-gray-50 animate-in slide-in-from-top-2 duration-300">

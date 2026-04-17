@@ -160,7 +160,7 @@ const AssignmentReview = () => {
                             }`}
                     >
                         <BookOpen size={16} />
-                        {isInstructionsOpen ? 'Hide Brief' : 'View Brief'}
+                        {isInstructionsOpen ? 'Hide Instructions' : 'View Instructions'}
                     </button>
                     <button
                         onClick={handleCheckIn}
