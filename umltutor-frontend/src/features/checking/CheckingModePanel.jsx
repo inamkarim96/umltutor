@@ -183,7 +183,7 @@ const CheckingModePanel = ({
                     code: 'NO_NODES',
                     severity: 'error',
                     location: 'diagram',
-                    message: 'Diagram is missing.'
+                    message: 'Use Case Diagram not found.'
                 });
                 // Continue or return? If we return, we must finalize report
                 report.issues = issues;
@@ -432,7 +432,7 @@ const CheckingModePanel = ({
                 issues.push({
                     id: 'no-descriptions',
                     code: 'NO_DESCRIPTIONS',
-                    severity: 'warning',
+                    severity: 'error',
                     location: 'description',
                     message: 'No Use Case descriptions found.',
                     context: {}
@@ -445,7 +445,7 @@ const CheckingModePanel = ({
                     code: 'DESCRIPTION_NOT_FOUND',
                     severity: 'error',
                     location: 'description',
-                    message: `Use Case Description is not found or empty.`,
+                    message: `Use Case Description not found.`,
                     context: { useCaseId: targetUseCaseId }
                 });
                 report.score = 0;
@@ -692,7 +692,7 @@ const CheckingModePanel = ({
                 issues.push({
                     id: 'no-ssds',
                     code: 'NO_SSDS',
-                    severity: 'warning',
+                    severity: 'error',
                     location: 'ssd',
                     message: 'No System Sequence Diagrams found.',
                     context: {}
@@ -704,7 +704,7 @@ const CheckingModePanel = ({
                     code: 'SSD_MISSING',
                     severity: 'error',
                     location: 'ssd',
-                    message: 'System Sequence Diagram for this Use Case is missing.',
+                    message: 'System Sequence Diagram not found.',
                     context: { useCaseId: targetUseCaseId }
                 });
                 report.score -= 20;
@@ -916,9 +916,10 @@ const CheckingModePanel = ({
                     .map(i => i.context?.suggestion || i.message);
 
                 const renderSection = (title, issuesList, successMsg) => {
-                    if (issuesList.length === 0) return <div className="text-slate-600 mb-1">✓ {successMsg}</div>;
-                    return issuesList.map((i, idx) => (
-                        <div key={idx} className="text-red-500 mb-1">✗ {i.message}</div>
+                    const sectionErrors = issuesList.filter(i => i.severity === 'error' || i.type === 'error');
+                    if (sectionErrors.length === 0) return <div className="text-slate-600 mb-1">✓ {successMsg}</div>;
+                    return sectionErrors.map((i, idx) => (
+                        <div key={idx} className="text-red-500 mb-1 font-bold">✗ {i.message}</div>
                     ));
                 };
 
@@ -933,12 +934,12 @@ const CheckingModePanel = ({
                         {activeSection === 'usecase' && (
                             <div className="space-y-1">
                                 {(() => {
-                                    const emptyDiagramIssue = issues.find(i => i.code === 'DIAGRAM_EMPTY' || i.code === 'NO_NODES');
-                                    if (emptyDiagramIssue) {
+                                    const missingDiagramIssue = issues.find(i => (i.code === 'DIAGRAM_EMPTY' || i.code === 'NO_NODES' || i.code === 'NO_DIAGRAM') && i.severity === 'error');
+                                    if (missingDiagramIssue) {
                                         return (
                                             <>
-                                                <div className="text-red-600 font-bold mb-2">✗ {emptyDiagramIssue.message || 'The Use Case Diagram is empty.'}</div>
-                                                <div className="text-indigo-600">! Please add a System Boundary, Actors, and Use Cases to proceed.</div>
+                                                <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingDiagramIssue.message}</div>
+                                                <div className="text-indigo-600 !text-[10px] leading-tight">! Please add a System Boundary, Actors, and Use Cases to proceed.</div>
                                             </>
                                         );
                                     }
@@ -963,19 +964,29 @@ const CheckingModePanel = ({
                         {activeSection === 'description' && (
                             <div className="space-y-1">
                                 {(() => {
-                                    const hasNoTitle = issues.some(i => i.code === 'NO_TITLE');
-                                    const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR' || i.code === 'INVALID_PRIMARY_ACTOR');
-                                    const hasNoPre = issues.some(i => i.code === 'NO_PRECONDITIONS' || i.code === 'INVALID_PRECONDITIONS');
-                                    const hasNoPost = issues.some(i => i.code === 'NO_POSTCONDITIONS' || i.code === 'INVALID_POSTCONDITIONS');
-                                    const hasNoFlow = issues.some(i => i.code === 'NO_MAIN_FLOW' || i.code === 'EMPTY_MAIN_FLOW_STEP');
+                                    const missingDescIssue = issues.find(i => (i.code === 'DESCRIPTION_NOT_FOUND' || i.code === 'NO_DESCRIPTIONS') && i.severity === 'error');
+                                    if (missingDescIssue) {
+                                        return (
+                                            <>
+                                                <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingDescIssue.message}</div>
+                                                <div className="text-indigo-600 !text-[10px] leading-tight">! Please create a Use Case Description for this Use Case to proceed.</div>
+                                            </>
+                                        );
+                                    }
+
+                                    const hasNoTitle = issues.some(i => i.code === 'NO_TITLE' && i.severity === 'error');
+                                    const hasNoActor = issues.some(i => (i.code === 'NO_PRIMARY_ACTOR' || i.code === 'INVALID_PRIMARY_ACTOR') && i.severity === 'error');
+                                    const hasNoPre = issues.some(i => (i.code === 'NO_PRECONDITIONS' || i.code === 'INVALID_PRECONDITIONS') && i.severity === 'error');
+                                    const hasNoPost = issues.some(i => (i.code === 'NO_POSTCONDITIONS' || i.code === 'INVALID_POSTCONDITIONS') && i.severity === 'error');
+                                    const hasNoFlow = issues.some(i => (i.code === 'NO_MAIN_FLOW' || i.code === 'EMPTY_MAIN_FLOW_STEP') && i.severity === 'error');
 
                                     return (
                                         <>
-                                            <div className={`${hasNoTitle ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoTitle ? '✗' : '✓'} Use Case Name defined</div>
-                                            <div className={`${hasNoActor ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoActor ? '✗' : '✓'} Primary Actor defined</div>
-                                            <div className={`${hasNoPre ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoPre ? '✗' : '✓'} Preconditions defined</div>
-                                            <div className={`${hasNoPost ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoPost ? '✗' : '✓'} Postconditions defined</div>
-                                            <div className={`${hasNoFlow ? 'text-red-500' : 'text-slate-600'} mb-1`}>{hasNoFlow ? '✗' : '✓'} Main Success Scenario defined</div>
+                                            <div className={`${hasNoTitle ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoTitle ? '✗' : '✓'} Use Case Name defined</div>
+                                            <div className={`${hasNoActor ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoActor ? '✗' : '✓'} Primary Actor defined</div>
+                                            <div className={`${hasNoPre ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoPre ? '✗' : '✓'} Preconditions defined</div>
+                                            <div className={`${hasNoPost ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoPost ? '✗' : '✓'} Postconditions defined</div>
+                                            <div className={`${hasNoFlow ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoFlow ? '✗' : '✓'} Main Success Scenario defined</div>
                                         </>
                                     );
                                 })()}
@@ -985,13 +996,23 @@ const CheckingModePanel = ({
                         {activeSection === 'ssd' && (
                             <div className="space-y-1">
                                 {(() => {
-                                    const flowIssues = issues.filter(i => i.location === 'ssd' && i.type === 'error');
-                                    const consistencyIssues = issues.filter(i => i.type === 'consistency');
+                                    const missingSsdIssue = issues.find(i => (i.code === 'SSD_MISSING' || i.code === 'NO_SSDS' || i.code === 'SSD_NOT_FOUND') && i.severity === 'error');
+                                    if (missingSsdIssue) {
+                                        return (
+                                            <>
+                                                <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingSsdIssue.message}</div>
+                                                <div className="text-indigo-600 !text-[10px] leading-tight">! Please create a System Sequence Diagram to proceed.</div>
+                                            </>
+                                        );
+                                    }
+
+                                    const flowIssuesList = issues.filter(i => i.location === 'ssd' && (i.severity === 'error' || i.type === 'error'));
+                                    const consistencyIssuesList = issues.filter(i => (i.type === 'consistency' || i.code?.includes('CONSISTENCY')) && i.severity === 'error');
 
                                     return (
                                         <>
-                                            <div className={`${flowIssues.length > 0 ? 'text-red-500' : 'text-slate-600'} mb-1`}>{flowIssues.length > 0 ? '✗' : '✓'} Message Flow properly structured</div>
-                                            <div className={`${consistencyIssues.length > 0 ? 'text-red-500' : 'text-slate-600'} mb-1`}>{consistencyIssues.length > 0 ? '✗' : '✓'} Model Consistency maintained</div>
+                                            <div className={`${flowIssuesList.length > 0 ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{flowIssuesList.length > 0 ? '✗' : '✓'} Message Flow properly structured</div>
+                                            <div className={`${consistencyIssuesList.length > 0 ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{consistencyIssuesList.length > 0 ? '✗' : '✓'} Model Consistency maintained</div>
                                         </>
                                     );
                                 })()}
