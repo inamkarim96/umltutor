@@ -168,7 +168,7 @@ export const UseCaseDescriptionEditor = ({
                             </div>
 
                             <div className={`flex flex-col lg:flex-row w-full gap-6 lg:gap-8 ${isCheckingActive ? 'items-start' : ''}`}>
-                                <div className={`w-full lg:w-[65%] lg:flex-none min-w-0 overflow-hidden transition-all duration-500`}>
+                                <div className={`w-full lg:w-[70%] lg:flex-none min-w-0 overflow-hidden transition-all duration-500`}>
                                     <DescriptionForm
                                         useCaseId={id}
                                         initialData={descriptions[id]}
@@ -186,7 +186,7 @@ export const UseCaseDescriptionEditor = ({
                                 </div>
 
                                 {isCheckingActive && (
-                                    <div className="min-w-[300px] w-full lg:w-[35%] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-[750px]">
+                                    <div className="min-w-[320px] w-full lg:w-[30%] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-[750px]">
                                         <div className="sticky top-6 flex flex-col h-full w-full">
                                             <div className="mb-4 flex items-center gap-2 flex-shrink-0">
                                                 <div className="h-px flex-1 bg-slate-100"></div>

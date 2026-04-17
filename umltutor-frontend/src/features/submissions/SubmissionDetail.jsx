@@ -486,8 +486,8 @@ const SubmissionDetail = () => {
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Section</p>
               <h3 className="text-xl font-black text-gray-900">Use Case Diagram</h3>
             </div>
-            <div className="flex flex-col lg:flex-row w-full gap-6 h-auto lg:h-[650px]">
-              <div className="w-full lg:w-[65%] lg:flex-none min-w-0 h-[500px] lg:h-full overflow-hidden border border-gray-100 rounded-3xl bg-gray-50/30">
+            <div className="flex flex-col lg:flex-row w-full gap-8 h-auto lg:h-[700px] p-8">
+              <div className="w-full lg:w-[70%] lg:flex-none min-w-0 h-[500px] lg:h-full border border-slate-100 rounded-[2rem] overflow-hidden bg-slate-50/30 shadow-inner">
                 <UseCaseDiagramEditor
                   key={submission?.id || 'empty-uc'}
                   initialData={modelPayload.diagram}
@@ -495,8 +495,8 @@ const SubmissionDetail = () => {
                   highlights={localUseCaseHighlights}
                 />
               </div>
-              <div className="min-w-[300px] w-full lg:w-[35%] flex-shrink-0 flex flex-col h-[500px] lg:h-full border border-gray-100 rounded-3xl bg-gray-50/30 overflow-hidden">
-                <div className="overflow-y-auto h-full w-full">
+              <div className="w-full lg:w-[30%] min-w-[320px] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-full">
+                <div className="flex-1 overflow-hidden w-full rounded-[2rem] border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-slate-50/50">
                   <CheckingModePanel
                     activeSection="usecase"
                     modelOverride={modelPayload}

@@ -177,6 +177,21 @@ const CheckingModePanel = ({
             const nodes = diagram?.nodes ?? [];
             const edges = diagram?.edges ?? [];
 
+            if (nodes.length === 0) {
+                issues.push({
+                    id: 'no-nodes',
+                    code: 'NO_NODES',
+                    severity: 'error',
+                    location: 'diagram',
+                    message: 'Diagram is missing.'
+                });
+                // Continue or return? If we return, we must finalize report
+                report.issues = issues;
+                report.score = 0;
+                report.summary = { total: 1, errors: 1, warnings: 0, info: 0 };
+                return report;
+            }
+
             // SYSTEM RULES
             const systemBoundary = nodes.find(n => n.type === 'systemBoundary');
             if (!systemBoundary) {
@@ -900,6 +915,15 @@ const CheckingModePanel = ({
         const issues = report?.issues ?? [];
 
         if (activeSection === 'usecase') {
+            // Check for empty diagram first
+            const emptyDiagramIssue = issues.find(i => i.code === 'DIAGRAM_EMPTY' || i.code === 'NO_NODES');
+            if (emptyDiagramIssue) {
+                textReport += `✗ ${emptyDiagramIssue.message || 'The Use Case Diagram is empty.'}\n`;
+                textReport += `! Please add a System Boundary, Actors, and Use Cases to proceed.\n\n`;
+                textReport += '---------------------------------';
+                return textReport;
+            }
+
             // Use Case Diagram specific report
             const sysBoundaryIssues = issues.filter(i => i.code === 'SYSTEM_BOUNDARY_MISSING');
             const sysNameIssues = issues.filter(i => i.code === 'SYSTEM_NAME_MISSING' || i.code === 'SYSTEM_NAME_INVALID');
@@ -1188,15 +1212,15 @@ const CheckingModePanel = ({
 
     return (
         <div data-testid="checking-report" className="flex flex-col h-full bg-white overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex flex-col gap-4 shrink-0 bg-slate-50/20">
+            <div className="p-3 border-b border-gray-100 flex flex-col gap-3 shrink-0 bg-slate-50/20">
                 {/* Header Row: Title & Button */}
-                <div className="flex items-center justify-between gap-3">
-                    <div className="flex flex-col min-w-0 overflow-hidden">
-                        <h2 className="text-base font-black text-gray-900 truncate">
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col min-w-0 flex-1">
+                        <h2 className="text-sm font-black text-gray-900 truncate">
                             Checking Report
                         </h2>
                         {label && (
-                            <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest truncate mt-0.5">
+                            <span className="text-[8px] text-gray-400 font-black uppercase tracking-widest truncate mt-0.5">
                                 {label}
                             </span>
                         )}
@@ -1206,7 +1230,7 @@ const CheckingModePanel = ({
                         <button
                             onClick={runChecks}
                             disabled={isRunning}
-                            className="shrink-0 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-[10px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-1.5 active:scale-95 disabled:bg-gray-400"
+                            className="shrink-0 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-1.5 active:scale-95 disabled:bg-gray-400"
                         >
                             {isRunning ? (
                                 <>

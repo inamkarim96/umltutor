@@ -48,7 +48,7 @@ class CheckingEngine {
                 useCases: [],
                 actorLabels: new Map(),
                 useCaseLabels: new Map(),
-                edges: diagram.edges || []
+                edges: (diagram && diagram.edges) || []
             };
         }
 
