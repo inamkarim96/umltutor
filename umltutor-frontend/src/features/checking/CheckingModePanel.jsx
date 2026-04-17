@@ -38,7 +38,7 @@ const CheckingModePanel = ({
     // Font size control logic
     const [fontSize, setFontSize] = useState(() => {
         const savedSize = localStorage.getItem("reportFontSize");
-        return savedSize ? Number(savedSize) : 14;
+        return savedSize ? Number(savedSize) : 15;
     });
 
     useEffect(() => {
@@ -47,7 +47,7 @@ const CheckingModePanel = ({
 
     const handleIncreaseFontSize = () => setFontSize(prev => Math.min(prev + 1, 20));
     const handleDecreaseFontSize = () => setFontSize(prev => Math.max(prev - 1, 12));
-    const handleResetFontSize = () => setFontSize(14);
+    const handleResetFontSize = () => setFontSize(15);
 
     const isExternal = !!modelOverride || !!reportOverride || !!onRunChecker;
 
@@ -924,9 +924,9 @@ const CheckingModePanel = ({
                 };
 
                 return (
-                    <div className="space-y-6 font-mono text-[11px] leading-relaxed">
+                    <div className="space-y-6 font-mono leading-relaxed">
                         <div className="space-y-1">
-                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">
+                            <h3 className="font-black text-slate-800 uppercase tracking-wider mb-4">
                                 CHECKING REPORT
                             </h3>
                         </div>
@@ -939,7 +939,7 @@ const CheckingModePanel = ({
                                         return (
                                             <>
                                                 <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingDiagramIssue.message}</div>
-                                                <div className="text-indigo-600 !text-[10px] leading-tight">! Please add a System Boundary, Actors, and Use Cases to proceed.</div>
+                                                <div className="text-indigo-600 leading-tight">! Please add a System Boundary, Actors, and Use Cases to proceed.</div>
                                             </>
                                         );
                                     }
@@ -969,7 +969,7 @@ const CheckingModePanel = ({
                                         return (
                                             <>
                                                 <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingDescIssue.message}</div>
-                                                <div className="text-indigo-600 !text-[10px] leading-tight">! Please create a Use Case Description for this Use Case to proceed.</div>
+                                                <div className="text-indigo-600 leading-tight">! Please create a Use Case Description for this Use Case to proceed.</div>
                                             </>
                                         );
                                     }
@@ -1001,7 +1001,7 @@ const CheckingModePanel = ({
                                         return (
                                             <>
                                                 <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingSsdIssue.message}</div>
-                                                <div className="text-indigo-600 !text-[10px] leading-tight">! Please create a System Sequence Diagram to proceed.</div>
+                                                <div className="text-indigo-600 leading-tight">! Please create a System Sequence Diagram to proceed.</div>
                                             </>
                                         );
                                     }
