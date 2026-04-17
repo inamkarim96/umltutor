@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { 
+import {
     selectClasses
 } from '../../features/classroom';
 import {
@@ -15,12 +15,12 @@ import {
     approveTutorialMode
 } from '../../features/submissions';
 import { selectUser } from '../../features/auth';
-import { 
-    ArrowLeft, 
-    Users, 
-    Clock, 
-    CheckCircle, 
-    ChevronRight, 
+import {
+    ArrowLeft,
+    Users,
+    Clock,
+    CheckCircle,
+    ChevronRight,
     Search,
     Filter,
     MoreHorizontal,
@@ -41,7 +41,7 @@ const AssignmentSubmissions = () => {
 
     // Find assignment by slugified title
     const assignment = useMemo(() => {
-        return assignments.find(asgn => 
+        return assignments.find(asgn =>
             asgn.title?.toLowerCase().replace(/\s+/g, '-') === titleSlug
         );
     }, [assignments, titleSlug]);
@@ -90,7 +90,7 @@ const AssignmentSubmissions = () => {
             {/* Top Navigation Bar */}
             <div className="bg-white border-b border-gray-100 sticky top-0 z-30 px-8 py-4 flex justify-between items-center shadow-sm">
                 <div className="flex items-center gap-6">
-                    <button 
+                    <button
                         onClick={() => navigate(-1)}
                         className="p-2.5 hover:bg-gray-50 rounded-2xl text-gray-400 hover:text-indigo-600 transition-all border border-transparent hover:border-gray-100"
                     >
@@ -180,8 +180,8 @@ const AssignmentSubmissions = () => {
                         <h2 className="text-2xl font-black text-gray-900">Student Submissions</h2>
                         <div className="relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 placeholder="Search by student name..."
                                 className="pl-12 pr-6 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all w-80 shadow-sm"
                             />
@@ -202,7 +202,7 @@ const AssignmentSubmissions = () => {
                             <tbody className="divide-y divide-gray-50">
                                 {(() => {
                                     const visibleSubmissions = submissionsForThisAsgn;
-                                    
+
                                     if (visibleSubmissions.length === 0) {
                                         return (
                                             <tr>
@@ -216,13 +216,13 @@ const AssignmentSubmissions = () => {
                                             </tr>
                                         );
                                     }
-                                    
+
                                     return visibleSubmissions.map((sub) => (
                                         <tr key={sub.studentId} className="group hover:bg-indigo-50/30 transition-all duration-300">
                                             <td className="px-10 py-8">
                                                 <div className="flex items-center gap-5">
                                                     <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform">
-                                                        {sub.studentName?.charAt(0).toUpperCase() || <Mail size={24}/>}
+                                                        {sub.studentName?.charAt(0).toUpperCase() || <Mail size={24} />}
                                                     </div>
                                                     <div>
                                                         <p className="text-lg font-black text-gray-900 group-hover:text-indigo-600 transition-colors">
@@ -234,13 +234,12 @@ const AssignmentSubmissions = () => {
                                             </td>
                                             <td className="px-10 py-8">
                                                 <div className="flex">
-                                                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border ${
-                                                        sub.status === 'GRADED' || sub.status === 'graded' 
-                                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                                                            : sub.status === 'pending' || sub.status === 'NOT_SUBMITTED' 
+                                                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border ${sub.status === 'GRADED' || sub.status === 'graded'
+                                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                            : sub.status === 'pending' || sub.status === 'NOT_SUBMITTED'
                                                                 ? 'bg-red-50 text-red-600 border-red-100'
                                                                 : 'bg-blue-50 text-blue-600 border-blue-100'
-                                                    }`}>
+                                                        }`}>
                                                         {sub.status?.replace(/_/g, ' ') || 'NOT STARTED'}
                                                     </span>
                                                     {sub.isUpdated && (
@@ -280,7 +279,7 @@ const AssignmentSubmissions = () => {
                                             </td>
                                             <td className="px-10 py-8 text-right flex items-center justify-end gap-3">
                                                 {sub.tutorialRequested && !sub.tutorialApproved && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => dispatch(approveTutorialMode(sub.submissionId))}
                                                         className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-100"
                                                     >
@@ -288,14 +287,13 @@ const AssignmentSubmissions = () => {
                                                         Approve
                                                     </button>
                                                 )}
-                                                <button 
+                                                <button
                                                     disabled={!sub.submissionId}
                                                     onClick={() => handleNavigate(sub)}
-                                                    className={`inline-flex items-center gap-3 px-8 py-3.5 border rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 group/btn ${
-                                                        !sub.submissionId
-                                                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                                        : 'bg-white border-gray-200 text-gray-900 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 hover:shadow-xl hover:shadow-indigo-100 hover:-translate-y-1'
-                                                    }`}
+                                                    className={`inline-flex items-center gap-3 px-8 py-3.5 border rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 group/btn ${!sub.submissionId
+                                                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                                            : 'bg-white border-gray-200 text-gray-900 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 hover:shadow-xl hover:shadow-indigo-100 hover:-translate-y-1'
+                                                        }`}
                                                 >
                                                     {!sub.submissionId ? 'No Submission' : 'Evaluation'}
                                                     <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />

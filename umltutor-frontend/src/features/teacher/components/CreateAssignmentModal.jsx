@@ -89,7 +89,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
             fd.append('releaseDate', formData.releaseDate);
             fd.append('deadline', new Date(formData.deadline).toISOString());
             fd.append('maxScore', formData.maxScore);
-            
+
             if (selectedFile) {
                 fd.append('assignmentFile', selectedFile);
             }
@@ -97,7 +97,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                 fd.append('id', initialData.id);
                 if (removeExistingFile) fd.append('removeExistingFile', 'true');
             }
-            
+
             onSubmit(fd);
         } else {
             const submissionData = {
@@ -132,7 +132,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                     <form id="assignment-form" onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                <Edit3 size={16} className="text-indigo-500"/> Assignment Title
+                                <Edit3 size={16} className="text-indigo-500" /> Assignment Title
                             </label>
                             <input
                                 type="text"
@@ -149,7 +149,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                <Calendar size={16} className="text-indigo-500"/> Deadline (Due Date & Time)
+                                <Calendar size={16} className="text-indigo-500" /> Deadline (Due Date & Time)
                             </label>
                             <input
                                 type="datetime-local"
@@ -163,7 +163,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                <Type size={16} className="text-indigo-500"/> Assignment Type
+                                <Type size={16} className="text-indigo-500" /> Assignment Type
                             </label>
                             <select
                                 name="assignmentType"
@@ -180,7 +180,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                         {formData.assignmentType === 'TEXT' && (
                             <div className="animate-in fade-in duration-200">
                                 <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                    <FileText size={16} className="text-indigo-500"/> Assignment Text Content
+                                    <FileText size={16} className="text-indigo-500" /> Assignment Text Content
                                 </label>
                                 <textarea
                                     name="textContent"
@@ -197,16 +197,16 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                         {formData.assignmentType === 'FILE' && (
                             <div className="animate-in fade-in duration-200">
                                 <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                    <Upload size={16} className="text-indigo-500"/> {isEditMode ? 'Update File' : 'Upload File'}
+                                    <Upload size={16} className="text-indigo-500" /> {isEditMode ? 'Update File' : 'Upload File'}
                                 </label>
-                                
+
                                 {isEditMode && initialData.assignmentFileName && !selectedFile && !removeExistingFile && (
                                     <div className="mb-3 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between">
                                         <div className="flex items-center gap-2 overflow-hidden">
-                                            <FileText size={14} className="text-indigo-500 shrink-0"/>
+                                            <FileText size={14} className="text-indigo-500 shrink-0" />
                                             <span className="text-xs font-bold text-indigo-700 truncate">{initialData.assignmentFileName}</span>
                                         </div>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => setRemoveExistingFile(true)}
                                             className="text-[10px] font-black uppercase text-red-500 hover:text-red-700"
@@ -258,7 +258,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                    <Calendar size={16} className="text-indigo-500"/> Release Date
+                                    <Calendar size={16} className="text-indigo-500" /> Release Date
                                 </label>
                                 <input
                                     type="date"
@@ -273,7 +273,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                    <Type size={16} className="text-indigo-500"/> Max Score
+                                    <Type size={16} className="text-indigo-500" /> Max Score
                                 </label>
                                 <input
                                     type="number"
@@ -301,11 +301,10 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                         type="submit"
                         form="assignment-form"
                         disabled={isSubmitting}
-                        className={`px-8 py-2.5 text-white font-black rounded-xl shadow-lg transition-all ${
-                            isSubmitting
+                        className={`px-8 py-2.5 text-white font-black rounded-xl shadow-lg transition-all ${isSubmitting
                                 ? 'bg-indigo-400 cursor-not-allowed'
                                 : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5'
-                        }`}
+                            }`}
                     >
                         {isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Assignment')}
                     </button>

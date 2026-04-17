@@ -227,6 +227,7 @@ class SubmissionService {
             maxScore: true,
             classId: true,
             createdBy: true,
+            textContent: true,
             class: { select: { teacherId: true, name: true } }
           }
         }
@@ -267,7 +268,9 @@ class SubmissionService {
         title: submission.assignment?.title,
         maxScore: submission.assignment?.maxScore,
         classId: submission.assignment?.classId,
-        className: submission.assignment?.class?.name
+        className: submission.assignment?.class?.name,
+        textContent: submission.assignment?.textContent,
+        instructions: submission.assignment?.textContent || submission.assignment?.instructions
       },
       artifacts: {
         useCaseDiagram: safeParse(submission.useCaseDiagram?.data),
