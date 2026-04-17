@@ -9,7 +9,7 @@ class SubmissionService {
   
   // Submission Management
   async getAllSubmissions(filters) {
-    return apiClient.get('/api/assignments/submissions', { params: filters });
+    return apiClient.get('/api/submissions/teacher/all', { params: filters });
   }
 
   async getAssignmentSubmissions(assignmentId) {
@@ -29,119 +29,54 @@ class SubmissionService {
     return apiClient.patch(`/api/submissions/${submissionId}/remarks`, { remarks, score });
   }
 
-  async saveSubmissionFeedback(submissionId, { report, remarks, score } = {}) {
-    return apiClient.post(`/api/submissions/${submissionId}/save-feedback`, { report, remarks, score });
+  async saveSubmissionFeedback(submissionId, { report, remarks, score, isDraft } = {}) {
+    return apiClient.post(`/api/submissions/${submissionId}/save-feedback`, { report, remarks, score, isDraft });
   }
 
   async gradeSubmission(submissionId, data) {
-    return apiClient.post(`/api/assignments/submissions/${submissionId}/grade`, data);
-  }
-
-  async updateSubmissionGrade(submissionId, gradeData) {
-    return apiClient.put(`/api/submissions/${submissionId}/grade`, gradeData);
+    const score = data.score || data.grade;
+    const remarks = data.remarks || data.feedback;
+    return apiClient.post(`/api/submissions/${submissionId}/grade`, { score, remarks });
   }
 
   // Analytics & Reporting
   async getSubmissionAnalytics(assignmentId) {
-    return apiClient.get(`/api/assignments/${assignmentId}/analytics`);
-  }
-
-  async getClassSubmissionsAnalytics(classId) {
-    return apiClient.get(`/api/classes/${classId}/submissions/analytics`);
-  }
-
-  async exportSubmissions(assignmentId, format = 'csv') {
-    return apiClient.get(`/api/assignments/${assignmentId}/export`, { 
-      params: { format },
-      responseType: 'blob'
-    });
+    return apiClient.get(`/api/submissions/${assignmentId}/analytics`);
   }
 
   // === STUDENT OPERATIONS ===
   
   // Submission Lifecycle
-  async submitAssignment(assignmentId, data) {
-    const isFormData = data instanceof FormData;
-    return apiClient.post(`/api/student/assignments/${assignmentId}/submit`, data, {
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : { 'Content-Type': 'application/json' }
-    });
-  }
-
   async submitAssignmentData(assignmentId, data) {
-    return apiClient.post(`/api/student/assignments/${assignmentId}/submissions`, data);
+    // Standard UML workflow save
+    return apiClient.post(`/api/submissions/${assignmentId}`, data);
   }
 
   async updateSubmission(assignmentId, data) {
-    return apiClient.put(`/api/student/assignments/${assignmentId}/submission`, data);
-  }
-
-  async deleteSubmission(assignmentId) {
-    return apiClient.delete(`/api/student/assignments/${assignmentId}/submission`);
+    // Legacy support or specific update if needed
+    return apiClient.post(`/api/submissions/${assignmentId}`, { ...data, status: 'draft' });
   }
 
   // Submission Status & Progress
   async getMySubmission(assignmentId) {
-    return apiClient.get(`/api/student/assignments/${assignmentId}/submissions`);
+    return apiClient.get(`/api/submissions/${assignmentId}/me`);
   }
 
   async getMySubmissions() {
-    return apiClient.get('/api/student/me/submissions');
+    return apiClient.get('/api/submissions/student/me');
   }
 
   async getSubmissionStatus(assignmentId) {
-    return apiClient.get(`/api/student/assignments/${assignmentId}/submissions/status`);
+    return apiClient.get(`/api/submissions/${assignmentId}/status`);
   }
 
   async getSubmissionReceipt(id) {
-    return apiClient.get(`/api/student/assignments/${id}/receipt`);
+    return apiClient.get(`/api/submissions/${id}/receipt`);
   }
 
   // Student Analytics
   async getStudentAnalytics() {
-    return apiClient.get('/api/student/analytics');
-  }
-
-  async getStudentProgress() {
-    return apiClient.get('/api/student/progress');
-  }
-
-  async getSubmissionHistory(assignmentId) {
-    return apiClient.get(`/api/student/assignments/${assignmentId}/history`);
-  }
-
-  // === COMMON OPERATIONS ===
-  
-  // File Operations
-  async uploadSubmissionFile(assignmentId, file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiClient.post(`/api/student/assignments/${assignmentId}/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  }
-
-  async downloadSubmissionFile(submissionId, fileId) {
-    return apiClient.get(`/api/submissions/${submissionId}/files/${fileId}`, {
-      responseType: 'blob'
-    });
-  }
-
-  // Validation Operations
-  async validateSubmission(submissionId) {
-    return apiClient.post(`/api/submissions/${submissionId}/validate`);
-  }
-
-  async getSubmissionValidation(submissionId) {
-    return apiClient.get(`/api/submissions/${submissionId}/validation`);
-  }
-
-  // Comments & Communication
-  async addSubmissionComment(submissionId, comment) {
-    return apiClient.post(`/api/submissions/${submissionId}/comments`, comment);
-  }
-
-  async getSubmissionComments(submissionId) {
-    return apiClient.get(`/api/submissions/${submissionId}/comments`);
+    return apiClient.get('/api/submissions/student/analytics');
   }
 
   // Tutorial Mode
@@ -151,15 +86,6 @@ class SubmissionService {
 
   async approveTutorialMode(submissionId) {
     return apiClient.post(`/api/submissions/${submissionId}/approve-tutorial`);
-  }
-
-  // === BATCH OPERATIONS (Teacher Only) ===
-  async batchGrade(submissionIds, gradeData) {
-    return apiClient.post('/api/submissions/batch-grade', { submissionIds, gradeData });
-  }
-
-  async batchValidate(submissionIds) {
-    return apiClient.post('/api/submissions/batch-validate', { submissionIds });
   }
 }
 

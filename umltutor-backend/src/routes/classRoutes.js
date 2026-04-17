@@ -84,7 +84,7 @@ router.post('/:classId/students', _routeMiddleware.authorize('TEACHER'), _classC
  * @desc Create an assignment for a class
  * @access Teacher (Class Owner)
  */
-router.post('/:classId/assignments', _routeMiddleware.authorize('TEACHER'), _fileUpload.uploadAssignmentFile.single('assignmentFile'), _assignmentController.createClassAssignment);
+router.post('/:classId/assignments', _routeMiddleware.authorize('TEACHER'), _fileUpload.uploadAssignmentFile.single('assignmentFile'), _assignmentController.createAssignmentDefinition);
 
 /**
  * @route GET /api/classes/:classId/assignments

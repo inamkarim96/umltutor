@@ -4,8 +4,6 @@ var _compression = require('compression'); var _compression2 = _interopRequireDe
 var _rateLimiter = require('./middleware/rateLimiter');
 var _routeMiddleware = require('./middleware/routeMiddleware');
 var _authRoutes = require('./routes/authRoutes'); var _authRoutes2 = _interopRequireDefault(_authRoutes);
-var _descriptionRoutes = require('./routes/descriptionRoutes'); var _descriptionRoutes2 = _interopRequireDefault(_descriptionRoutes);
-var _ssdRoutes = require('./routes/ssdRoutes'); var _ssdRoutes2 = _interopRequireDefault(_ssdRoutes);
 var _checkingRoutes = require('./routes/checkingRoutes'); var _checkingRoutes2 = _interopRequireDefault(_checkingRoutes);
 var _studentRoutes = require('./routes/studentRoutes'); var _studentRoutes2 = _interopRequireDefault(_studentRoutes);
 var _classRoutes = require('./routes/classRoutes'); var _classRoutes2 = _interopRequireDefault(_classRoutes);
@@ -42,8 +40,6 @@ app.use('/api/auth', _rateLimiter.authLimiter);
 
 // Routes
 app.use('/api/auth', _authRoutes2.default);
-app.use('/api/descriptions', _descriptionRoutes2.default);
-app.use('/api/ssds', _ssdRoutes2.default);
 app.use('/api/checking', _checkingRoutes2.default);
 app.use('/api/classes', _classRoutes2.default);
 app.use('/api/assignments', _assignmentRoutes2.default);

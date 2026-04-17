@@ -7,6 +7,44 @@ const router = _express.Router.call(void 0, );
 // Apply request logging to all routes
 router.use(_routeMiddleware.requestLogger);
 
+// ─── Teacher Overview Routes ──────────────────────────────────────────────
+/**
+ * @route   GET /api/submissions/teacher/all
+ * @desc    Get all assignment submissions for all assignments (for overview)
+ * @access  TEACHER
+ */
+router.get(
+  '/teacher/all',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('TEACHER'),
+  _submissionController.getAllAssignmentSubmissions
+);
+
+// ─── Student Overview Routes ──────────────────────────────────────────────
+/**
+ * @route   GET /api/submissions/student/me
+ * @desc    Get all submissions for the current student
+ * @access  STUDENT
+ */
+router.get(
+  '/student/me',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('STUDENT'),
+  _submissionController.getMySubmissions
+);
+
+/**
+ * @route   GET /api/submissions/student/analytics
+ * @desc    Get student analytics
+ * @access  STUDENT
+ */
+router.get(
+  '/student/analytics',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('STUDENT'),
+  _submissionController.getStudentAnalytics
+);
+
 // ─── Assignment-scoped Student Routes (/api/submissions/:assignmentId/...) ──
 
 /**
@@ -57,6 +95,17 @@ router.get(
   _submissionController.getAssignmentSubmissions
 );
 
+/**
+ * @route   GET /api/submissions/:id/receipt
+ * @desc    Get submission receipt
+ * @access  STUDENT, TEACHER
+ */
+router.get(
+  '/:id/receipt',
+  _routeMiddleware.authenticate,
+  _submissionController.getSubmissionReceipt
+);
+
 // ─── Submission-scoped Routes (/api/submissions/:id/...) ────────────────────
 
 /**
@@ -105,6 +154,18 @@ router.post(
   _routeMiddleware.authenticate,
   _routeMiddleware.authorize('TEACHER'),
   _submissionController.saveSubmissionFeedback
+);
+
+/**
+ * @route   POST /api/submissions/:id/grade
+ * @desc    Grade a submission (Teacher)
+ * @access  TEACHER
+ */
+router.post(
+  '/:id/grade',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('TEACHER'),
+  _submissionController.gradeSubmission
 );
 
 /**

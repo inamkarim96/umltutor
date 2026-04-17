@@ -614,6 +614,139 @@ class SubmissionService {
       updateData
     );
   }
+
+  // Teacher: Get all submissions across all assignments
+  async getAllSubmissionsForTeacher(teacherId, filters = {}) {
+    const tid = Number(teacherId);
+    const where = {
+        assignment: { createdBy: tid }
+    };
+
+    if (filters.studentId) where.studentId = Number(filters.studentId);
+    if (filters.status && filters.status !== 'all' && filters.status.toLowerCase() !== 'draft') {
+        where.status = filters.status.toLowerCase();
+    }
+
+    const submissions = await submissionRepository.findMany(
+        where,
+        {
+            student: { select: { id: true, firstName: true, lastName: true, email: true } },
+            assignment: { select: { id: true, title: true, dueDate: true } },
+            evaluation: true
+        },
+        { submittedAt: 'desc' }
+    );
+
+    return submissions.map(s => ({
+        ...s,
+        studentName: s.student ? `${s.student.firstName || ''} ${s.student.lastName || ''}`.trim() : undefined,
+        studentEmail: s.student?.email,
+        assignmentTitle: s.assignment?.title,
+        assignmentId: s.assignment?.id || s.assignmentId
+    }));
+  }
+
+  // Teacher: Get assignment stats
+  async getAssignmentStatsForTeacher(teacherId) {
+    const tid = Number(teacherId);
+    const assignments = await assignmentRepository.findMany({ createdBy: tid }, { submissions: { include: { evaluation: true } } });
+    
+    let totalSubmissions = 0;
+    let pendingReview = 0;
+    let totalScore = 0;
+    let gradedCount = 0;
+
+    assignments.forEach(a => {
+        a.submissions.forEach(s => {
+            totalSubmissions++;
+            if (s.status === 'submitted') pendingReview++;
+            if (s.status === 'graded') {
+                totalScore += s.evaluation?.totalScore || 0;
+                gradedCount++;
+            }
+        });
+    });
+
+    return {
+        totalAssignments: assignments.length,
+        totalSubmissions,
+        pendingReview,
+        averageScore: gradedCount > 0 ? totalScore / gradedCount : 0
+    };
+  }
+
+  // Student: Get submission receipt
+  async getSubmissionReceipt(id, userId) {
+    const submission = await submissionRepository.findFirst({
+        where: { id: Number(id) },
+        include: { 
+            assignment: { include: { class: { include: { teacher: true } } } },
+            student: true
+        }
+    });
+
+    if (!submission) throw new NotFoundError('Submission not found');
+    if (submission.studentId !== Number(userId) && submission.assignment.createdBy !== Number(userId)) {
+        throw new AuthorizationError('Access denied');
+    }
+
+    return {
+        receiptId: `REC-${submission.id}-${Date.now().toString().slice(-4)}`,
+        submissionId: submission.id,
+        assignmentTitle: submission.assignment.title,
+        submittedAt: submission.submittedAt,
+        status: submission.status,
+        studentName: `${submission.student.firstName} ${submission.student.lastName}`
+    };
+  }
+
+  // Student: Get analytics
+  async getStudentAnalytics(studentId) {
+    const sid = Number(studentId);
+    const submissions = await submissionRepository.findMany({ studentId: sid }, { evaluation: true });
+    
+    const completed = submissions.filter(s => s.status === 'graded' || s.status === 'submitted').length;
+    let totalScore = 0;
+    let gradedCount = 0;
+    
+    submissions.forEach(s => {
+      if (s.evaluation?.totalScore !== null && s.evaluation?.totalScore !== undefined) {
+        totalScore += s.evaluation.totalScore;
+        gradedCount++;
+      }
+    });
+
+    return {
+        totalAssignments: submissions.length,
+        completedAssignments: completed,
+        averageScore: gradedCount > 0 ? totalScore / gradedCount : 0,
+        submissions: submissions.map(s => ({ id: s.id, status: s.status, score: s.evaluation?.totalScore || null }))
+    };
+  }
+
+  async getMySubmissions(studentId) {
+    const studentIdNum = Number(studentId);
+    const submissions = await submissionRepository.findMany({
+      where: { studentId: studentIdNum },
+      include: { 
+        useCaseDiagram: true, 
+        useCaseDescriptions: true, 
+        ssdDiagrams: true, 
+        assignment: true, 
+        evaluation: true 
+      }
+    });
+    
+    return submissions.map(s => ({
+      ...s,
+      score: s.evaluation?.totalScore || null,
+      remarks: s.evaluation?.remarks || null,
+      assignment: s.assignment ? {
+        ...s.assignment,
+        deadline: s.assignment.dueDate ? s.assignment.dueDate.toISOString() : null
+      } : null
+    }));
+  }
 }
 
 exports.default = new SubmissionService();

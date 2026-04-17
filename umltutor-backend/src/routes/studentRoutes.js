@@ -23,28 +23,9 @@ router.get('/search', studentController.searchStudents);
 router.get('/classes', routeMiddleware.authorize('STUDENT'), classController.getJoinedClasses);
 router.post('/classes/join', routeMiddleware.authorize('STUDENT'), classController.joinClass);
 
-// SUBMISSION ROUTES
-router.get('/assignments/:assignmentId/submissions/status', submissionController.getSubmissionStatus);
-router.post('/assignments/:id/submit', submissionController.submitAssignment);
-router.post('/assignments/:assignmentId/submissions', submissionController.submitAssignment);
-router.get('/assignments/:assignmentId/submissions', submissionController.getMySubmission);
-router.get('/me/submissions', assignmentController.getMySubmissions);
-router.put('/assignments/:id/submission', submissionController.updateSubmission);
-router.delete('/assignments/:id/submission', submissionController.deleteSubmission);
-
 // --- ASSIGNMENT ROUTES (Student) ---
 router.get('/assignments', assignmentController.getStudentAssignments);
 router.get('/assignments/:id', assignmentController.getStudentAssignment);
-router.post('/assignments/:id/start', assignmentController.startAssignment);
-router.get('/assignments/:id/progress', assignmentController.getAssignmentProgress);
-router.get('/assignments/:id/workflow', assignmentController.getWorkflowProgress);
-router.post('/assignments/:id/save-section', assignmentController.saveAssignmentSection);
-router.put('/assignments/:id/update-section', assignmentController.updateAssignmentSection);
-router.get('/assignments/:id/completion-status', assignmentController.getAssignmentCompletionStatus);
-router.post('/assignments/:id/progress', assignmentController.saveAssignmentProgress);
-router.patch('/assignments/:id/progress', assignmentController.saveAssignmentProgress);
-router.get('/assignments/:id/receipt', assignmentController.getSubmissionReceipt);
-router.get('/analytics', assignmentController.getStudentAnalytics);
 
 // --- NOTIFICATION ROUTES (Student) ---
 router.get('/notifications', routeMiddleware.authorize('STUDENT'), notificationController.getNotifications);

@@ -33,7 +33,6 @@ const createAssignmentDefinition = async (req, res, next) => {
         next(error);
     }
 }; exports.createAssignmentDefinition = createAssignmentDefinition;
-exports.createClassAssignment = createAssignmentDefinition;
 
 const getClassAssignments = async (req, res, next) => {
     try {
@@ -80,7 +79,6 @@ const updateAssignmentDefinition = async (req, res, next) => {
         if (req.body.releaseDate) updateData.releaseDate = new Date(req.body.releaseDate);
         if (req.body.dueDate || req.body.deadline) updateData.dueDate = new Date(req.body.dueDate || req.body.deadline);
         
-        // Clean up frontend specific properties and map type correctly
         delete updateData.deadline;
         
         if (updateData.assignmentType) {
@@ -88,23 +86,18 @@ const updateAssignmentDefinition = async (req, res, next) => {
             delete updateData.assignmentType;
         }
         
-        if (updateData.maxScore !== undefined) {
-            updateData.maxScore = Number(updateData.maxScore);
-        }
-        
-        if (updateData.classId !== undefined) {
-            updateData.classId = Number(updateData.classId);
-        }
+        if (updateData.maxScore !== undefined) updateData.maxScore = Number(updateData.maxScore);
+        if (updateData.classId !== undefined) updateData.classId = Number(updateData.classId);
 
         if (req.file) {
             const fileInfo = fileUpload.getFileInfo(req.file);
             updateData.assignmentFileUrl = fileInfo.url;
             updateData.assignmentFileName = fileInfo.originalName;
-            updateData.assignmentFileType = fileInfo.mimetype;
+            updateData.assignmentFileType = fileInfo.type;
         }
 
         const assignment = await assignmentService.updateAssignmentDefinition(req.params.id, req.user.id, updateData);
-        res.json({ success: true, data: { ...assignment, submissionCount: assignment._count?.submissions || 0 } });
+        res.json({ success: true, data: assignment });
     } catch (error) {
         next(error);
     }
@@ -118,71 +111,6 @@ const deleteAssignmentDefinition = async (req, res, next) => {
         next(error);
     }
 }; exports.deleteAssignmentDefinition = deleteAssignmentDefinition;
-
-const getAssignmentSubmissions = async (req, res, next) => {
-    try {
-        const submissions = await assignmentService.getAssignmentSubmissions(req.params.id, req.user.id);
-        res.json({ success: true, data: submissions });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getAssignmentSubmissions = getAssignmentSubmissions;
-
-const getAllAssignmentSubmissions = async (req, res, next) => {
-    try {
-        const submissions = await assignmentService.getAllSubmissionsForTeacher(req.user.id, req.query);
-        res.json({ success: true, data: submissions });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getAllAssignmentSubmissions = getAllAssignmentSubmissions;
-
-const getAssignmentStats = async (req, res, next) => {
-    try {
-        const stats = await assignmentService.getAssignmentStatsForTeacher(req.user.id);
-        res.json({ success: true, data: stats });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getAssignmentStats = getAssignmentStats;
-
-
-
-const getTeacherSubmission = async (req, res, next) => {
-    try {
-        const submission = await assignmentService.getTeacherSubmission(req.params.assignmentId, req.params.studentId, req.user.id);
-        res.json({ success: true, data: submission });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getTeacherSubmission = getTeacherSubmission;
-
-const getAssignmentReviewData = async (req, res, next) => {
-    try {
-        const data = await assignmentService.getAssignmentReviewData(req.params.id, req.user.id);
-        res.json({ success: true, data });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getAssignmentReviewData = getAssignmentReviewData;
-
-const submitReview = async (req, res, next) => {
-    try {
-        const result = await assignmentService.submitReview(req.params.id, req.user.id, req.body);
-        res.json({ success: true, data: result });
-    } catch (error) {
-        next(error);
-    }
-}; exports.submitReview = submitReview;
-
-const gradeSubmission = async (req, res, next) => {
-    try {
-        const submission = await assignmentService.gradeSubmission(req.params.submissionId, req.user.id, req.body);
-        res.json({ success: true, data: submission });
-    } catch (error) {
-        next(error);
-    }
-}; exports.gradeSubmission = gradeSubmission;
 
 // Student Controllers
 
@@ -212,87 +140,3 @@ const startAssignment = async (req, res, next) => {
         next(error);
     }
 }; exports.startAssignment = startAssignment;
-
-const saveAssignmentSection = async (req, res, next) => {
-    try {
-        const { sectionType, data } = req.body;
-        const result = await assignmentService.saveAssignmentSection(req.params.id, req.user.id, sectionType, data);
-        res.json({ success: true, data: result });
-    } catch (error) {
-        next(error);
-    }
-}; exports.saveAssignmentSection = saveAssignmentSection;
-
-const updateAssignmentSection = async (req, res, next) => {
-    try {
-        const { sectionType, data } = req.body;
-        const result = await assignmentService.saveAssignmentSection(req.params.id, req.user.id, sectionType, data);
-        res.json({ success: true, data: result });
-    } catch (error) {
-        next(error);
-    }
-}; exports.updateAssignmentSection = updateAssignmentSection;
-
-const getAssignmentProgress = async (req, res, next) => {
-    try {
-        const progress = await assignmentService.getAssignmentProgress(req.params.id, req.user.id);
-        res.json({ success: true, data: progress });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getAssignmentProgress = getAssignmentProgress;
-
-const getWorkflowProgress = async (req, res, next) => {
-    try {
-        const progress = await assignmentService.getAssignmentProgress(req.params.id, req.user.id);
-        res.json({ success: true, data: progress });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getWorkflowProgress = getWorkflowProgress;
-
-const getAssignmentCompletionStatus = async (req, res, next) => {
-    try {
-        const progress = await assignmentService.getAssignmentProgress(req.params.id, req.user.id);
-        res.json({ success: true, data: progress });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getAssignmentCompletionStatus = getAssignmentCompletionStatus;
-
-const saveAssignmentProgress = async (req, res, next) => {
-    try {
-        const submission = await assignmentService.startAssignment(req.params.id, req.user.id);
-        res.json({ success: true, data: submission });
-    } catch (error) {
-        next(error);
-    }
-}; exports.saveAssignmentProgress = saveAssignmentProgress;
-
-const getSubmissionReceipt = async (req, res, next) => {
-    try {
-        const receipt = await assignmentService.getSubmissionReceipt(req.params.id, req.user.id);
-        receipt.studentName = `${req.user.firstName} ${req.user.lastName}`;
-        res.json({ success: true, data: receipt });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getSubmissionReceipt = getSubmissionReceipt;
-
-const getStudentAnalytics = async (req, res, next) => {
-    try {
-        const analytics = await assignmentService.getStudentAnalytics(req.user.id);
-        res.json({ success: true, data: analytics });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getStudentAnalytics = getStudentAnalytics;
-
-const getMySubmissions = async (req, res, next) => {
-    try {
-        const submissions = await assignmentService.getMySubmissions(req.user.id);
-        res.json({ success: true, data: submissions });
-    } catch (error) {
-        next(error);
-    }
-}; exports.getMySubmissions = getMySubmissions;
