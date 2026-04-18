@@ -478,9 +478,9 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-slate-50 relative">
+    <div className="flex flex-row min-h-screen bg-slate-50 relative min-w-[1280px]">
       {/* Sidebar Navigation */}
-      <div className="w-full md:w-64 md:sticky md:top-0 h-screen border-b md:border-b-0 md:border-r border-gray-200 bg-white flex flex-col shrink-0 overflow-y-auto">
+      <div className="w-64 sticky top-0 h-screen border-r border-gray-200 bg-white flex flex-col shrink-0 overflow-y-auto">
         {/* Tutorial Mode Toggle (Enabled ONLY if Approved) */}
         {currentSubmission?.tutorialApproved && (
           <div className="p-4 border-b border-gray-200 bg-indigo-50/30 ">
@@ -508,7 +508,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
           </h1>
         </div>
 
-        <nav className="flex-1 p-2 flex overflow-x-auto md:flex-col md:space-y-1 gap-2 md:gap-0">
+        <nav className="flex-1 p-2 flex flex-col space-y-1">
           {sections.map((section) => (
             <button
               key={section.id}
@@ -628,7 +628,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         {/* Assignment Header (Student Only) */}
         {isStudentWork && model && (
           <div className="bg-white border-b border-gray-100 flex flex-col">
-            <div className="px-4 sm:px-8 py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="px-8 py-6 flex flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl shadow-sm">
                   📝
@@ -642,9 +642,9 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                 </div>
               </div>
 
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 sm:gap-6 w-full sm:w-auto">
+              <div className="flex flex-nowrap items-center gap-6 w-auto">
                 {assignmentDetails?.deadline && (
-                  <div className="text-right hidden sm:block">
+                  <div className="text-right block">
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Deadline</p>
                     <p className="text-xs font-bold text-red-500">
                       {new Date(assignmentDetails.deadline).toLocaleString()}
@@ -657,8 +657,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
             {/* Expandable Brief Content always visible now */}
             <div className="px-8 pb-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-50 ">
-                  <div className="md:col-span-2 space-y-4">
+              <div className="grid grid-cols-3 gap-6 pt-6 border-t border-gray-50 ">
+                  <div className="col-span-2 space-y-4">
                     {/* Instructions/Text Content */}
                     <div>
                       <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
@@ -734,7 +734,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
           </div>
         )}
 
-        <div className="flex-1 flex flex-col gap-16 px-4 py-12 sm:px-12 bg-slate-50">
+        <div className="flex-1 flex flex-col gap-16 px-12 py-12 bg-slate-50">
           
           {/* Section 1: Use Case Diagram */}
           <div id="section-usecase" className={`flex flex-col ${isTutorialMode && !sections[0].isActive ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
@@ -748,11 +748,11 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                   <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
                 </div>
               ) : (
-                <div className="flex flex-col xl:flex-row gap-6">
+                <div className="flex flex-row gap-6">
                   <div className="flex-1 min-w-0 h-[700px] border border-gray-200 rounded-[2.5rem] overflow-hidden bg-white shadow-xl shadow-gray-100/50">
                     <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
                   </div>
-                  <div className="w-full xl:w-96 shrink-0 flex flex-col h-[700px] rounded-[2.5rem] overflow-hidden border border-gray-200 shadow-xl shadow-gray-100/50 bg-white">
+                  <div className="w-96 shrink-0 flex flex-col h-[700px] rounded-[2.5rem] overflow-hidden border border-gray-200 shadow-xl shadow-gray-100/50 bg-white">
                     <CheckingModePanel
                       activeSection="usecase"
                       reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
