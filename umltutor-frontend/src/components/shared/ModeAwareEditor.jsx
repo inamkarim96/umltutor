@@ -478,9 +478,9 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-white ">
+    <div className="flex flex-col md:flex-row min-h-screen bg-slate-50 relative">
       {/* Sidebar Navigation */}
-      <div className="w-full md:w-64 max-h-48 md:max-h-none border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto">
+      <div className="w-full md:w-64 md:sticky md:top-0 h-screen border-b md:border-b-0 md:border-r border-gray-200 bg-white flex flex-col shrink-0 overflow-y-auto">
         {/* Tutorial Mode Toggle (Enabled ONLY if Approved) */}
         {currentSubmission?.tutorialApproved && (
           <div className="p-4 border-b border-gray-200 bg-indigo-50/30 ">
@@ -624,11 +624,11 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full border-l border-gray-100 ">
+      <div className="flex-1 flex flex-col min-w-0 border-l border-gray-100 pb-32">
         {/* Assignment Header (Student Only) */}
         {isStudentWork && model && (
-          <div className="bg-white border-b border-gray-100 transition-all flex flex-col">
-            <div className="px-4 sm:px-8 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="bg-white border-b border-gray-100 flex flex-col">
+            <div className="px-4 sm:px-8 py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl shadow-sm">
                   📝
@@ -651,28 +651,18 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                     </p>
                   </div>
                 )}
-                <button
-                  onClick={() => setIsInstructionsOpen(!isInstructionsOpen)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${isInstructionsOpen
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
-                    : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                    }`}
-                >
-                  <BookOpen size={16} />
-                  {isInstructionsOpen ? 'Hide Brief' : 'View Brief'}
-                </button>
+                {/* Hide Brief button removed to adhere to natural scrolling / static layout removal */}
               </div>
             </div>
 
-            {/* Expandable Brief Content */}
-            {isInstructionsOpen && (
-              <div className="px-8 pb-6 animate-in slide-in-from-top-2 duration-300">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-50 ">
+            {/* Expandable Brief Content always visible now */}
+            <div className="px-8 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-50 ">
                   <div className="md:col-span-2 space-y-4">
                     {/* Instructions/Text Content */}
                     <div>
                       <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <FileText size={12} /> Assignment Brief & Instructions
+                        <FileText size={12} /> Assignment Instructions
                       </h3>
                       <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-700 leading-relaxed max-h-60 overflow-y-auto font-medium">
                         {model.textContent ? (
@@ -739,106 +729,83 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
-        <div className="flex-1 relative overflow-hidden h-full">
-          <div className="h-full flex flex-col bg-slate-50 ">
-            <div className={`flex-1 relative overflow-auto transition-all duration-700 ${isTutorialMode && !sections.find(s => s.id === activeSection)?.isActive ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
-              {renderContent()}
-              {isTutorialMode && !sections.find(s => s.id === activeSection)?.isActive ? (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-50/10 backdrop-blur-[1px]">
-                  <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 flex flex-col items-center gap-3">
-                    <Lock size={48} className="text-gray-300" />
-                    <p className="font-black text-gray-800 ">Step Locked</p>
-                    <p className="text-xs text-gray-500 text-center max-w-[200px]">
-                      {sections.find(s => s.id === activeSection)?.isLocked ? "Please complete the previous step first." : "This step is already completed."}
-                    </p>
+        <div className="flex-1 flex flex-col gap-16 px-4 py-12 sm:px-12 bg-slate-50">
+          
+          {/* Section 1: Use Case Diagram */}
+          <div id="section-usecase" className={`flex flex-col ${isTutorialMode && !sections[0].isActive ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
+            <h3 className="text-2xl font-black text-indigo-600 mb-6 flex items-center gap-3">
+              <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">1</span>
+              Use Case Diagram
+            </h3>
+            <div className="max-w-[1300px] w-full mx-auto">
+              {!isCheckingActive ? (
+                <div className="h-[700px] border border-gray-200 rounded-[2.5rem] overflow-hidden bg-white shadow-xl shadow-gray-100/50">
+                  <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
+                </div>
+              ) : (
+                <div className="flex flex-col xl:flex-row gap-6">
+                  <div className="flex-1 min-w-0 h-[700px] border border-gray-200 rounded-[2.5rem] overflow-hidden bg-white shadow-xl shadow-gray-100/50">
+                    <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
+                  </div>
+                  <div className="w-full xl:w-96 shrink-0 flex flex-col h-[700px] rounded-[2.5rem] overflow-hidden border border-gray-200 shadow-xl shadow-gray-100/50 bg-white">
+                    <CheckingModePanel
+                      activeSection="usecase"
+                      reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+                      onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
+                    />
                   </div>
                 </div>
-              ) : null}
-            </div>
-            {/* Professional Navigation Bar */}
-            <div className="p-3 sm:p-6 bg-white border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] bg-slate-50/50 backdrop-blur-sm overflow-x-auto">
-              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
-                <button
-                  onClick={handleBack}
-                  className="px-8 py-3 bg-[#6B7280] hover:bg-gray-600 active:bg-gray-700 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-sm min-w-[140px] justify-center"
-                >
-                  <ArrowLeft size={20} /> Back
-                </button>
-
-                {/* Save button only in Development Mode before submission */}
-                {!isTutorialActive && !isSubmitted && (!isStudentWork || (!currentSubmission?.status || !['submitted', 'graded', 'reviewed', 'completed'].includes(currentSubmission?.status?.toLowerCase()))) && (
-                  <button
-                    onClick={handleSave}
-                    disabled={isSubmitting || isSaving}
-                    className="px-8 py-3 bg-[#4F46E5] hover:bg-indigo-700 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-sm min-w-[140px] justify-center"
-                  >
-                    {isSubmitting || isSaving ? 'Saving...' : 'Save'}
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-start">
-                {/* Student Workflow Controls - Show Submit if it's not submitted/graded and NOT in tutorial mode */}
-                {!isTutorialActive && isStudentWork && (!currentSubmission?.status || !['submitted', 'graded', 'reviewed', 'completed'].includes(currentSubmission?.status?.toLowerCase())) && !currentSubmission?.tutorialApproved && (
-                  <div className="flex items-center gap-2">
-
-                  </div>
-                )}
-
-                {/* Tutorial Mode Status / Request Toggle */}
-                {isTutorialActive && (
-                  <div className="px-6 py-3 bg-green-50 text-green-700 rounded-xl font-bold flex items-center gap-2 border border-green-200">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    Tutorial Mode Active
-                  </div>
-                )}
-
-                {!isTutorialActive && currentSubmission?.status === 'submitted' && !currentSubmission?.tutorialApproved && (
-                  <button
-                    onClick={handleRequestTutorial}
-                    disabled={currentSubmission?.tutorialRequested}
-                    className={`px-8 py-3 ${currentSubmission?.tutorialRequested ? 'bg-amber-500 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center shadow-sm min-w-[200px]`}
-                  >
-                    {currentSubmission?.tutorialRequested ? 'Waiting for Approval...' : 'Unlock Tutorial Mode'}
-                  </button>
-                )}
-              </div>
-
-
-              {/* Show 'Finish' (Tutorial) or 'Submit/Process' (Development) */}
-              {isTutorialActive ? (
-                <button
-                  onClick={handleProcess}
-                  className="px-12 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 min-w-[180px] justify-center"
-                >
-                  {activeSection === 'ssd' ? <CheckCircle size={20} /> : <ArrowRight size={20} />}
-                  {activeSection === 'ssd' ? "Finish Tutorial" : `Process Step ${activeSection === 'usecase' ? '1' : '2'}`}
-                </button>
-              ) : (
-                !isSubmitted && (
-                  <button
-                    onClick={handleProcess}
-                    disabled={(activeSection === 'ssd' && isStudentWork && isReadOnly) || isGraded}
-                    className={`px-4 sm:px-12 py-3 sm:py-4 ${activeSection === 'ssd' && isStudentWork ? (isReadOnly || isGraded ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200') : 'bg-[#2563EB] hover:bg-blue-700 shadow-blue-200'} text-white font-black rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 min-w-[120px] sm:min-w-[180px] justify-center mt-2 sm:mt-0 w-full sm:w-auto`}
-                  >
-                    {activeSection === 'ssd' && isStudentWork ? (
-                      <>
-                        <CheckCircle size={20} />
-                        {isReadOnly ? 'Editing Locked' : 'Submit Assignment'}
-                      </>
-                    ) : activeSection === 'ssd' ? "Finish" : "Process"}
-                    <ArrowRight size={20} />
-                  </button>
-                )
               )}
             </div>
           </div>
+
+          {/* Section 2: Use Case Descriptions */}
+          <div id="section-description" className={`flex flex-col ${isTutorialMode && sections[1].isLocked ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
+            <h3 className="text-2xl font-black text-indigo-600 mb-6 flex items-center gap-3">
+              <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">2</span>
+              Use Case Descriptions
+            </h3>
+            <div className="max-w-[1300px] w-full mx-auto">
+              <UseCaseDescriptionEditor
+                  key={effectivelyReadOnly ? 'read-only' : 'editable'}
+                  assignmentId={model.id}
+                  isReadOnly={effectivelyReadOnly}
+                  isCheckingActive={isCheckingActive}
+                  reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+              />
+            </div>
+            {isTutorialMode && sections[1].isLocked && (
+               <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the Use Case Diagram step first to unlock this section.</div>
+            )}
+          </div>
+
+          {/* Section 3: System Sequence Diagrams */}
+          <div id="section-ssd" className={`flex flex-col ${isTutorialMode && sections[2].isLocked ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
+             <h3 className="text-2xl font-black text-indigo-600 mb-6 flex items-center gap-3">
+              <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">3</span>
+              System Sequence Diagrams
+            </h3>
+            <div className="max-w-[1300px] w-full mx-auto">
+              <SSDDiagramEditor
+                  key={effectivelyReadOnly ? 'read-only' : 'editable'}
+                  assignmentId={model.id}
+                  isReadOnly={effectivelyReadOnly}
+                  isCheckingActive={isCheckingActive}
+                  reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+                  onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
+                  modelOverride={model}
+              />
+            </div>
+            {isTutorialMode && sections[2].isLocked && (
+               <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the Use Case Descriptions step first to unlock this section.</div>
+            )}
+          </div>
+            {/* Bottom floating navigation removed per user request */}
         </div>
       </div>
       <SubmitAssignmentModal

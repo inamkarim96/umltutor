@@ -129,7 +129,7 @@ const WorkspacePage = ({ mode }) => {
     }, [assignmentObj, submissions, currentSubmission, assignmentId, titleSlug]);
 
     return (
-        <div className="h-screen flex flex-col bg-white">
+        <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
             {/* Mode Banner */}
             <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-center flex items-center justify-center gap-4 shadow-sm relative z-50 ${currentMode === 'tutorial'
                 ? 'bg-emerald-600 text-white'
@@ -150,7 +150,7 @@ const WorkspacePage = ({ mode }) => {
             )}
 
             {/* Main Editor Area */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 w-full bg-transparent">
                 <ModeAwareEditor isReadOnly={isReadOnly} />
             </div>
         </div>

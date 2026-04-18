@@ -1208,32 +1208,33 @@ export const SSDDiagramEditor = ({
                             key={`${id}-${index}`}
                             data-testid="ssd-card"
                             data-usecase-id={id}
-                            className="relative bg-white rounded-[32px] border-2 border-slate-100 p-8 mb-16 shadow-sm transition-all hover:border-indigo-100"
+                            className={`flex flex-col xl:flex-row w-full gap-6 lg:gap-8 mb-16 relative ${isCheckingActive ? 'items-start' : ''}`}
                         >
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="flex items-center gap-3">
-                                    <span className="bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-black shadow-md flex items-center justify-center min-w-[3rem]">
-                                        {displayLabel}
-                                    </span>
-                                    <div className="h-px w-24 bg-slate-100"></div>
-                                    <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                                        System Sequence Diagram Section
-                                    </span>
+                            {/* Left: SSD Diagram Card */}
+                            <div className="flex-1 min-w-0 bg-white rounded-[2.5rem] border border-gray-200 p-8 shadow-xl shadow-gray-100/50 transition-all">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex items-center gap-3">
+                                        <span className="bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-black shadow-md flex items-center justify-center min-w-[3rem]">
+                                            {displayLabel}
+                                        </span>
+                                        <div className="h-px w-24 bg-slate-100"></div>
+                                        <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                                            System Sequence Diagram Section
+                                        </span>
+                                    </div>
+
+                                    {!isReadOnly && (
+                                        <button
+                                            onClick={() => handleRemoveBlock(index)}
+                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
+                                            title="Remove Section"
+                                        >
+                                            <X size={14} /> Remove
+                                        </button>
+                                    )}
                                 </div>
 
-                                {!isReadOnly && (
-                                    <button
-                                        onClick={() => handleRemoveBlock(index)}
-                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
-                                        title="Remove Section"
-                                    >
-                                        <X size={14} /> Remove
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className={`flex flex-col lg:flex-row w-full gap-6 lg:gap-8 ${isCheckingActive ? 'items-start' : ''}`}>
-                                <div className={`w-full lg:w-[65%] lg:flex-none min-w-0 overflow-hidden h-[650px] transition-all duration-500`}>
+                                <div className="w-full overflow-hidden h-[650px] bg-slate-50 border border-slate-100 rounded-[2rem]">
                                     <ReactFlowProvider>
                                         <SSDDiagramEditorInner
                                             model={model}
@@ -1248,47 +1249,27 @@ export const SSDDiagramEditor = ({
                                         />
                                     </ReactFlowProvider>
                                 </div>
-
-                                {isCheckingActive && (
-                                    <div className="min-w-[300px] w-full lg:w-[35%] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-[650px]">
-                                        <div className="sticky top-6 flex flex-col h-full w-full">
-                                            <div className="mb-4 flex items-center gap-2 flex-shrink-0">
-                                                <div className="h-px flex-1 bg-slate-100"></div>
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                                                    <Play size={12} fill="currentColor" /> Independent Runner
-                                                </span>
-                                                <div className="h-px flex-1 bg-slate-100"></div>
-                                            </div>
-                                            <div className="flex-1 overflow-y-auto w-full rounded-[24px] border border-slate-200 shadow-sm bg-slate-50/50">
-                                                <CheckingModePanel
-                                                    activeSection="ssd"
-                                                    label={displayLabel}
-                                                    useCaseId={id}
-                                                    modelOverride={model}
-                                                    reportOverride={reportOverride}
-                                                    onNavigate={() => { }}
-                                                    onRunChecker={onRunChecker}
-                                                    onLocalReport={(report, tid) => {
-                                                        if (onLocalReport) onLocalReport(report, tid || id);
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
-                            {!isReadOnly && (
-                                <button
-                                    onClick={() => handleRemoveBlock(index)}
-                                    className="absolute top-4 right-4 z-40 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1 text-xs font-bold bg-white/80 backdrop-blur-sm shadow-sm"
-                                    title="Remove Section"
-                                >
-                                    <X size={14} />
-                                    Remove
-                                </button>
+                            {/* Right: Checking Report Card */}
+                            {isCheckingActive && (
+                                <div className="w-full xl:w-96 flex-shrink-0 flex flex-col h-auto animate-in slide-in-from-right-4 duration-500 bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden shadow-xl shadow-gray-100/50">
+                                    <CheckingModePanel
+                                        activeSection="ssd"
+                                        label={displayLabel}
+                                        useCaseId={id}
+                                        modelOverride={model}
+                                        reportOverride={reportOverride}
+                                        onNavigate={() => { }}
+                                        onRunChecker={onRunChecker}
+                                        onLocalReport={(report, tid) => {
+                                            if (onLocalReport) onLocalReport(report, tid || id);
+                                        }}
+                                    />
+                                </div>
                             )}
                         </div>
+
                     );
                 })}
 

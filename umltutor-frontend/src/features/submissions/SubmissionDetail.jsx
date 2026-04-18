@@ -288,16 +288,7 @@ const SubmissionDetail = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsInstructionsOpen(!isInstructionsOpen)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all ${isInstructionsOpen
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
-                  : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                  }`}
-              >
-                <BookOpen size={18} />
-                {isInstructionsOpen ? 'Hide Brief' : 'View Brief'}
-              </button>
+              {/* 'Hide Brief' button removed per user request */}
 
               {/* Score Display For Student/Teacher */}
               <div className="bg-indigo-50 px-6 py-4 rounded-3xl border border-indigo-100/50">
@@ -311,14 +302,13 @@ const SubmissionDetail = () => {
             </div>
           </div>
 
-          {/* Expandable Brief Content (Synced with Workspace logic) */}
-          {isInstructionsOpen && (
-            <div className="mt-8 pt-8 border-t border-gray-50 animate-in slide-in-from-top-2 duration-300">
+          {/* Static Expanded Brief Content */}
+          <div className="mt-8 pt-8 border-t border-gray-50">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2 space-y-4">
                   <div>
                     <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <FileText size={12} /> Assignment Brief & Instructions
+                      <FileText size={12} /> Assignment Instructions
                     </h3>
                     <div className="bg-gray-50 rounded-[2rem] p-8 text-sm text-gray-700 leading-relaxed max-h-80 overflow-y-auto font-medium border border-gray-100">
                       {submission.assignment?.textContent ? (
@@ -384,9 +374,8 @@ const SubmissionDetail = () => {
                     </div>
                   </div>
                 </div>
-              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Teacher Feedback & Remarks */}

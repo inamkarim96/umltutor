@@ -272,9 +272,8 @@ const AssignmentReview = () => {
             )}
 
             {/* Main Review Area */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Left: Student Work & Reports */}
-                <div className="flex-1 bg-gray-100 p-8 overflow-y-auto space-y-8">
+            <div className="flex-1 bg-gray-100 p-8 flex flex-col space-y-8 items-center">
+                <div className="max-w-5xl w-full space-y-8">
                     {/* Model Snapshot View */}
                     <div className="bg-white rounded-3xl shadow-xl border border-gray-200 flex flex-col min-h-[500px]">
                         <div className="p-4 border-b border-gray-50 flex justify-between items-center">
@@ -362,51 +361,51 @@ const AssignmentReview = () => {
                             )}
                         </div>
                     )}
-                </div>
 
-                {/* Right: Grading Panel */}
-                <div className="w-96 bg-white border-l border-gray-100 p-8 space-y-8 flex flex-col">
-                    <div className="flex-1 space-y-8">
-                        <div>
-                            <h3 className="text-lg font-black text-gray-900 mb-6">Grading</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Final Score (Points / 100)</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={grade}
-                                        onChange={e => setGrade(e.target.value)}
-                                        placeholder="e.g. 85"
-                                        className="w-full px-4 py-4 bg-gray-50 border-none rounded-2xl text-2xl font-black text-indigo-600 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-sans"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Instructor Remarks</label>
-                                    <textarea
-                                        value={feedback}
-                                        onChange={e => setFeedback(e.target.value)}
-                                        className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm h-64 font-medium"
-                                        placeholder="Write constructive feedback for the student..."
-                                    />
+                    {/* Grading Panel inside normal scroll flow */}
+                    <div className="bg-white rounded-3xl border border-gray-100 p-8 space-y-8 flex flex-col shadow-sm">
+                        <div className="flex-1 space-y-8">
+                            <div>
+                                <h3 className="text-lg font-black text-gray-900 mb-6">Grading & Remarks</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Final Score (Points / 100)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={grade}
+                                            onChange={e => setGrade(e.target.value)}
+                                            placeholder="e.g. 85"
+                                            className="w-full px-4 py-4 bg-gray-50 border-none rounded-2xl text-2xl font-black text-indigo-600 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-sans"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Instructor Remarks</label>
+                                        <textarea
+                                            value={feedback}
+                                            onChange={e => setFeedback(e.target.value)}
+                                            className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm h-64 font-medium"
+                                            placeholder="Write constructive feedback for the student..."
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="pt-8 border-t border-gray-50 space-y-4 text-center mt-auto">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quick Grade</p>
-                        <div className="flex justify-center gap-2">
-                            {['A', 'B', 'C', 'D', 'F'].map(lt => (
-                                <button
-                                    key={lt}
-                                    onClick={() => setGrade(lt)}
-                                    className="w-10 h-10 rounded-lg bg-gray-50 text-gray-400 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                                >
-                                    {lt}
-                                </button>
-                            ))}
+                        <div className="pt-8 border-t border-gray-50 space-y-4">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quick Grade</p>
+                            <div className="flex gap-2">
+                                {['A', 'B', 'C', 'D', 'F'].map(lt => (
+                                    <button
+                                        key={lt}
+                                        onClick={() => setGrade(lt)}
+                                        className="w-10 h-10 rounded-lg bg-gray-50 text-gray-400 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                                    >
+                                        {lt}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -35,7 +35,8 @@ import {
     X,
     Upload,
     Eye,
-    Download
+    Download,
+    Database
 } from 'lucide-react';
 import { SubmitAssignment } from '../features/classroom';
 import { CreateAssignmentModal } from '../features/teacher';
@@ -127,21 +128,25 @@ const AssignmentDetails = () => {
     }, [dispatch, assignments]);
 
     useEffect(() => {
-        if (id && (!assignment || !assignment.instructions)) {
+        if (id) {
             dispatch(fetchAssignmentById({ id, role }));
         }
-    }, [id, role, dispatch, assignment]);
+    }, [id, role, dispatch]);
 
     useEffect(() => {
-        if (role === 'TEACHER' && assignment) {
+        if (role === 'TEACHER' && id) {
             dispatch(fetchAssignmentSubmissions(id));
-            if (assignment.classId) {
-                dispatch(fetchClassStudents(assignment.classId));
-            }
         } else if (role === 'STUDENT' && id) {
             dispatch(fetchSubmissionStatus(id));
         }
-    }, [id, role, assignment, dispatch]);
+    }, [id, role, dispatch]);
+
+    const classId = assignment?.classId;
+    useEffect(() => {
+        if (role === 'TEACHER' && classId) {
+            dispatch(fetchClassStudents(classId));
+        }
+    }, [classId, role, dispatch]);
 
     if (!assignment) {
         return (
@@ -197,23 +202,19 @@ const AssignmentDetails = () => {
                             <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-start relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16"></div>
 
-                                <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-3xl flex items-center justify-center text-3xl shadow-inner shrink-0 relative z-10">
-                                    📝
-                                </div>
-
-                                <div className="flex-1 space-y-4 relative z-10">
-                                    <div className="flex justify-between items-start">
-                                        <div className="space-y-3">
+                                <div className="flex-1 space-y-6 relative z-10 w-full">
+                                    <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                                        <div className="space-y-3 flex-1">
                                             <div className="flex flex-wrap items-center gap-3">
                                                 <span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-indigo-100">Assignment</span>
                                                 {myOfficialSubmission ? (
-                                                    <span className="px-3 py-1 bg-emerald-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-emerald-100 uppercase">
+                                                    <span className="px-3 py-1 bg-emerald-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-emerald-100">
                                                         {myOfficialSubmission.status?.toLowerCase() === 'graded' ? 'Graded' : 'Submitted'}
                                                     </span>
                                                 ) : (
                                                     <>
                                                         {isOverdue && <span className="px-3 py-1 bg-red-100 text-red-600 text-[10px] font-black rounded-full uppercase tracking-widest">Closed</span>}
-                                                        {!isOverdue && <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black rounded-full uppercase tracking-widest uppercase">In Progress</span>}
+                                                        {!isOverdue && <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black rounded-full uppercase tracking-widest">In Progress</span>}
                                                     </>
                                                 )}
                                                 {targetClass && (
@@ -223,24 +224,21 @@ const AssignmentDetails = () => {
                                                 )}
                                             </div>
 
-                                            <div className="flex items-center gap-4">
-                                                <h1 className="text-4xl font-black text-gray-900 leading-tight">{assignment.title}</h1>
-                                                {role === 'TEACHER' && (
-                                                    <button
-                                                        onClick={handleEditAssignment}
-                                                        className="w-10 h-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all shadow-sm border border-indigo-100"
-                                                        title="Edit Assignment"
-                                                    >
-                                                        <Edit size={18} />
-                                                    </button>
-                                                )}
-                                            </div>
+                                            <h1 className="text-4xl font-black text-gray-900 leading-tight">{assignment.title}</h1>
+                                        </div>
 
-                                            <div className="flex flex-wrap items-center gap-6 pt-2">
-                                                <div className="flex items-center gap-2 text-gray-500">
-                                                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-indigo-500">
-                                                        <Calendar size={14} />
-                                                    </div>
+                                        <div className="flex flex-col items-end gap-5">
+                                            {role === 'TEACHER' && (
+                                                <button
+                                                    onClick={handleEditAssignment}
+                                                    className="flex items-center gap-2 px-5 py-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all shadow-sm border border-indigo-100 font-bold text-xs"
+                                                    title="Edit Assignment"
+                                                >
+                                                    <Edit size={16} /> Edit
+                                                </button>
+                                            )}
+                                            <div className="flex flex-wrap items-center gap-6 bg-white border border-gray-100 rounded-2xl px-6 py-3 shadow-sm">
+                                                <div className="flex items-center gap-3 text-gray-500">
                                                     <div>
                                                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Due Date</p>
                                                         <p className="text-sm font-bold text-gray-700">
@@ -254,10 +252,9 @@ const AssignmentDetails = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-2 text-gray-500">
-                                                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-indigo-500">
-                                                        <Clock size={14} />
-                                                    </div>
+                                                <div className="w-px h-8 bg-gray-200"></div>
+
+                                                <div className="flex items-center gap-3 text-gray-500">
                                                     <div>
                                                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Due Time</p>
                                                         <p className="text-sm font-bold text-gray-700">
@@ -268,6 +265,79 @@ const AssignmentDetails = () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Assignment Instructions */}
+                                    <div className="pt-6 border-t border-gray-50">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                            <div className="md:col-span-2 space-y-4">
+                                                <div>
+                                                    <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                                        Assignment Instructions
+                                                    </h3>
+                                                    <div className="bg-gray-50 rounded-[2rem] p-8 text-sm text-gray-700 leading-relaxed max-h-80 overflow-y-auto font-medium border border-gray-100">
+                                                        {assignment?.textContent ? (
+                                                            <div className="whitespace-pre-wrap">{assignment.textContent}</div>
+                                                        ) : assignment?.instructions ? (
+                                                            <div className="whitespace-pre-wrap">{assignment.instructions}</div>
+                                                        ) : (
+                                                            <p className="italic text-gray-400">No detailed instructions available.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Reference Materials */}
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                                        Reference Materials
+                                                    </h3>
+                                                    <div className="space-y-2">
+                                                        {assignment?.assignmentFileUrl ? (
+                                                            <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl shadow-sm">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                                                                        <FileText size={16} />
+                                                                    </div>
+                                                                    <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]" title={assignment.assignmentFileName}>
+                                                                        {assignment.assignmentFileName || 'Resource File'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => setPreviewFile({
+                                                                            url: assignment.assignmentFileUrl,
+                                                                            name: assignment.assignmentFileName || 'Resource File',
+                                                                            type: assignment.assignmentFileType
+                                                                        })}
+                                                                        className="p-2 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors"
+                                                                        title="View Resource"
+                                                                    >
+                                                                        <Eye size={16} />
+                                                                    </button>
+                                                                    <a
+                                                                        href={resolveResourceUrl(assignment.assignmentFileUrl)}
+                                                                        download={assignment.assignmentFileName || 'Resource'}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="p-2 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                                                                        title="Download Resource"
+                                                                    >
+                                                                        <Download size={16} />
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No extra files</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
 
@@ -320,7 +390,7 @@ const AssignmentDetails = () => {
                                                     <tbody className="divide-y divide-gray-50">
                                                         {assignmentSubmissions
                                                             .filter(s => s.status && s.status.toLowerCase() !== 'pending')
-                                                            .map((sub) => {
+                                                            .map((sub, index) => {
                                                                 const student = studentsMap[sub.studentId];
                                                                 const displayName = sub.studentName ||
                                                                     student?.name ||
@@ -328,7 +398,7 @@ const AssignmentDetails = () => {
                                                                     'Unknown Student';
                                                                 const displayEmail = sub.studentEmail || student?.email || '';
                                                                 return (
-                                                                    <tr key={sub.id} className="hover:bg-gray-50/80 transition-all group">
+                                                                    <tr key={sub.submissionId || sub.id || `sub-${index}`} className="hover:bg-gray-50/80 transition-all group">
                                                                         <td className="px-8 py-5">
                                                                             <div className="flex items-center gap-4">
                                                                                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-full flex items-center justify-center font-black text-sm shadow-sm ring-4 ring-indigo-50 group-hover:ring-indigo-100 transition-all">
