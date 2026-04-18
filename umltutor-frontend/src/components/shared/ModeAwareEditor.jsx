@@ -115,12 +115,10 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   const isTutorialActive = currentMode === 'tutorial';
   const isSubmitted = ['submitted', 'graded', 'reviewed', 'completed', 'approved'].includes(currentSubmission?.status?.toLowerCase()) || !!currentSubmission?.fullReport;
   let effectivelyReadOnly = isReadOnly;
-  if (isStudentWork && isSubmitted) {
-    if (isTutorialActive) {
-      effectivelyReadOnly = false; // Override to allow edits strictly in tutorial mode
-    } else {
-      effectivelyReadOnly = true;  // Strictly enforce lock in development mode after submission
-    }
+  if (isTutorialActive) {
+    effectivelyReadOnly = false; // Tutorial mode is always editable for active tutorials
+  } else if (isStudentWork && isSubmitted) {
+    effectivelyReadOnly = true;  // Strictly enforce lock in development mode after submission
   }
 
   useEffect(() => {
