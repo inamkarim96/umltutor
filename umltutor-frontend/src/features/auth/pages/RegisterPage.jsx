@@ -70,35 +70,35 @@ const RegisterPage = () => {
                 data.role
             );
             // Redirect to login with success message
-            navigate('/login', { 
-                state: { 
+            navigate('/login', {
+                state: {
                     message: 'Account created successfully! Please check your email inbox to verify your account before logging in.',
                     email: data.email
-                } 
+                }
             });
         } catch (error) {
-            const isVerificationError = 
-                error?.needsEmailVerification || 
+            const isVerificationError =
+                error?.needsEmailVerification ||
                 error?.raw?.needsEmailVerification ||
                 (error?.message && error.message.toLowerCase().includes('verification'));
 
             if (isVerificationError) {
                 // Even if there's a verification error, registration is complete,
                 // so we still navigate to login as requested by the user.
-                navigate('/login', { 
-                    state: { 
+                navigate('/login', {
+                    state: {
                         message: 'Registration complete! Please check your email to verify your account before logging in.',
                         email: data.email
-                    } 
+                    }
                 });
                 return;
             }
 
             let finalMessage = 'An unexpected error occurred. Please try again.';
-            
-            const isEmailConflict = 
-                error.code === 'auth/email-already-in-use' || 
-                error.status === 409 || 
+
+            const isEmailConflict =
+                error.code === 'auth/email-already-in-use' ||
+                error.status === 409 ||
                 error.code === 'DUPLICATE_RESOURCE';
 
             if (isEmailConflict) {
@@ -119,7 +119,7 @@ const RegisterPage = () => {
         <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4 py-12">
             <div className="max-w-xl w-full bg-white p-12 rounded-[2.5rem] border border-gray-100 shadow-2xl transition-all relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                
+
                 <div className="relative z-10">
                     <h2 className="text-center text-4xl font-black text-gray-900 tracking-tight mb-3">Join UML Tutor</h2>
                     <p className="text-center text-sm text-gray-500 font-medium mb-10">
@@ -209,7 +209,7 @@ const RegisterPage = () => {
                                 )}
                             </div>
 
-<div className={authState.needsProfileCompletion ? "hidden" : ""}>
+                            <div className={authState.needsProfileCompletion ? "hidden" : ""}>
                                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Password</label>
                                 <div className="relative mt-1.5">
                                     <input
@@ -267,8 +267,8 @@ const RegisterPage = () => {
                                 type="submit"
                                 disabled={isLoading}
                                 className={`w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white ${isLoading
-                                        ? 'bg-indigo-400 cursor-not-allowed'
-                                        : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                                    ? 'bg-indigo-400 cursor-not-allowed'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
                                     } transition-all duration-200 transform active:scale-95`}
                             >
                                 {isLoading ? (

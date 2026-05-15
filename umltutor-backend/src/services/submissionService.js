@@ -750,6 +750,41 @@ class SubmissionService {
       } : null
     }));
   }
+
+  async requestTutorial(submissionId, studentId) {
+    // Verify ownership
+    const submission = await submissionRepository.findUnique({
+      where: { id: Number(submissionId) }
+    });
+    
+    if (!submission) throw new NotFoundError('Submission');
+    if (submission.studentId !== Number(studentId)) {
+      throw new AuthorizationError('You can only request tutorials for your own submissions.');
+    }
+
+    return await submissionRepository.update(
+      { id: submission.id },
+      { tutorialRequested: true }
+    );
+  }
+
+  async approveTutorial(submissionId, teacherId) {
+    // Verify teacher owns the assignment
+    const submission = await submissionRepository.findUnique({
+      where: { id: Number(submissionId) },
+      include: { assignment: true }
+    });
+
+    if (!submission) throw new NotFoundError('Submission');
+    if (submission.assignment.createdBy !== Number(teacherId)) {
+      throw new AuthorizationError('You can only approve tutorials for assignments you created.');
+    }
+
+    return await submissionRepository.update(
+      { id: submission.id },
+      { tutorialApproved: true, status: 'draft' }
+    );
+  }
 }
 
 exports.default = new SubmissionService();

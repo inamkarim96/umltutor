@@ -1,6 +1,8 @@
 "use strict";Object.defineProperty(exports, "__esModule", {value: true});var _express = require('express');
 var _routeMiddleware = require('../middleware/routeMiddleware');
 var _submissionController = require('../controllers/submissionController');
+var _validationMiddleware = require('../middleware/validationMiddleware');
+var _validators = require('../utils/validators');
 
 const router = _express.Router.call(void 0, );
 
@@ -56,6 +58,7 @@ router.post(
   '/:assignmentId',
   _routeMiddleware.authenticate,
   _routeMiddleware.authorize('STUDENT'),
+  _validationMiddleware.validate({ body: _validators.submissionSchema }),
   _submissionController.submitAssignment
 );
 

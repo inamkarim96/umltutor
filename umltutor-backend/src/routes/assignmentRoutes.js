@@ -6,6 +6,8 @@ var _express = require('express');
 var _routeMiddleware = require('../middleware/routeMiddleware');
 var _fileUpload = require('../utils/fileUpload');
 var _assignmentController = require('../controllers/assignmentController');
+var _validationMiddleware = require('../middleware/validationMiddleware');
+var _validators = require('../utils/validators');
 
 const router = _express.Router.call(void 0, );
 
@@ -18,7 +20,13 @@ router.use(_routeMiddleware.authenticate);
  */
 
 // Create a new assignment
-router.post('/', _routeMiddleware.authorize('TEACHER'), _fileUpload.uploadAssignmentFile.single('assignmentFile'), _assignmentController.createAssignmentDefinition);
+router.post('/', 
+  _routeMiddleware.authorize('TEACHER'), 
+  _fileUpload.uploadAssignmentFile.single('assignmentFile'), 
+  // Note: Validation might need to be partial if fields are in formData
+  _validationMiddleware.validate({ body: _validators.assignmentSchema.partial() }), 
+  _assignmentController.createAssignmentDefinition
+);
 
 // Get all assignment definitions created by the teacher
 router.get('/definitions', _routeMiddleware.authorize('TEACHER'), _assignmentController.getAssignmentDefinitions);

@@ -8,6 +8,7 @@ const classRepository = _interopRequireDefault(require('../repositories/classRep
 const userRepository = _interopRequireDefault(require('../repositories/userRepository')).default;
 const submissionRepository = _interopRequireDefault(require('../repositories/submissionRepository')).default;
 const notificationService = _interopRequireDefault(require('./notificationService')).default;
+const cacheService = _interopRequireDefault(require('../utils/redis')).default;
 
 class AssignmentService {
   _extractArtifactsFromSubmission(submission) {
@@ -65,8 +66,15 @@ class AssignmentService {
   }
 
   async getAssignmentDefinitions(teacherId, status) {
+    const cacheKey = `assignments:teacher:${teacherId}:${status || 'all'}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
     const assignments = await assignmentRepository.findMany({ createdBy: Number(teacherId) }, { class: true, _count: { select: { submissions: true } } }, { createdAt: 'desc' });
-    return assignments.map(a => ({ ...a, deadline: a.dueDate?.toISOString() }));
+    const result = assignments.map(a => ({ ...a, deadline: a.dueDate?.toISOString() }));
+    
+    await cacheService.set(cacheKey, result, 300); // Cache for 5 mins
+    return result;
   }
 
   async getClassAssignments(classId, userId, role) {
@@ -81,10 +89,12 @@ class AssignmentService {
   }
 
   async updateAssignmentDefinition(assignmentId, teacherId, data) {
+    await cacheService.delPrefix(`assignments:teacher:${teacherId}`);
     return await assignmentRepository.update({ id: Number(assignmentId), createdBy: Number(teacherId) }, data);
   }
 
   async deleteAssignmentDefinition(assignmentId, teacherId) {
+    await cacheService.delPrefix(`assignments:teacher:${teacherId}`);
     await assignmentRepository.delete({ id: Number(assignmentId), createdBy: Number(teacherId) });
   }
 

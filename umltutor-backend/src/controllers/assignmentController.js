@@ -13,7 +13,9 @@ const createAssignmentDefinition = async (req, res, next) => {
             return res.status(400).json({ success: false, error: { message: 'Missing required fields' } });
         }
         const textContent = req.body.textContent || req.body.contentText || null;
+        let cdnUrl = req.file ? await fileUpload.uploadToCDN(req.file, 'assignments') : null;
         let fileInfo = req.file ? fileUpload.getFileInfo(req.file) : null;
+
         const assignmentData = {
             ...req.body,
             classId: req.params.classId ? Number(req.params.classId) : (req.body.classId ? Number(req.body.classId) : null),
@@ -21,10 +23,10 @@ const createAssignmentDefinition = async (req, res, next) => {
             releaseDate: new Date(releaseDate),
             dueDate: new Date(finalDueDate),
             textContent: assignmentType === 'TEXT' ? textContent : null,
-            ...(fileInfo && {
-                assignmentFileUrl: fileInfo.url,
-                assignmentFileName: fileInfo.originalName,
-                assignmentFileType: fileInfo.type
+            ...(req.file && {
+                assignmentFileUrl: cdnUrl,
+                assignmentFileName: req.file.originalname,
+                assignmentFileType: fileInfo?.type
             })
         };
         const assignment = await assignmentService.createAssignmentDefinition(assignmentData);
@@ -90,9 +92,10 @@ const updateAssignmentDefinition = async (req, res, next) => {
         if (updateData.classId !== undefined) updateData.classId = Number(updateData.classId);
 
         if (req.file) {
+            const cdnUrl = await fileUpload.uploadToCDN(req.file, 'assignments');
             const fileInfo = fileUpload.getFileInfo(req.file);
-            updateData.assignmentFileUrl = fileInfo.url;
-            updateData.assignmentFileName = fileInfo.originalName;
+            updateData.assignmentFileUrl = cdnUrl;
+            updateData.assignmentFileName = req.file.originalname;
             updateData.assignmentFileType = fileInfo.type;
         }
 

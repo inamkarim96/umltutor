@@ -8,6 +8,7 @@ const userRepository = _interopRequireDefault(require('../repositories/userRepos
 const assignmentRepository = _interopRequireDefault(require('../repositories/assignmentRepository')).default;
 const notificationRepository = _interopRequireDefault(require('../repositories/notificationRepository')).default;
 const prisma = require('../utils/prisma').default;
+const cacheService = _interopRequireDefault(require('../utils/redis')).default;
 
 class ClassService {
   /**
@@ -26,31 +27,46 @@ class ClassService {
     const { name, description, code } = data;
     const classCode = code || this._generateClassCode(name);
 
-    return await classRepository.create({
+    const newClass = await classRepository.create({
       name,
       description,
       code: classCode,
       teacherId: Number(teacherId)
     });
+
+    // Invalidate teacher's class cache
+    await cacheService.del(`classes:teacher:${teacherId}`);
+    return newClass;
   }
 
   /**
    * Get all classes for a teacher
    */
   async getClasses(teacherId) {
-    return await classRepository.findMany({
+    const cacheKey = `classes:teacher:${teacherId}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const classes = await classRepository.findMany({
       where: { teacherId: Number(teacherId) },
       include: {
         _count: { select: { students: true, assignments: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    await cacheService.set(cacheKey, classes, 600); // Cache for 10 mins
+    return classes;
   }
 
   /**
    * Get joined classes for a student
    */
   async getJoinedClasses(studentId) {
+    const cacheKey = `classes:student:${studentId}:joined`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
     const classes = await classRepository.findMany({
       where: {
         students: { some: { studentId: Number(studentId) } }
@@ -62,7 +78,7 @@ class ClassService {
       orderBy: { createdAt: 'desc' }
     });
 
-    return classes.map(c => ({
+    const result = classes.map(c => ({
       id: c.id,
       name: c.name,
       code: c.code,
@@ -73,6 +89,9 @@ class ClassService {
       allowStudentUploads: c.allowStudentUploads,
       createdAt: c.createdAt
     }));
+
+    await cacheService.set(cacheKey, result, 600);
+    return result;
   }
 
   /**
@@ -121,6 +140,10 @@ class ClassService {
         }
       })
     ]);
+
+    // Invalidate caches
+    await cacheService.del(`classes:student:${studentId}:joined`);
+    await cacheService.del(`classes:teacher:${classItem.teacherId}`);
 
     return {
       id: classItem.id,

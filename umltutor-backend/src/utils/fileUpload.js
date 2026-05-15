@@ -9,6 +9,7 @@ const {
   generateUniqueFilename,
   getFileUrl 
 } = require('../config/paths');
+const { uploadToCloudinary } = require('./cloudinary');
 
 // Ensure upload directories exist
 ensureDirectory(DIRS.ASSIGNMENT_UPLOADS);
@@ -81,6 +82,21 @@ const getFileInfo = (file, uploadType = 'assignments') => {
     type: fileType,
   };
 }; exports.getFileInfo = getFileInfo;
+
+/**
+ * Upload a local file to CDN and return its public URL
+ */
+const uploadToCDN = async (file, folder = 'umltutor') => {
+  if (!file) return null;
+  
+  const cdnData = await uploadToCloudinary(file.path, folder);
+  if (cdnData) {
+    return cdnData.url;
+  }
+  
+  // Fallback to local URL if Cloudinary fails/not configured
+  return getFileUrl(file.path, folder);
+}; exports.uploadToCDN = uploadToCDN;
 
 // Helper function to delete file
 const deleteFile = (filePath) => {

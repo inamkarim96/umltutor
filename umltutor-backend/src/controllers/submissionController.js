@@ -207,25 +207,19 @@ const getSubmissionReceipt = async (req, res) => {
 const requestTutorialMode = async (req, res) => {
     try {
         const submissionId = req.params.id;
-        const updated = await require('../repositories/submissionRepository').default.update({
-            where: { id: Number(submissionId) },
-            data: { tutorialRequested: true }
-        });
+        const updated = await _submissionService2.default.requestTutorial(Number(submissionId), req.user.id);
         res.json({ success: true, data: updated });
     } catch (error) {
-        res.status(500).json({ success: false, error: { message: error.message } });
+        res.status(error.status || 500).json({ success: false, error: { message: error.message } });
     }
 }; exports.requestTutorialMode = requestTutorialMode;
 
 const approveTutorialMode = async (req, res) => {
     try {
         const submissionId = req.params.id;
-        const updated = await require('../repositories/submissionRepository').default.update({
-            where: { id: Number(submissionId) },
-            data: { tutorialApproved: true, status: 'draft' }
-        });
+        const updated = await _submissionService2.default.approveTutorial(Number(submissionId), req.user.id);
         res.json({ success: true, data: updated });
     } catch (error) {
-        res.status(500).json({ success: false, error: { message: error.message } });
+        res.status(error.status || 500).json({ success: false, error: { message: error.message } });
     }
 }; exports.approveTutorialMode = approveTutorialMode;

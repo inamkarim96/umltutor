@@ -5,10 +5,10 @@
  * Rate limiting middleware for API protection
  */
 
-// Default rate limiter (increased for development to prevent loops from blocking access)
- const apiLimiter = _expressratelimit2.default.call(void 0, {
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100000, // Significantly increased for local/dev environments to prevent loops from blocking access
+// Default rate limiter
+const apiLimiter = _expressratelimit2.default.call(void 0, {
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // Default 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || (process.env.NODE_ENV === 'production' ? 100 : 1000), 
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again later.'
@@ -18,11 +18,11 @@
   validate: { trustProxy: false },
 }); exports.apiLimiter = apiLimiter;
 
-// Strict rate limiter for authentication routes (login/register/profile)
- const authLimiter = _expressratelimit2.default.call(void 0, {
+// Strict rate limiter for authentication routes
+const authLimiter = _expressratelimit2.default.call(void 0, {
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000, // Increased to avoid blocking rapid profile syncs in dev
-  skipSuccessfulRequests: true,
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX) || (process.env.NODE_ENV === 'production' ? 5 : 50),
+  skipSuccessfulRequests: false, // Don't skip successful requests for auth - prevents brute force
   message: {
     success: false,
     error: 'Too many authentication attempts, please try again later.'
@@ -32,10 +32,10 @@
   validate: { trustProxy: false },
 }); exports.authLimiter = authLimiter;
 
-// Relaxed rate limiter for public endpoints (1000 requests per 15 minutes)
- const publicLimiter = _expressratelimit2.default.call(void 0, {
+// Relaxed rate limiter for public endpoints
+const publicLimiter = _expressratelimit2.default.call(void 0, {
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000,
+  max: parseInt(process.env.PUBLIC_RATE_LIMIT_MAX) || 500,
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again later.'

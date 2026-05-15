@@ -4,14 +4,82 @@ var _zod = require('zod');
 exports.z = _zod;
 
 /**
+ * Generic pagination schema
+ */
+const paginationSchema = _zod.z.object({
+  page: _zod.z.string().optional().transform(v => parseInt(v) || 1),
+  limit: _zod.z.string().optional().transform(v => parseInt(v) || 10),
+}); exports.paginationSchema = paginationSchema;
+
+/**
+ * Class validation schemas
+ */
+const createClassSchema = _zod.z.object({
+  name: _zod.z.string().min(3, 'Class name must be at least 3 characters'),
+  description: _zod.z.string().optional(),
+  section: _zod.z.string().optional(),
+}); exports.createClassSchema = createClassSchema;
+
+const joinClassSchema = _zod.z.object({
+  inviteCode: _zod.z.string().length(8, 'Invite code must be exactly 8 characters'),
+}); exports.joinClassSchema = joinClassSchema;
+
+/**
+ * Assignment validation schemas
+ */
+const assignmentSchema = _zod.z.object({
+  title: _zod.z.string().min(3, 'Title must be at least 3 characters'),
+  textContent: _zod.z.string().optional(),
+  releaseDate: _zod.z.string().datetime().optional(),
+  dueDate: _zod.z.string().datetime(),
+  maxScore: _zod.z.number().min(0).max(100),
+  assignmentType: _zod.z.enum(['TEXT', 'UML', 'HYBRID']),
+  classId: _zod.z.number().int().positive(),
+}); exports.assignmentSchema = assignmentSchema;
+
+/**
  * UML model validation schema
  */
+const umlNodeSchema = _zod.z.object({
+  id: _zod.z.string(),
+  type: _zod.z.string(),
+  data: _zod.z.object({
+    label: _zod.z.string().optional(),
+    name: _zod.z.string().optional(),
+  }).passthrough(),
+  position: _zod.z.object({
+    x: _zod.z.number(),
+    y: _zod.z.number(),
+  }).optional(),
+});
+
+const umlEdgeSchema = _zod.z.object({
+  id: _zod.z.string(),
+  source: _zod.z.string(),
+  target: _zod.z.string(),
+  type: _zod.z.string().optional(),
+  label: _zod.z.string().optional(),
+});
+
 const umlModelSchema = _zod.z.object({
-  id: _zod.z.string().optional(),
-  diagram: _zod.z.any().optional(),
-  descriptions: _zod.z.any().optional(),
-  ssds: _zod.z.any().optional()
+  diagram: _zod.z.object({
+    nodes: _zod.z.array(umlNodeSchema),
+    edges: _zod.z.array(umlEdgeSchema),
+  }).optional(),
+  descriptions: _zod.z.record(_zod.z.any()).optional(),
+  ssds: _zod.z.record(_zod.z.any()).optional(),
 }); exports.umlModelSchema = umlModelSchema;
+
+/**
+ * Submission validation schemas
+ */
+const submissionSchema = _zod.z.object({
+  status: _zod.z.enum(['draft', 'submitted']).optional(),
+  diagramData: umlModelSchema.optional(),
+  useCaseDescription: _zod.z.record(_zod.z.any()).optional(),
+  systemSequenceDiagram: _zod.z.record(_zod.z.any()).optional(),
+  submissionText: _zod.z.string().optional(),
+}); exports.submissionSchema = submissionSchema;
 
 
 

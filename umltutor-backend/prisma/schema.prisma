@@ -84,6 +84,9 @@ model Assignment {
 
   class              Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   submissions        Submission[]
+
+  @@index([classId])
+  @@index([createdBy])
 }
 
 model Submission {
@@ -107,6 +110,9 @@ model Submission {
   evaluation          Evaluation?
 
   @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
+  @@index([status])
 }
 
 model UseCaseDiagram {
