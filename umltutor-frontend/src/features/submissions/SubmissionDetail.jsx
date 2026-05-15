@@ -304,76 +304,76 @@ const SubmissionDetail = () => {
 
           {/* Static Expanded Brief Content */}
           <div className="mt-8 pt-8 border-t border-gray-50">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2 space-y-4">
-                  <div>
-                    <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <FileText size={12} /> Assignment Instructions
-                    </h3>
-                    <div className="bg-gray-50 rounded-[2rem] p-8 text-sm text-gray-700 leading-relaxed max-h-80 overflow-y-auto font-medium border border-gray-100">
-                      {submission.assignment?.textContent ? (
-                        <div className="whitespace-pre-wrap">{submission.assignment.textContent}</div>
-                      ) : submission.assignment?.instructions ? (
-                        <div className="whitespace-pre-wrap">{submission.assignment.instructions}</div>
-                      ) : (
-                        <p className="italic text-gray-400">No detailed instructions available.</p>
-                      )}
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2 space-y-4">
+                <div>
+                  <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <FileText size={12} /> Assignment Instructions
+                  </h3>
+                  <div className="bg-gray-50 rounded-[2rem] p-8 text-sm text-gray-700 leading-relaxed max-h-80 overflow-y-auto font-medium border border-gray-100">
+                    {submission.assignment?.textContent ? (
+                      <div className="whitespace-pre-wrap">{submission.assignment.textContent}</div>
+                    ) : submission.assignment?.instructions ? (
+                      <div className="whitespace-pre-wrap">{submission.assignment.instructions}</div>
+                    ) : (
+                      <p className="italic text-gray-400">No detailed instructions available.</p>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <Database size={12} /> Reference Materials
-                    </h3>
-                    <div className="space-y-2">
-                      {submission.assignment?.assignmentFileUrl ? (
-                        <div className="flex flex-col gap-2">
-                          <div
-                            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
-                                <FileText size={16} />
-                              </div>
-                              <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]">
-                                {submission.assignment.assignmentFileName || 'Resource File'}
-                              </span>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <Database size={12} /> Reference Materials
+                  </h3>
+                  <div className="space-y-2">
+                    {submission.assignment?.assignmentFileUrl ? (
+                      <div className="flex flex-col gap-2">
+                        <div
+                          className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                              <FileText size={16} />
                             </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => setPreviewFile({
-                                  url: submission.assignment.assignmentFileUrl,
-                                  name: submission.assignment.assignmentFileName || 'Resource File',
-                                  type: submission.assignment.assignmentFileType
-                                })}
-                                className="p-2 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors"
-                                title="View Resource"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <a
-                                href={resolveResourceUrl(submission.assignment.assignmentFileUrl)}
-                                download={submission.assignment.assignmentFileName || 'Resource'}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
-                                title="Download Resource"
-                              >
-                                <Download size={16} />
-                              </a>
-                            </div>
+                            <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]">
+                              {submission.assignment.assignmentFileName || 'Resource File'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setPreviewFile({
+                                url: submission.assignment.assignmentFileUrl,
+                                name: submission.assignment.assignmentFileName || 'Resource File',
+                                type: submission.assignment.assignmentFileType
+                              })}
+                              className="p-2 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors"
+                              title="View Resource"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <a
+                              href={resolveResourceUrl(submission.assignment.assignmentFileUrl)}
+                              download={submission.assignment.assignmentFileName || 'Resource'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                              title="Download Resource"
+                            >
+                              <Download size={16} />
+                            </a>
                           </div>
                         </div>
-                      ) : (
-                        <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 ">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase">No extra files</p>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 ">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase">No extra files</p>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </div>
             </div>
           </div>
         </div>

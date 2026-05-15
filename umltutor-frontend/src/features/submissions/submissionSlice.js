@@ -188,23 +188,23 @@ const submissionSlice = createSlice({
         state.isLoading = false;
         const updated = action.payload;
         if (!updated) return;
-        
+
         if (state.currentSubmission?.id === updated.id) {
           state.currentSubmission = { ...state.currentSubmission, ...updated };
         }
-        
+
         // Update in main submissions list
         const idx = state.submissions.findIndex(s => s.id === updated.id);
         if (idx !== -1) state.submissions[idx] = { ...state.submissions[idx], ...updated };
-        
+
         // Update in assignmentSubmissions list
         const aid = updated.assignmentId;
         if (state.assignmentSubmissions[aid]) {
           const sIdx = state.assignmentSubmissions[aid].findIndex(s => (s.id === updated.id) || (s.submissionId === updated.id));
           if (sIdx !== -1) {
             const existing = state.assignmentSubmissions[aid][sIdx];
-            state.assignmentSubmissions[aid][sIdx] = { 
-              ...existing, 
+            state.assignmentSubmissions[aid][sIdx] = {
+              ...existing,
               ...updated,
               // Keep original field names if they were different
               submissionId: updated.id,
@@ -271,8 +271,8 @@ const submissionSlice = createSlice({
           const sIdx = state.assignmentSubmissions[aid].findIndex(s => (s.id === updated.id) || (s.submissionId === updated.id));
           if (sIdx !== -1) {
             const existing = state.assignmentSubmissions[aid][sIdx];
-            state.assignmentSubmissions[aid][sIdx] = { 
-              ...existing, 
+            state.assignmentSubmissions[aid][sIdx] = {
+              ...existing,
               ...updated,
               submissionId: updated.id,
               status: updated.status

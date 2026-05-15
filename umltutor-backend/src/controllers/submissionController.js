@@ -159,67 +159,67 @@ const saveSubmissionFeedback = async (req, res) => {
 }; exports.saveSubmissionFeedback = saveSubmissionFeedback;
 
 const getAllAssignmentSubmissions = async (req, res) => {
-    try {
-        const submissions = await _submissionService2.default.getAllSubmissionsForTeacher(req.user.id, req.query);
-        res.json({ success: true, data: submissions });
-    } catch (error) {
-        res.status(500).json({ success: false, error: { message: error.message } });
-    }
+  try {
+    const submissions = await _submissionService2.default.getAllSubmissionsForTeacher(req.user.id, req.query);
+    res.json({ success: true, data: submissions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: error.message } });
+  }
 }; exports.getAllAssignmentSubmissions = getAllAssignmentSubmissions;
 
 const getAssignmentSubmissions = async (req, res) => {
-    try {
-        const { assignmentId } = req.params;
-        const submissions = await _submissionService2.default.getAssignmentSubmissions(Number(assignmentId), req.user.id);
-        res.json({ success: true, data: submissions });
-    } catch (error) {
-        res.status(500).json({ success: false, error: { message: error.message } });
-    }
+  try {
+    const { assignmentId } = req.params;
+    const submissions = await _submissionService2.default.getAssignmentSubmissions(Number(assignmentId), req.user.id);
+    res.json({ success: true, data: submissions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: error.message } });
+  }
 }; exports.getAssignmentSubmissions = getAssignmentSubmissions;
 
 const getMySubmissions = async (req, res) => {
-    try {
-        const submissions = await _submissionService2.default.getMySubmissions(req.user.id);
-        res.json({ success: true, data: submissions });
-    } catch (error) {
-        res.status(500).json({ success: false, error: { message: error.message } });
-    }
+  try {
+    const submissions = await _submissionService2.default.getMySubmissions(req.user.id);
+    res.json({ success: true, data: submissions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: error.message } });
+  }
 }; exports.getMySubmissions = getMySubmissions;
 
 const getStudentAnalytics = async (req, res) => {
-    try {
-        const analytics = await _submissionService2.default.getStudentAnalytics(req.user.id);
-        res.json({ success: true, data: analytics });
-    } catch (error) {
-        res.status(500).json({ success: false, error: { message: error.message } });
-    }
+  try {
+    const analytics = await _submissionService2.default.getStudentAnalytics(req.user.id);
+    res.json({ success: true, data: analytics });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: error.message } });
+  }
 }; exports.getStudentAnalytics = getStudentAnalytics;
 
 const getSubmissionReceipt = async (req, res) => {
-    try {
-        const receipt = await _submissionService2.default.getSubmissionReceipt(req.params.id, req.user.id);
-        res.json({ success: true, data: receipt });
-    } catch (error) {
-        res.status(500).json({ success: false, error: { message: error.message } });
-    }
+  try {
+    const receipt = await _submissionService2.default.getSubmissionReceipt(req.params.id, req.user.id);
+    res.json({ success: true, data: receipt });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: error.message } });
+  }
 }; exports.getSubmissionReceipt = getSubmissionReceipt;
 
 const requestTutorialMode = async (req, res) => {
-    try {
-        const submissionId = req.params.id;
-        const updated = await _submissionService2.default.requestTutorial(Number(submissionId), req.user.id);
-        res.json({ success: true, data: updated });
-    } catch (error) {
-        res.status(error.status || 500).json({ success: false, error: { message: error.message } });
-    }
+  try {
+    const submissionId = req.params.id;
+    const updated = await _submissionService2.default.requestTutorial(Number(submissionId), req.user.id);
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: { message: error.message } });
+  }
 }; exports.requestTutorialMode = requestTutorialMode;
 
 const approveTutorialMode = async (req, res) => {
-    try {
-        const submissionId = req.params.id;
-        const updated = await _submissionService2.default.approveTutorial(Number(submissionId), req.user.id);
-        res.json({ success: true, data: updated });
-    } catch (error) {
-        res.status(error.status || 500).json({ success: false, error: { message: error.message } });
-    }
+  try {
+    const submissionId = req.params.id;
+    const updated = await _submissionService2.default.approveTutorial(Number(submissionId), req.user.id);
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: { message: error.message } });
+  }
 }; exports.approveTutorialMode = approveTutorialMode;

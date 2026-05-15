@@ -266,10 +266,10 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         // Step 1 is done, check Step 2 (Descriptions)
         const useCaseNodes = model.diagram?.nodes?.filter(n => n.type === 'usecase' || n.type === 'useCase') || [];
         const step2 = validateAllDescriptionsTutorial(
-            useCaseNodes, 
-            model.descriptions || {}, 
-            model.diagram?.nodes || [], 
-            model.diagram?.edges || []
+          useCaseNodes,
+          model.descriptions || {},
+          model.diagram?.nodes || [],
+          model.diagram?.edges || []
         );
 
         if (step2.isValid) {
@@ -656,84 +656,84 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             {/* Expandable Brief Content always visible now */}
             <div className="px-8 pb-8">
               <div className="grid grid-cols-3 gap-6 pt-6 border-t border-gray-50 ">
-                  <div className="col-span-2 space-y-4">
-                    {/* Instructions/Text Content */}
-                    <div>
-                      <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <FileText size={12} /> Assignment Instructions
-                      </h3>
-                      <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-700 leading-relaxed max-h-60 overflow-y-auto font-medium">
-                        {model.textContent ? (
-                          <div className="whitespace-pre-wrap">{model.textContent}</div>
-                        ) : model.instructions ? (
-                          <div className="whitespace-pre-wrap">{model.instructions}</div>
-                        ) : (
-                          <p className="italic text-gray-400">Please refer to the description or attached resources for instructions.</p>
-                        )}
-                      </div>
+                <div className="col-span-2 space-y-4">
+                  {/* Instructions/Text Content */}
+                  <div>
+                    <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                      <FileText size={12} /> Assignment Instructions
+                    </h3>
+                    <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-700 leading-relaxed max-h-60 overflow-y-auto font-medium">
+                      {model.textContent ? (
+                        <div className="whitespace-pre-wrap">{model.textContent}</div>
+                      ) : model.instructions ? (
+                        <div className="whitespace-pre-wrap">{model.instructions}</div>
+                      ) : (
+                        <p className="italic text-gray-400">Please refer to the description or attached resources for instructions.</p>
+                      )}
                     </div>
                   </div>
+                </div>
 
-                  <div className="space-y-4">
-                    {/* Resources */}
-                    <div>
-                      <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Database size={12} /> Reference Materials
-                      </h3>
-                      <div className="space-y-2">
-                        {model.assignmentFileUrl ? (
-                          <div className="flex flex-col gap-2">
-                            <div
-                              className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
-                                  <File size={16} />
-                                </div>
-                                <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]">
-                                  {model.assignmentFileName || 'Resource File'}
-                                </span>
+                <div className="space-y-4">
+                  {/* Resources */}
+                  <div>
+                    <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                      <Database size={12} /> Reference Materials
+                    </h3>
+                    <div className="space-y-2">
+                      {model.assignmentFileUrl ? (
+                        <div className="flex flex-col gap-2">
+                          <div
+                            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                                <File size={16} />
                               </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => setPreviewFile({
-                                    url: model.assignmentFileUrl,
-                                    name: model.assignmentFileName || 'Resource File',
-                                    type: model.assignmentFileType
-                                  })}
-                                  className="p-2 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors"
-                                  title="View Resource"
-                                >
-                                  <Eye size={16} />
-                                </button>
-                                <a
-                                  href={resolveResourceUrl(model.assignmentFileUrl)}
-                                  download={model.assignmentFileName || 'Resource'}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-2 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
-                                  title="Download Resource"
-                                >
-                                  <Download size={16} />
-                                </a>
-                              </div>
+                              <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]">
+                                {model.assignmentFileName || 'Resource File'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setPreviewFile({
+                                  url: model.assignmentFileUrl,
+                                  name: model.assignmentFileName || 'Resource File',
+                                  type: model.assignmentFileType
+                                })}
+                                className="p-2 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors"
+                                title="View Resource"
+                              >
+                                <Eye size={16} />
+                              </button>
+                              <a
+                                href={resolveResourceUrl(model.assignmentFileUrl)}
+                                download={model.assignmentFileName || 'Resource'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                                title="Download Resource"
+                              >
+                                <Download size={16} />
+                              </a>
                             </div>
                           </div>
-                        ) : (
-                          <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 ">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase">No extra files</p>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 ">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">No extra files</p>
+                        </div>
+                      )}
                     </div>
                   </div>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         <div className="flex-1 flex flex-col gap-16 px-12 py-12 bg-slate-50">
-          
+
           {/* Section 1: Use Case Diagram */}
           <div id="section-usecase" className={`flex flex-col ${isTutorialMode && !sections[0].isActive ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
             <h3 className="text-2xl font-black text-indigo-600 mb-6 flex items-center gap-3">
@@ -770,40 +770,40 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             </h3>
             <div className="max-w-[1300px] w-full mx-auto">
               <UseCaseDescriptionEditor
-                  key={effectivelyReadOnly ? 'read-only' : 'editable'}
-                  assignmentId={model.id}
-                  isReadOnly={effectivelyReadOnly}
-                  isCheckingActive={isCheckingActive}
-                  reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+                key={effectivelyReadOnly ? 'read-only' : 'editable'}
+                assignmentId={model.id}
+                isReadOnly={effectivelyReadOnly}
+                isCheckingActive={isCheckingActive}
+                reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
               />
             </div>
             {isTutorialMode && sections[1].isLocked && (
-               <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the Use Case Diagram step first to unlock this section.</div>
+              <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the Use Case Diagram step first to unlock this section.</div>
             )}
           </div>
 
           {/* Section 3: System Sequence Diagrams */}
           <div id="section-ssd" className={`flex flex-col ${isTutorialMode && sections[2].isLocked ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
-             <h3 className="text-2xl font-black text-indigo-600 mb-6 flex items-center gap-3">
+            <h3 className="text-2xl font-black text-indigo-600 mb-6 flex items-center gap-3">
               <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">3</span>
               System Sequence Diagrams
             </h3>
             <div className="max-w-[1300px] w-full mx-auto">
               <SSDDiagramEditor
-                  key={effectivelyReadOnly ? 'read-only' : 'editable'}
-                  assignmentId={model.id}
-                  isReadOnly={effectivelyReadOnly}
-                  isCheckingActive={isCheckingActive}
-                  reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
-                  onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
-                  modelOverride={model}
+                key={effectivelyReadOnly ? 'read-only' : 'editable'}
+                assignmentId={model.id}
+                isReadOnly={effectivelyReadOnly}
+                isCheckingActive={isCheckingActive}
+                reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+                onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
+                modelOverride={model}
               />
             </div>
             {isTutorialMode && sections[2].isLocked && (
-               <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the Use Case Descriptions step first to unlock this section.</div>
+              <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the Use Case Descriptions step first to unlock this section.</div>
             )}
           </div>
-            {/* Bottom floating navigation removed per user request */}
+          {/* Bottom floating navigation removed per user request */}
         </div>
       </div>
       <SubmitAssignmentModal
@@ -853,9 +853,9 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             </div>
 
             <div className="flex-1 overflow-auto bg-gray-50/50 p-8 flex items-center justify-center">
-              {previewFile.url && (previewFile.type?.startsWith('image/') || 
-               ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.url.toLowerCase().endsWith('.' + ext)) ||
-               ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.name.toLowerCase().endsWith('.' + ext))) ? (
+              {previewFile.url && (previewFile.type?.startsWith('image/') ||
+                ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.url.toLowerCase().endsWith('.' + ext)) ||
+                ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.name.toLowerCase().endsWith('.' + ext))) ? (
                 <img
                   src={resolveResourceUrl(previewFile.url)}
                   alt={previewFile.name}
