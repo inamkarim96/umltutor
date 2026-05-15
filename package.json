@@ -7,6 +7,8 @@
     ],
     "scripts": {
         "dev": "npx concurrently \"npm run dev -w umltutor-backend\" \"npm run dev -w umltutor-frontend\"",
+        "kill-node": "taskkill /IM node.exe /F",
+        "check-node": "tasklist | findstr node",
         "dev:frontend": "npm run dev -w umltutor-frontend",
         "dev:backend": "npm run dev -w umltutor-backend",
         "build": "npm run build --workspaces --if-present",

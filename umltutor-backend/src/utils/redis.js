@@ -2,10 +2,9 @@
 const Redis = require('ioredis');
 const logger = require('./logger');
 
+const redisUrl = process.env.REDIS_URL || null;
+
 const redisOptions = {
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
     return delay;
@@ -13,29 +12,36 @@ const redisOptions = {
   maxRetriesPerRequest: 3,
 };
 
+// Use REDIS_URL if provided, otherwise fallback to individual options
+if (!redisUrl) {
+  redisOptions.host = process.env.REDIS_HOST || '127.0.0.1';
+  redisOptions.port = process.env.REDIS_PORT || 6379;
+  redisOptions.password = process.env.REDIS_PASSWORD || undefined;
+}
+
 let redis;
 
 try {
-  redis = new Redis(redisOptions);
+  redis = redisUrl ? new Redis(redisUrl, redisOptions) : new Redis(redisOptions);
 
   redis.on('connect', () => {
-    console.log('🚀 Successfully connected to Redis');
+    console.log('Successfully connected to Redis');
   });
 
   redis.on('error', (error) => {
     if (error.code === 'ECONNREFUSED') {
       // Gracefully handle missing Redis in dev environment
       if (!process.env.REDIS_MANDATORY) {
-        console.warn('⚠️ Redis not found at ' + redisOptions.host + ':' + redisOptions.port + '. Caching is disabled (falling back to DB).');
+        console.warn('Redis not found at ' + redisOptions.host + ':' + redisOptions.port + '. Caching is disabled (falling back to DB).');
         redis.disconnect();
         redis = null;
       }
     } else {
-      console.error('❌ Redis connection error:', error.message);
+      console.error('Redis connection error:', error.message);
     }
   });
 } catch (error) {
-  console.error('❌ Failed to initialize Redis:', error.message);
+  console.error('Failed to initialize Redis:', error.message);
   redis = null;
 }
 
