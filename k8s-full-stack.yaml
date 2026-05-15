@@ -1,0 +1,74 @@
+# --- BACKEND DEPLOYMENT ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: umltutor-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: umltutor-backend
+  template:
+    metadata:
+      labels:
+        app: umltutor-backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/inamkarim96/umltutor-backend:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: database-url
+---
+# --- BACKEND SERVICE ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: umltutor-backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+---
+# --- FRONTEND DEPLOYMENT ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: umltutor-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: umltutor-frontend
+  template:
+    metadata:
+      labels:
+        app: umltutor-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ghcr.io/inamkarim96/umltutor-frontend:latest
+        ports:
+        - containerPort: 80
+---
+# --- FRONTEND SERVICE (LOAD BALANCER) ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  selector:
+    app: umltutor-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer

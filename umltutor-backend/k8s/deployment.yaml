@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: umltutor-backend
+  labels:
+    app: umltutor-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: umltutor-backend
+  template:
+    metadata:
+      labels:
+        app: umltutor-backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/inamkarim96/umltutor-backend:main
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: backend-secrets
+              key: database-url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: backend-secrets
+              key: jwt-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: umltutor-backend-service
+spec:
+  selector:
+    app: umltutor-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: LoadBalancer
