@@ -16,6 +16,7 @@ spec:
       containers:
       - name: backend
         image: ghcr.io/inamkarim96/umltutor-backend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         env:
@@ -24,6 +25,8 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: database-url
+      imagePullSecrets:
+      - name: ghcr-login-secret
 ---
 # --- BACKEND SERVICE ---
 apiVersion: v1
@@ -56,8 +59,11 @@ spec:
       containers:
       - name: frontend
         image: ghcr.io/inamkarim96/umltutor-frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
+      imagePullSecrets:
+      - name: ghcr-login-secret
 ---
 # --- FRONTEND SERVICE (LOAD BALANCER) ---
 apiVersion: v1
@@ -72,3 +78,30 @@ spec:
       port: 80
       targetPort: 80
   type: LoadBalancer
+---
+# --- INGRESS (THE BRIDGE) ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: umltutor-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 5000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
