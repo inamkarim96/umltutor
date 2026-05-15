@@ -26,3 +26,10 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Private keys
+firebase-service-account.json
+
+# Local Uploads (not needed for CDN deployment)
+uploads/
+temp/
