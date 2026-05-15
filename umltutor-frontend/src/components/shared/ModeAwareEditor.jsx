@@ -230,15 +230,16 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   };
 
   const isGraded = currentSubmission?.status?.toLowerCase() === 'graded' || currentSubmission?.status?.toLowerCase() === 'completed';
+  const hasReport = isGraded || !!currentSubmission?.fullReport;
 
-  // Automatically enable checking mode for students if graded (only once)
+  // Automatically enable checking mode for students if graded or has report (only once)
   const autoOpenedRef = useRef(false);
   useEffect(() => {
-    if (isStudentWork && isGraded && !autoOpenedRef.current) {
+    if (isStudentWork && hasReport && !autoOpenedRef.current) {
       dispatch(setCheckingActive(true));
       autoOpenedRef.current = true;
     }
-  }, [isStudentWork, isGraded, dispatch]);
+  }, [isStudentWork, hasReport, dispatch]);
 
   // Reset autoOpen if the submission/assignment changes
   useEffect(() => {
@@ -521,7 +522,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
           ))}
         </nav>
 
-        {currentMode === 'development' && (!isStudentWork || isGraded || currentSubmission?.tutorialApproved) && (
+        {currentMode === 'development' && (!isStudentWork || hasReport || currentSubmission?.tutorialApproved) && (
           <div className="p-2 border-t border-gray-200 ">
             <button
               id="checking-toggle-btn"
@@ -531,7 +532,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 '
                 }`}
             >
-              <span>{isGraded || currentSubmission?.tutorialApproved ? 'Teacher Report' : 'Checking Mode'}</span>
+              <span>{hasReport || currentSubmission?.tutorialApproved ? 'Teacher Report' : 'Checking Mode'}</span>
               {isCheckingActive && <span className="ml-auto text-xs bg-white/20 px-2 py-1 rounded-full">Visible</span>}
             </button>
           </div>
