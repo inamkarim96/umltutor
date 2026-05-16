@@ -914,8 +914,9 @@ const CheckingModePanel = ({
         const info = issues.filter(i => i.severity === 'info' || i.severity === 'suggestion');
 
         const suggestions = issues
-            .filter(i => i.context?.suggestion || i.severity === 'info')
-            .map(i => i.context?.suggestion || i.message);
+            .filter(i => i.context?.suggestion || i.severity === 'info' || i.severity === 'error' || i.severity === 'warning')
+            .map(i => i.context?.suggestion || i.message)
+            .filter((val, idx, arr) => arr.indexOf(val) === idx); // Deduplicate
 
         const renderSection = (title, issuesList, successMsg) => {
             const sectionErrors = issuesList.filter(i => i.severity === 'error' || i.type === 'error');
