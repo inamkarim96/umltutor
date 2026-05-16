@@ -78,17 +78,19 @@ const CheckingModePanel = ({
         // Filter by useCaseId if applicable (e.g. for individual SSDs)
         if (useCaseId) {
             const idLower = useCaseId.toLowerCase();
-            const relevantIssues = filteredIssues.filter(i =>
-                i.context?.useCaseId === useCaseId ||
-                i.relatedId === useCaseId ||
-                (i.id && i.id.toLowerCase().includes(idLower)) ||
-                (typeof i.problem === 'string' && i.problem.toLowerCase().includes(idLower))
-            );
-
-            // Allow general section issues if no specific ID-matched issues are found
-            if (relevantIssues.length > 0) {
-                filteredIssues = relevantIssues;
-            }
+            filteredIssues = filteredIssues.filter(i => {
+                const issueUseCaseId = i.context?.useCaseId || i.relatedId;
+                if (issueUseCaseId) {
+                    return issueUseCaseId === useCaseId || issueUseCaseId.toLowerCase() === idLower;
+                }
+                
+                // Fallback checks for specific ID patterns if context is missing
+                const hasMatch = (i.id && i.id.toLowerCase().includes(idLower)) ||
+                                 (typeof i.problem === 'string' && i.problem.toLowerCase().includes(idLower));
+                
+                // If it doesn't have an explicit use case ID, assume it's a general issue, unless it matched
+                return hasMatch || !issueUseCaseId;
+            });
         }
 
         // Recalculate score for this isolated scope
@@ -1042,7 +1044,7 @@ const CheckingModePanel = ({
     };
 
     useEffect(() => {
-        // Auto-refresh validation when the active editor (activeSection) changes (dev mode only)
+        // Auto-refresh validation when the active editor (activeSection) or model changes (dev mode only)
         if (!isExternal && model?.id) {
             dispatch(setCheckingResults(null)); // Reset previous report
             runChecks();
