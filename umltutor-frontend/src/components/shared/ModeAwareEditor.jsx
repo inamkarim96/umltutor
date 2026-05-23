@@ -583,6 +583,15 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
         <div className="p-4 border-t border-gray-200 space-y-3">
           <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={!model || isSaving}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-[10px] font-bold rounded-lg transition-colors"
+              title="Save your progress"
+            >
+              <Save size={12} />
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
             <div className="flex-1 relative" ref={exportDropdownRef}>
               <button
                 onClick={() => setShowExportDropdown(!showExportDropdown)}
