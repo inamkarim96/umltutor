@@ -42,7 +42,7 @@ const submitAssignment = async (req, res) => {
       submissionData.submissionFile
     );
 
-    if (!hasContent) {
+    if (!hasContent && req.body.status !== 'draft') {
       return res.status(400).json({
         success: false,
         error: { message: 'Submission cannot be empty.' }

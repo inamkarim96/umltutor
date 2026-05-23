@@ -38,6 +38,8 @@ export const createEmptyModel = (id = 'guest-default', title = 'New UML Project'
     diagram: { nodes: [], edges: [] },
     descriptions: {},
     ssds: {},
+    classDiagram: { nodes: [], edges: [] },
+    sequenceDiagrams: {},
     updatedAt: new Date().toISOString(),
     version: 1
 });

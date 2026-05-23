@@ -11,7 +11,9 @@ export const adaptModel = (loadedModel, assignmentId) => {
 
     const useCaseDiagramRaw = artifacts?.useCaseDiagram || loadedModel.useCaseDiagram || loadedModel.diagramData || loadedModel.diagramJson;
     const useCaseDescriptionRaw = artifacts?.useCaseDescription || artifacts?.descriptions || loadedModel.useCaseDescription || loadedModel.descriptions;
-    const sequenceDiagramRaw = artifacts?.systemSequenceDiagram || artifacts?.sequenceDiagram || loadedModel.systemSequenceDiagram || loadedModel.ssdData;
+    const ssdRaw = artifacts?.systemSequenceDiagram || artifacts?.sequenceDiagram || loadedModel.systemSequenceDiagram || loadedModel.ssdData;
+    const classDiagramRaw = artifacts?.classDiagram || loadedModel.classDiagram;
+    const sequenceDiagramsRaw = artifacts?.sequenceDiagrams || artifacts?.sequenceDiagram || loadedModel.sequenceDiagrams;
 
     const safeParse = (val, defaultValue) => {
         if (!val) return defaultValue;
@@ -25,7 +27,9 @@ export const adaptModel = (loadedModel, assignmentId) => {
         description: loadedModel.description || loadedModel.assignment?.description,
         diagram: safeParse(useCaseDiagramRaw, { nodes: [], edges: [] }),
         descriptions: safeParse(useCaseDescriptionRaw, {}),
-        ssds: safeParse(sequenceDiagramRaw, {}),
+        ssds: safeParse(ssdRaw, {}),
+        classDiagram: safeParse(classDiagramRaw, { nodes: [], edges: [] }),
+        sequenceDiagrams: safeParse(sequenceDiagramsRaw, {}),
         updatedAt: loadedModel.updatedAt,
         version: 1,
         assignmentType: loadedModel.assignmentType || loadedModel.assignment?.type,

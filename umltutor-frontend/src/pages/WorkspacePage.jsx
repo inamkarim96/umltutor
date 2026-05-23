@@ -129,14 +129,14 @@ const WorkspacePage = ({ mode }) => {
     }, [assignmentObj, submissions, currentSubmission, assignmentId, titleSlug]);
 
     return (
-        <div className="min-h-screen flex flex-col bg-surface">
+        <div className="min-h-screen flex flex-col bg-surface font-body overflow-x-hidden">
             {/* Mode Banner */}
-            <div className={`px-4 py-2 text-[10px] font-extrabold font-heading uppercase tracking-[0.25em] text-center flex items-center justify-center gap-4 shadow-card relative z-50 ${currentMode === 'tutorial'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-accent text-white'
+            <div className={`px-4 py-2 text-[11px] font-extrabold font-heading uppercase tracking-[0.2em] text-center flex items-center justify-center gap-3 shadow-md relative z-50 border-b ${currentMode === 'tutorial'
+                ? 'bg-status-green text-white border-green-700'
+                : 'bg-ink text-white border-black'
                 }`}>
                 <span className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
                     {currentMode === 'tutorial'
                         ? 'Guided Tutorial Session Active'
                         : 'Free Development Workspace'}
@@ -144,7 +144,7 @@ const WorkspacePage = ({ mode }) => {
             </div>
 
             {error && (
-                <div className="bg-status-red/100 text-white text-xs py-2 px-4 text-center">
+                <div className="bg-status-red text-white text-xs py-3 px-4 text-center font-bold font-body shadow-md z-40 relative">
                     ⚠️ Error: {error}. Progress may not be saved.
                 </div>
             )}

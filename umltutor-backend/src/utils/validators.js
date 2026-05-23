@@ -76,10 +76,13 @@ const umlModelSchema = _zod.z.object({
 const submissionSchema = _zod.z.object({
   status: _zod.z.enum(['draft', 'submitted']).optional(),
   diagramData: umlModelSchema.optional(),
+  useCaseDiagram: _zod.z.any().optional(),
   useCaseDescription: _zod.z.record(_zod.z.any()).optional(),
   systemSequenceDiagram: _zod.z.record(_zod.z.any()).optional(),
+  classDiagram: _zod.z.any().optional(),
+  sequenceDiagram: _zod.z.any().optional(),
   submissionText: _zod.z.string().optional(),
-}); exports.submissionSchema = submissionSchema;
+}).passthrough(); exports.submissionSchema = submissionSchema;
 
 
 

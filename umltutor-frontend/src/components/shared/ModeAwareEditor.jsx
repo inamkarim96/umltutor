@@ -54,16 +54,16 @@ const StepSelectionModal = ({ isOpen, onClose, onSelect, format }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-hover ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-extrabold font-heading text-ink italic tracking-tight">Select Export Step</h2>
-          <button onClick={onClose} className="p-2 hover:bg-surface-3 rounded-full transition-colors">
+          <h2 className="text-2xl font-black text-gray-900 italic tracking-tight">Select Export Step</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X size={20} className="text-gray-400" />
           </button>
         </div>
 
-        <p className="text-sm text-muted font-medium mb-8 leading-relaxed">
-          Which step would you like to export as <span className="text-accent font-extrabold font-heading uppercase">{format}</span>?
+        <p className="text-sm text-gray-500 font-medium mb-8 leading-relaxed">
+          Which step would you like to export as <span className="text-indigo-600 font-black uppercase">{format}</span>?
           The result will include both your work and the complete checking report.
         </p>
 
@@ -79,11 +79,11 @@ const StepSelectionModal = ({ isOpen, onClose, onSelect, format }) => {
               key={step.id}
               data-step-id={step.id}
               onClick={() => onSelect(step.id)}
-              className="w-full p-5 bg-surface-3 border-2 border-transparent hover:border-indigo-500/30 hover:bg-accent/10/30 rounded-lg text-left transition-all flex items-center justify-between group"
+              className="w-full p-5 bg-gray-50 border-2 border-transparent hover:border-indigo-500/30 hover:bg-indigo-50/30 rounded-2xl text-left transition-all flex items-center justify-between group"
             >
               <div>
-                <span className="block text-[10px] font-extrabold font-heading uppercase text-accent mb-0.5 tracking-widest">{step.label}</span>
-                <span className="block font-extrabold font-heading text-ink ">{step.desc}</span>
+                <span className="block text-[10px] font-black uppercase text-indigo-600 mb-0.5 tracking-widest">{step.label}</span>
+                <span className="block font-black text-gray-800 ">{step.desc}</span>
               </div>
               <ArrowRight size={20} className="text-gray-300 group-hover:text-indigo-500 transform group-hover:translate-x-1 transition-all" />
             </button>
@@ -108,6 +108,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   const [exportModal, setExportModal] = useState({ isOpen: false, format: null });
   const [isExporting, setIsExporting] = useState(false);
   const [previewFile, setPreviewFile] = useState(null); // { url, name, type }
+  const [lastSaved, setLastSaved] = useState(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -181,28 +183,38 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
     return null;
   }, [assignments, assignmentDetail, assignmentId, titleSlug]);
 
-  const handleSave = async () => {
+  const handleSave = async (isAutoSave = false) => {
     try {
+      if (isAutoSave) setIsAutoSaving(true);
       await saveToLocal();
       if (!isAuthenticated) {
-        successToast('Session saved temporarily.');
+        if (!isAutoSave) successToast('Session saved temporarily.');
       } else {
-        // Authenticated student: Save to backend database
         if (isStudentWork && assignmentId) {
           await dispatch(submitAssignmentData({
             assignmentId,
             data: buildSavePayload(model, { status: 'draft', section: activeSection }),
             lean: true,
           })).unwrap();
-          successToast('Progress saved securely to the database.');
+          setLastSaved(new Date());
+          if (!isAutoSave) successToast('Progress saved securely to the database.');
         }
       }
     } catch (error) {
       console.error('Save failed:', error);
-      errorToast('Failed to save progress: ' + (error.message || 'Unknown error'));
+      if (!isAutoSave) errorToast('Failed to save progress: ' + (error.message || 'Unknown error'));
+    } finally {
+      if (isAutoSave) setIsAutoSaving(false);
     }
   };
 
+  useEffect(() => {
+    if (effectivelyReadOnly || isSubmitting || isSaving || !model) return;
+    const timer = setTimeout(() => {
+      handleSave(true);
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [model, effectivelyReadOnly, isSubmitting, activeSection]);
   const handleRequestTutorial = async () => {
     try {
       if (!currentSubmission?.id) {
@@ -456,8 +468,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
     return (
       <div className="h-screen flex items-center justify-center bg-white ">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-accent mx-auto mb-4"></div>
-          <p className="text-muted font-bold font-body">Initializing Workspace...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-500 font-bold">Initializing Workspace...</p>
         </div>
       </div>
     );
@@ -474,7 +486,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             <div className="flex-1 min-w-0 h-full overflow-hidden">
               <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
             </div>
-            <div className="w-80 border-l border-black/5 bg-surface-3/30 flex flex-col h-full animate-in slide-in-from-right duration-500">
+            <div className="w-80 border-l border-gray-100 bg-gray-50/30 flex flex-col h-full animate-in slide-in-from-right duration-500">
               <CheckingModePanel
                 activeSection="usecase"
                 reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
@@ -520,89 +532,56 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   };
 
   return (
-    <div className="flex flex-row min-h-screen bg-slate-50 relative min-w-[1280px]">
-      {/* Sidebar Navigation */}
-      <div className="w-64 sticky top-0 h-screen border-r border-black/10 bg-white flex flex-col shrink-0 overflow-y-auto">
-        {/* Tutorial Mode Toggle (Enabled ONLY if Approved) */}
-        {currentSubmission?.tutorialApproved && (
-          <div className="p-4 border-b border-black/10 bg-accent/10/30 ">
-            <button
-              onClick={() => {
-                const newMode = currentMode === 'tutorial' ? 'development' : 'tutorial';
-                dispatch(setMode(newMode));
-                // Optional: clear state related to the other mode if needed
-                dispatch(clearModeState(currentMode));
-              }}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold font-heading uppercase tracking-wider transition-all shadow-card animate-in fade-in slide-in-from-top-2 duration-300 ${currentMode === 'tutorial'
-                ? 'bg-accent text-white hover:bg-indigo-700 active:scale-95'
-                : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'
-                }`}
-            >
-              {currentMode === 'tutorial' ? <Database size={16} /> : <BookOpen size={16} />}
-              {currentMode === 'tutorial' ? 'Switch to Development Mode' : 'Switch to Tutorial Mode'}
-            </button>
+    <div className="flex flex-col min-h-screen bg-surface font-body overflow-x-hidden relative w-full">
+      {/* 1. Sticky Top Header */}
+      <div className="sticky top-0 z-40 bg-white border-b border-black/5 shadow-sm px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-accent/10 text-accent rounded-xl flex items-center justify-center text-xl shadow-card shrink-0">
+            📝
           </div>
-        )}
-
-        <div className="p-4 border-b border-black/10 ">
-          <h1 className="text-sm font-extrabold font-heading uppercase tracking-tighter text-accent ">
-            {currentMode === 'tutorial' ? 'Tutorial Steps' : 'Editor Sections'}
-          </h1>
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-extrabold font-heading text-ink truncate max-w-sm">{model.title || assignmentDetails?.title || 'Workspace'}</h2>
+              {isStudentWork && <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[9px] font-extrabold font-heading rounded uppercase tracking-widest border border-amber-100">Assignment</span>}
+              {assignmentDetails?.deadline && (
+                <span className="px-2 py-0.5 bg-red-50 text-status-red text-[9px] font-extrabold font-heading rounded uppercase tracking-widest border border-red-100">
+                  Due: {new Date(assignmentDetails.deadline).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted font-medium truncate max-w-lg mt-0.5">{model.description || assignmentDetails?.description || 'Your UML modeling workspace'}</p>
+          </div>
         </div>
 
-        <nav className="flex-1 p-2 flex flex-col space-y-1">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => handleSectionTabChange(section.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold font-body transition-all ${activeSection === section.id
-                ? 'bg-accent/10 text-indigo-700 shadow-card'
-                : 'text-muted hover:bg-surface-3 '
-                } ${isTutorialMode && section.isLocked ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
-            >
-              {section.label}
-            </button>
-          ))}
-        </nav>
-
-        {currentMode === 'development' && (!isStudentWork || hasReport || currentSubmission?.tutorialApproved) && (
-          <div className="p-2 border-t border-black/10 ">
-            <button
-              id="checking-toggle-btn"
-              onClick={toggleCheckingMode}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold font-body transition-all ${isCheckingActive
-                ? 'bg-accent text-white shadow-hover'
-                : 'bg-surface-3 text-gray-700 hover:bg-gray-200 '
-                }`}
-            >
-              <span>{hasReport || currentSubmission?.tutorialApproved ? 'Teacher Report' : 'Checking Mode'}</span>
-              {isCheckingActive && <span className="ml-auto text-xs bg-white/20 px-2 py-1 rounded-full">Visible</span>}
-            </button>
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          <div className="flex items-center gap-2 mr-2">
+            {isAutoSaving ? (
+              <span className="text-[10px] font-bold font-body text-gray-400 flex items-center gap-1 animate-pulse"><Database size={10}/> Saving...</span>
+            ) : lastSaved ? (
+              <span className="text-[10px] font-bold font-body text-gray-400 flex items-center gap-1"><CheckCircle size={10}/> Saved {lastSaved.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            ) : null}
           </div>
-        )}
 
-        <div className="p-4 border-t border-black/10 space-y-3">
-          <div className="flex gap-2">
+          <button
+            onClick={() => handleSave(false)}
+            disabled={!model || isSaving || effectivelyReadOnly}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-surface-3 border border-black/10 disabled:opacity-50 text-ink text-xs font-bold font-body rounded-lg transition-colors shadow-sm"
+          >
+            <Save size={14} className="text-accent" />
+            {isSaving && !isAutoSaving ? 'Saving...' : 'Save Draft'}
+          </button>
+          
+          <div className="relative" ref={exportDropdownRef}>
             <button
-              onClick={handleSave}
-              disabled={!model || isSaving}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-[10px] font-bold font-body rounded-lg transition-colors"
-              title="Save your progress"
+              onClick={() => setShowExportDropdown(!showExportDropdown)}
+              disabled={!model}
+              className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-surface-3 border border-black/10 disabled:opacity-50 text-ink text-xs font-bold font-body rounded-lg transition-colors shadow-sm"
             >
-              <Save size={12} />
-              {isSaving ? 'Saving...' : 'Save'}
+              <Download size={14} className="text-accent" /> Export
+              <ChevronDown size={12} className={`transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
             </button>
-            <div className="flex-1 relative" ref={exportDropdownRef}>
-              <button
-                onClick={() => setShowExportDropdown(!showExportDropdown)}
-                disabled={!model}
-                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-[10px] font-bold font-body rounded-lg transition-colors"
-              >
-                <Download size={12} /> Export Model
-                <ChevronDown size={10} className={`transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
-              </button>
-              {showExportDropdown && (
-                <div className="absolute bottom-full mb-2 left-0 right-0 bg-white border border-black/10 rounded-lg shadow-hover p-2 z-50">
+            {showExportDropdown && (
+                <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-black/10 rounded-xl shadow-hover p-2 z-50">
                   <div className="grid grid-cols-2 gap-1 mb-2">
                     {['png', 'jpeg', 'svg', 'pdf'].map(ext => (
                       <button
@@ -611,33 +590,21 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                           setExportModal({ isOpen: true, format: ext });
                           setShowExportDropdown(false);
                         }}
-                        className="text-left px-2 py-1 text-[10px] hover:bg-surface-3 rounded border border-black/5 bg-surface-3/50 font-bold font-body"
+                        className="text-center px-2 py-1.5 text-[10px] hover:bg-surface-3 rounded border border-black/5 bg-surface-3/50 font-bold font-body uppercase transition-colors"
                       >
-                        {ext.toUpperCase()}
+                        {ext}
                       </button>
                     ))}
                   </div>
-                  <div className="border-t border-black/10 my-1"></div>
+                  <div className="border-t border-black/5 my-1"></div>
                   <button
                     onClick={async () => {
                       setIsExporting(true);
-                      // Give browser a short moment to start rendering, utility will handle fine-grained waiting
                       await new Promise(resolve => setTimeout(resolve, 300));
-
                       try {
-                        const studentName = model?.studentName ||
-                          (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '') ||
-                          (user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '') ||
-                          user?.name || user?.fullName || currentSubmission?.studentName || '';
-
-                        const teacherName = model?.teacherName ||
-                          assignmentDetails?.teacher_name || assignmentDetails?.teacherName ||
-                          assignmentDetails?.teacher?.name || assignmentDetails?.createdBy?.name || '';
-
-                        const className = model?.className ||
-                          assignmentDetails?.class_name || assignmentDetails?.className ||
-                          assignmentDetails?.class?.name || assignmentDetails?.course || '';
-
+                        const studentName = model?.studentName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '') || (user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '') || user?.name || user?.fullName || currentSubmission?.studentName || '';
+                        const teacherName = model?.teacherName || assignmentDetails?.teacher_name || assignmentDetails?.teacherName || assignmentDetails?.teacher?.name || assignmentDetails?.createdBy?.name || '';
+                        const className = model?.className || assignmentDetails?.class_name || assignmentDetails?.className || assignmentDetails?.class?.name || assignmentDetails?.course || '';
                         await exportToFile('combined', currentSubmission?.fullReport || checkingState.results, {
                           studentName: studentName.trim() || user?.username || user?.email || '',
                           teacherName: teacherName.trim(),
@@ -654,249 +621,142 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                         setShowExportDropdown(false);
                       }
                     }}
-                    className="w-full text-left px-2 py-1.5 text-[10px] hover:bg-accent/10 rounded font-extrabold font-heading text-accent flex flex-col gap-0.5"
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-extrabold font-heading text-accent flex flex-col gap-0.5 transition-colors"
                   >
                     <div className="flex items-center gap-1.5 font-extrabold font-heading">
-                      <File size={10} />
+                      <File size={12} />
                       <span>Export Complete Model</span>
                     </div>
-                    <span className="text-[8px] opacity-60 font-medium">Include Diagrams, Description & Reports</span>
+                    <span className="text-[9px] opacity-70 font-medium">Include Diagrams & Reports</span>
                   </button>
                 </div>
-              )}
-            </div>
+            )}
           </div>
-          {saveError && (
-            <div className="p-2 rounded-lg bg-status-red/10 text-status-red text-[10px] font-bold font-body border border-red-100 ">
-              {saveError}
-            </div>
+
+          {isStudentWork && (
+            <button
+              onClick={() => setIsSubmitModalOpen(true)}
+              disabled={effectivelyReadOnly}
+              className="flex items-center justify-center gap-1.5 px-6 py-2 bg-accent hover:bg-accent-light disabled:opacity-50 disabled:bg-gray-400 text-white text-xs font-bold font-body rounded-lg transition-colors shadow-md hover:-translate-y-0.5"
+            >
+              <CheckCircle size={14} />
+              Submit Assignment
+            </button>
+          )}
+
+          {currentSubmission?.tutorialApproved && (
+              <button
+                onClick={() => {
+                  const newMode = currentMode === 'tutorial' ? 'development' : 'tutorial';
+                  dispatch(setMode(newMode));
+                  dispatch(clearModeState(currentMode));
+                }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-extrabold font-heading uppercase tracking-wider transition-colors shadow-sm ${currentMode === 'tutorial'
+                  ? 'bg-ink text-white hover:bg-gray-800'
+                  : 'bg-status-green text-white hover:bg-green-700'
+                  }`}
+              >
+                {currentMode === 'tutorial' ? <Database size={14} /> : <BookOpen size={14} />}
+                {currentMode === 'tutorial' ? 'Dev Mode' : 'Tutorial Mode'}
+              </button>
+          )}
+
+          {currentMode === 'development' && (!isStudentWork || hasReport || currentSubmission?.tutorialApproved) && (
+            <button
+                onClick={toggleCheckingMode}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold font-body transition-colors shadow-sm border ${isCheckingActive
+                  ? 'bg-status-green text-white border-green-600'
+                  : 'bg-white text-ink hover:bg-surface-3 border-black/10'
+                  }`}
+              >
+                <Search size={14} />
+                {hasReport || currentSubmission?.tutorialApproved ? 'Teacher Report' : 'Checking Mode'}
+            </button>
           )}
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 border-l border-black/5 pb-32">
-        {/* Assignment Header (Student Only) */}
-        {isStudentWork && model && (
-          <div className="bg-white border-b border-black/5 flex flex-col">
-            <div className="px-8 py-6 flex flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-accent/10 text-accent rounded-xl flex items-center justify-center text-xl shadow-card">
-                  📝
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-extrabold font-heading text-ink ">{model.title || assignmentDetails?.title}</h2>
-                    <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[8px] font-extrabold font-heading rounded uppercase tracking-widest">Assignment</span>
-                  </div>
-                  <p className="text-xs text-muted font-medium truncate max-w-md">{model.description || assignmentDetails?.description}</p>
-                </div>
-              </div>
+      {effectivelyReadOnly && (
+         <div className="bg-amber-50 border-b border-amber-200 text-amber-800 px-6 py-2.5 flex items-center justify-center gap-2 text-xs font-extrabold font-heading uppercase tracking-widest z-30 shadow-sm">
+            <Lock size={14} />
+            This assignment has been submitted and is locked for editing.
+         </div>
+      )}
 
-              <div className="flex flex-nowrap items-center gap-6 w-auto">
-                {assignmentDetails?.deadline && (
-                  <div className="text-right block">
-                    <p className="text-[8px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-0.5">Deadline</p>
-                    <p className="text-xs font-bold font-body text-status-red">
-                      {new Date(assignmentDetails.deadline).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-                {/* Hide Brief button removed to adhere to natural scrolling / static layout removal */}
-              </div>
-            </div>
-
-            {/* Expandable Brief Content always visible now */}
-            <div className="px-8 pb-8">
-              <div className="grid grid-cols-3 gap-6 pt-6 border-t border-gray-50 ">
-                <div className="col-span-2 space-y-4">
-                  {/* Instructions/Text Content */}
-                  <div>
-                    <h3 className="text-[10px] font-extrabold font-heading text-accent uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <FileText size={12} /> Assignment Instructions
-                    </h3>
-                    <div className="bg-surface-3 rounded-lg p-5 text-sm text-gray-700 leading-relaxed max-h-60 overflow-y-auto font-medium">
-                      {model.textContent ? (
-                        <div className="whitespace-pre-wrap">{model.textContent}</div>
-                      ) : model.instructions ? (
-                        <div className="whitespace-pre-wrap">{model.instructions}</div>
-                      ) : (
-                        <p className="italic text-gray-400">Please refer to the description or attached resources for instructions.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Resources */}
-                  <div>
-                    <h3 className="text-[10px] font-extrabold font-heading text-accent uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <Database size={12} /> Reference Materials
-                    </h3>
-                    <div className="space-y-2">
-                      {model.assignmentFileUrl ? (
-                        <div className="flex flex-col gap-2">
-                          <div
-                            className="flex items-center justify-between p-4 bg-white border border-black/10 rounded-lg hover:border-indigo-300 hover:bg-accent/10/50 transition-all group shadow-card"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
-                                <File size={16} />
-                              </div>
-                              <span className="text-xs font-bold font-body text-gray-700 truncate max-w-[120px]">
-                                {model.assignmentFileName || 'Resource File'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => setPreviewFile({
-                                  url: model.assignmentFileUrl,
-                                  name: model.assignmentFileName || 'Resource File',
-                                  type: model.assignmentFileType
-                                })}
-                                className="p-2 hover:bg-accent/20 rounded-lg text-accent transition-colors"
-                                title="View Resource"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <a
-                                href={resolveResourceUrl(model.assignmentFileUrl)}
-                                download={model.assignmentFileName || 'Resource'}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 hover:bg-accent/20 rounded-lg text-gray-400 hover:text-accent transition-colors"
-                                title="Download Resource"
-                              >
-                                <Download size={16} />
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-8 text-center bg-surface-3 rounded-lg border border-dashed border-black/10 ">
-                          <p className="text-[10px] font-bold font-body text-gray-400 uppercase">No extra files</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex-1 flex flex-col gap-16 px-12 py-12 bg-slate-50">
-
-          {/* Section 1: Use Case Diagram */}
-          <div id="section-usecase" className={`flex flex-col ${isTutorialMode && !sections[0].isActive ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
-            <h3 className="text-2xl font-extrabold font-heading text-accent mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-accent/20 text-accent flex items-center justify-center text-sm">1</span>
-              Use Case Diagram
-            </h3>
-            <div className="max-w-[1300px] w-full mx-auto">
-              {!isCheckingActive ? (
-                <div className="h-[700px] border border-black/10 rounded-lg overflow-hidden bg-white shadow-xl shadow-gray-100/50">
-                  <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
-                </div>
-              ) : (
-                <div className="flex flex-row gap-6">
-                  <div className="flex-1 min-w-0 h-[700px] border border-black/10 rounded-lg overflow-hidden bg-white shadow-xl shadow-gray-100/50">
-                    <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
-                  </div>
-                  <div className="w-96 shrink-0 flex flex-col h-[700px] rounded-lg overflow-hidden border border-black/10 shadow-xl shadow-gray-100/50 bg-white">
-                    <CheckingModePanel
-                      activeSection="usecase"
-                      reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
-                      onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Section 2: Use Case Descriptions */}
-          <div id="section-description" className={`flex flex-col ${isTutorialMode && sections[1].isLocked ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
-            <h3 className="text-2xl font-extrabold font-heading text-accent mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-accent/20 text-accent flex items-center justify-center text-sm">2</span>
-              Use Case Descriptions
-            </h3>
-            <div className="max-w-[1300px] w-full mx-auto">
-              <UseCaseDescriptionEditor
-                key={effectivelyReadOnly ? 'read-only' : 'editable'}
-                assignmentId={model.id}
-                isReadOnly={effectivelyReadOnly}
-                isCheckingActive={isCheckingActive}
-                reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
-              />
-            </div>
-            {isTutorialMode && sections[1].isLocked && (
-              <div className="mt-4 p-4 bg-surface-3 rounded-xl text-center text-sm font-bold font-body text-gray-400">Complete the Use Case Diagram step first to unlock this section.</div>
-            )}
-          </div>
-
-          {/* Section 3: System Sequence Diagrams */}
-          <div id="section-ssd" className={`flex flex-col ${isTutorialMode && sections[2].isLocked ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
-            <h3 className="text-2xl font-extrabold font-heading text-accent mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-accent/20 text-accent flex items-center justify-center text-sm">3</span>
-              System Sequence Diagrams
-            </h3>
-            <div className="max-w-[1300px] w-full mx-auto">
-              <SSDDiagramEditor
-                key={effectivelyReadOnly ? 'read-only' : 'editable'}
-                assignmentId={model.id}
-                isReadOnly={effectivelyReadOnly}
-                isCheckingActive={isCheckingActive}
-                reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
-                onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
-                modelOverride={model}
-              />
-            </div>
-            {isTutorialMode && sections[2].isLocked && (
-              <div className="mt-4 p-4 bg-surface-3 rounded-xl text-center text-sm font-bold font-body text-gray-400">Complete the previous steps to unlock this section.</div>
-            )}
-          </div>
-
-          {/* Section 4: Class Diagram */}
-          <div id="section-class-diagram" className={`flex flex-col mt-16 ${isTutorialMode && sections[3].isLocked ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
-            <h3 className="text-2xl font-extrabold font-heading text-accent mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-accent/20 text-accent flex items-center justify-center text-sm">4</span>
-              Class Diagram
-            </h3>
-            <div className="max-w-[1300px] w-full mx-auto">
-              <div className="h-[700px] border border-black/10 rounded-lg overflow-hidden bg-white shadow-xl shadow-gray-100/50">
-                <ClassDiagramEditor 
-                  key={effectivelyReadOnly ? 'read-only' : 'editable'} 
-                  assignmentId={model.id} 
-                  initialData={model.classDiagram} 
-                  isReadOnly={effectivelyReadOnly} 
-                />
-              </div>
-            </div>
-            {isTutorialMode && sections[3].isLocked && (
-              <div className="mt-4 p-4 bg-surface-3 rounded-xl text-center text-sm font-bold font-body text-gray-400">Complete the previous steps to unlock this section.</div>
-            )}
-          </div>
-
-          {/* Section 5: Sequence Diagram */}
-          <div id="section-sequence-diagram" className="flex flex-col mt-16">
-            <h3 className="text-2xl font-extrabold font-heading text-accent mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-accent/20 text-accent flex items-center justify-center text-sm">5</span>
-              Sequence Diagram
-            </h3>
-            <div className="max-w-[1300px] w-full mx-auto">
-              <div className="h-[700px] border border-black/10 rounded-lg overflow-hidden bg-white shadow-xl shadow-gray-100/50">
-                <SequenceDiagramEditor 
-                  key={effectivelyReadOnly ? 'read-only' : 'editable'} 
-                  assignmentId={model.id} 
-                  isReadOnly={effectivelyReadOnly} 
-                />
-              </div>
-            </div>
-          </div>
-          {/* Bottom floating navigation removed per user request */}
-        </div>
+      {/* 3. Horizontal Tab Bar */}
+      <div className="bg-white border-b border-black/5 px-6 pt-3 flex gap-4 overflow-x-auto custom-scrollbar sticky z-30" style={{ top: '73px' }}>
+         {sections.map(section => (
+            <button
+              key={section.id}
+              onClick={() => handleSectionTabChange(section.id)}
+              disabled={isTutorialMode && section.isLocked}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-bold font-body transition-all border-b-2 whitespace-nowrap ${
+                activeSection === section.id
+                ? 'border-accent text-accent bg-accent/5'
+                : 'border-transparent text-muted hover:bg-surface-3 hover:text-ink'
+              } ${isTutorialMode && section.isLocked ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
+            >
+              <section.icon size={16} className={activeSection === section.id ? 'text-accent' : 'text-gray-400'} />
+              {section.label}
+            </button>
+         ))}
       </div>
+
+      {/* 4. Instructions & Resources */}
+      {isStudentWork && model && (
+         <div className="px-6 py-4 bg-surface-3 border-b border-black/5">
+            <div className="max-w-[1600px] mx-auto w-full flex flex-col md:flex-row gap-6">
+               <div className="flex-1">
+                 <h3 className="text-[10px] font-extrabold font-heading text-muted uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <FileText size={12} /> Instructions
+                 </h3>
+                 <div className="bg-white rounded-lg p-4 text-sm text-gray-700 leading-relaxed max-h-40 overflow-y-auto border border-black/5 shadow-sm font-medium custom-scrollbar">
+                    {model.textContent ? (
+                      <div className="whitespace-pre-wrap">{model.textContent}</div>
+                    ) : model.instructions ? (
+                      <div className="whitespace-pre-wrap">{model.instructions}</div>
+                    ) : (
+                      <p className="italic text-gray-400">Please refer to the description or attached resources for instructions.</p>
+                    )}
+                 </div>
+               </div>
+               
+               {model.assignmentFileUrl && (
+                 <div className="w-full md:w-80 shrink-0">
+                   <h3 className="text-[10px] font-extrabold font-heading text-muted uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                      <Database size={12} /> Resource
+                   </h3>
+                   <div className="flex items-center justify-between p-3 bg-white border border-black/5 rounded-lg hover:border-accent/30 transition-all shadow-sm group">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 bg-accent/10 text-accent rounded-lg flex items-center justify-center shrink-0">
+                          <File size={16} />
+                        </div>
+                        <span className="text-xs font-bold font-body text-gray-700 truncate">
+                          {model.assignmentFileName || 'Resource File'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button onClick={() => setPreviewFile({ url: model.assignmentFileUrl, name: model.assignmentFileName || 'Resource File', type: model.assignmentFileType })} className="p-1.5 hover:bg-surface-3 rounded-md text-muted transition-colors">
+                          <Eye size={14} />
+                        </button>
+                        <a href={resolveResourceUrl(model.assignmentFileUrl)} download={model.assignmentFileName || 'Resource'} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-surface-3 rounded-md text-muted transition-colors">
+                          <Download size={14} />
+                        </a>
+                      </div>
+                   </div>
+                 </div>
+               )}
+            </div>
+         </div>
+      )}
+
+      {/* 5. Main Active Content */}
+      <div className="flex-1 w-full max-w-[1600px] mx-auto px-6 py-8 pb-32">
+         <div className="bg-white rounded-2xl shadow-card border border-black/5 p-2 h-[600px] md:h-[750px] flex flex-col">
+            {renderContent()}
+         </div>
+      </div>
+
       <SubmitAssignmentModal
         isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
@@ -915,58 +775,58 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
       {/* Resource Preview Modal */}
       {previewFile && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col shadow-hover overflow-hidden relative">
-            <div className="p-6 border-b border-black/5 flex justify-between items-center bg-white sticky top-0 z-10">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-accent/10 text-accent rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
                   <File size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold font-heading text-ink leading-none">{previewFile.name}</h3>
-                  <p className="text-[10px] font-bold font-body text-gray-400 uppercase tracking-widest mt-1">Resource Preview</p>
+                  <h3 className="text-lg font-black text-gray-900 leading-none">{previewFile.name}</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Resource Preview</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <a
                   href={resolveResourceUrl(previewFile.url)}
                   download={previewFile.name}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-xl font-bold font-body text-xs hover:bg-accent/20 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-all"
                 >
                   <Download size={16} /> Download
                 </a>
                 <button
                   onClick={() => setPreviewFile(null)}
-                  className="p-2 hover:bg-surface-3 rounded-full transition-colors text-gray-400 hover:text-muted"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
                 >
                   <X size={24} />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-surface-3/50 p-8 flex items-center justify-center">
+            <div className="flex-1 overflow-auto bg-gray-50/50 p-8 flex items-center justify-center">
               {previewFile.url && (previewFile.type?.startsWith('image/') ||
                 ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.url.toLowerCase().endsWith('.' + ext)) ||
                 ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.name.toLowerCase().endsWith('.' + ext))) ? (
                 <img
                   src={resolveResourceUrl(previewFile.url)}
                   alt={previewFile.name}
-                  className="max-w-full h-auto object-contain rounded-lg shadow-hover border border-white"
+                  className="max-w-full h-auto object-contain rounded-2xl shadow-lg border border-white"
                 />
               ) : (previewFile.type === 'application/pdf' || previewFile.url.toLowerCase().endsWith('.pdf') || previewFile.name.toLowerCase().endsWith('.pdf')) ? (
                 <iframe
                   src={resolveResourceUrl(previewFile.url)}
-                  className="w-full h-[70vh] rounded-lg border border-black/5 shadow-hover"
+                  className="w-full h-[70vh] rounded-2xl border border-gray-100 shadow-lg"
                   title="PDF Preview"
                 />
               ) : (
                 <div className="text-center p-20">
-                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-gray-300 shadow-card border border-gray-50">
+                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-gray-300 shadow-sm border border-gray-50">
                     <File size={32} />
                   </div>
-                  <p className="text-gray-400 font-bold font-body">No interactive preview for this file type.</p>
+                  <p className="text-gray-400 font-bold">No interactive preview for this file type.</p>
                   <button
                     onClick={() => window.open(resolveResourceUrl(previewFile.url), '_blank')}
-                    className="mt-4 px-6 py-2 bg-accent text-white font-extrabold font-heading rounded-xl text-[10px] uppercase tracking-widest"
+                    className="mt-4 px-6 py-2 bg-indigo-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest"
                   >
                     Open in New Tab
                   </button>
@@ -1027,8 +887,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
       {exportModal.subItems && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
-          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-hover animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-extrabold font-heading text-ink mb-4 italic">Select Specific Item</h3>
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-black text-gray-900 mb-4 italic">Select Specific Item</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
               {exportModal.subItems.map(item => (
                 <button
@@ -1040,7 +900,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                     const selectBtn = document.querySelector(`[data-step-id="${stepId}"]`);
                     if (selectBtn) selectBtn.click();
                   }}
-                  className="w-full p-4 bg-surface-3 hover:bg-accent/10 text-left rounded-xl transition-all font-bold font-body text-ink border border-transparent hover:border-accent/20"
+                  className="w-full p-4 bg-gray-50 hover:bg-indigo-50 text-left rounded-xl transition-all font-bold text-gray-800 border border-transparent hover:border-indigo-200"
                 >
                   {item.label}
                 </button>
@@ -1048,7 +908,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             </div>
             <button
               onClick={() => setExportModal(prev => ({ ...prev, subItems: null }))}
-              className="mt-6 w-full py-3 text-sm font-extrabold font-heading text-gray-400 hover:text-muted uppercase tracking-widest"
+              className="mt-6 w-full py-3 text-sm font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest"
             >
               Cancel
             </button>
@@ -1060,9 +920,9 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         <>
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/60 backdrop-blur-md">
             <div className="text-center">
-              <div className="w-16 h-16 border-4 border-accent/20 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-sm font-extrabold font-heading text-accent uppercase tracking-widest">Preparing High-Quality Export...</p>
-              <p className="text-xs text-muted mt-1">Including your work and checking report</p>
+              <div className="w-16 h-16 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-sm font-black text-indigo-600 uppercase tracking-widest">Preparing High-Quality Export...</p>
+              <p className="text-xs text-gray-500 mt-1">Including your work and checking report</p>
               <p className="text-[10px] text-gray-400 mt-4 italic">Sequential rendering in progress (Diagrams → Descriptions → SSDs → Class Diagram)</p>
             </div>
           </div>
@@ -1074,8 +934,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
             <div className="w-full flex flex-col gap-20 p-20 bg-white">
               {/* Step 1: Use Case Diagram & Report */}
               <div className="flex flex-col gap-8" data-export-section="usecase">
-                <h1 className="text-4xl font-extrabold font-heading text-accent uppercase tracking-tight">1. Use Case Diagram</h1>
-                <div className="w-full border rounded-lg overflow-hidden bg-slate-50" style={{ height: '600px' }}>
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">1. Use Case Diagram</h1>
+                <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
                   <UseCaseDiagramEditor
                     assignmentId={model.id}
                     initialData={model.diagram}
@@ -1093,10 +953,10 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
               {/* Step 2: Use Case Descriptions & Reports */}
               <div className="flex flex-col gap-12" data-export-section="descriptions">
-                <h1 className="text-4xl font-extrabold font-heading text-accent uppercase tracking-tight">2. Use Case Descriptions</h1>
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">2. Use Case Descriptions</h1>
                 {model?.descriptions && Object.entries(model.descriptions).map(([id, desc]) => (
                   <div key={id} className="flex flex-col gap-6 p-8 border-2 border-slate-100 rounded-3xl">
-                    <h2 className="text-2xl font-extrabold font-heading text-slate-800 italic">2.1 Use Case: {desc.useCaseName}</h2>
+                    <h2 className="text-2xl font-black text-slate-800 italic">2.1 Use Case: {desc.useCaseName}</h2>
                     <div className="w-full">
                       <UseCaseDescriptionEditor
                         assignmentId={model.id}
@@ -1119,11 +979,11 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
               {/* Step 3: SSDs & Reports */}
               <div className="flex flex-col gap-12" data-export-section="ssds">
-                <h1 className="text-4xl font-extrabold font-heading text-accent uppercase tracking-tight">3. System Sequence Diagrams</h1>
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">3. System Sequence Diagrams</h1>
                 {model?.descriptions && Object.keys(model.descriptions).map(id => (
                   <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
-                    <h2 className="text-2xl font-extrabold font-heading text-slate-800 italic">3.1 SSD: {model.descriptions[id]?.useCaseName}</h2>
-                    <div className="w-full border rounded-lg overflow-hidden bg-slate-50" style={{ height: '600px' }}>
+                    <h2 className="text-2xl font-black text-slate-800 italic">3.1 SSD: {model.descriptions[id]?.useCaseName}</h2>
+                    <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
                       <SSDDiagramEditor
                         assignmentId={model.id}
                         isReadOnly={true}
@@ -1146,8 +1006,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
               {/* Step 4: Class Diagram & Report */}
               <div className="flex flex-col gap-12" data-export-section="class-diagram">
-                <h1 className="text-4xl font-extrabold font-heading text-accent uppercase tracking-tight">4. Class Diagram</h1>
-                <div className="w-full border rounded-lg overflow-hidden bg-slate-50" style={{ height: '800px' }}>
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">4. Class Diagram</h1>
+                <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '800px' }}>
                   <ClassDiagramEditor
                     assignmentId={model.id}
                     initialData={model.classDiagram}
@@ -1165,11 +1025,11 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
               {/* Step 5: Sequence Diagrams & Reports */}
               <div className="flex flex-col gap-12" data-export-section="sequence-diagrams">
-                <h1 className="text-4xl font-extrabold font-heading text-accent uppercase tracking-tight">5. Sequence Diagrams</h1>
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">5. Sequence Diagrams</h1>
                 {model?.descriptions && Object.keys(model.descriptions).map(id => (
                   <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
-                    <h2 className="text-2xl font-extrabold font-heading text-slate-800 italic">5.1 Sequence: {model.descriptions[id]?.useCaseName}</h2>
-                    <div className="w-full border rounded-lg overflow-hidden bg-slate-50" style={{ height: '700px' }}>
+                    <h2 className="text-2xl font-black text-slate-800 italic">5.1 Sequence: {model.descriptions[id]?.useCaseName}</h2>
+                    <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '700px' }}>
                       <SequenceDiagramEditor
                         assignmentId={model.id}
                         isReadOnly={true}

@@ -233,7 +233,7 @@ class AssignmentService {
           class: { select: { id: true, name: true } },
         },
       });
-      if (!assignment) throw new Error('Assignment not found');
+      if (!assignment) throw new NotFoundError('Assignment');
 
       const submission = await submissionRepository.findFirst({
         where: { assignmentId: assignmentIdNum, studentId: studentIdNum },
