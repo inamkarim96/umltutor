@@ -29,10 +29,10 @@ const SequenceDiagramToolbar = ({
     return (
         <div className="absolute top-4 left-4 z-50 flex flex-col gap-3">
             {/* Primary Actions */}
-            <div className="flex flex-col bg-white rounded-2xl shadow-xl border border-gray-100 p-2 gap-2">
+            <div className="flex flex-col bg-white rounded-lg shadow-xl border border-black/5 p-2 gap-2">
                 <button
                     onClick={onAddLifeline}
-                    className="p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-md group relative"
+                    className="p-3 bg-accent hover:bg-indigo-700 text-white rounded-xl transition-all shadow-md group relative"
                     title="Add Lifeline"
                 >
                     <Plus size={20} />
@@ -42,7 +42,7 @@ const SequenceDiagramToolbar = ({
                 </button>
                 <button
                     onClick={onAddActor}
-                    className="p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-all group relative"
+                    className="p-3 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl transition-all group relative"
                     title="Add Actor"
                 >
                     <User size={20} />
@@ -50,10 +50,10 @@ const SequenceDiagramToolbar = ({
                         Add Actor
                     </span>
                 </button>
-                <div className="h-px bg-gray-100 mx-1" />
+                <div className="h-px bg-surface-3 mx-1" />
                 <button
                     onClick={onDelete}
-                    className="p-3 bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-xl transition-all group relative"
+                    className="p-3 bg-white hover:bg-status-red/10 text-gray-400 hover:text-status-red rounded-xl transition-all group relative"
                     title="Delete Selected"
                 >
                     <Trash2 size={20} />
@@ -68,8 +68,8 @@ const SequenceDiagramToolbar = ({
             </div>
 
             {/* Message Types Selector */}
-            <div className="flex flex-col bg-white rounded-2xl shadow-xl border border-gray-100 p-2 gap-2">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center mb-1">Messages</p>
+            <div className="flex flex-col bg-white rounded-lg shadow-xl border border-black/5 p-2 gap-2">
+                <p className="text-[9px] font-extrabold font-heading text-gray-400 uppercase tracking-widest text-center mb-1">Messages</p>
                 {messageTypes.map((type) => {
                     const Icon = type.icon;
                     const isActive = activeMessageType === type.id;
@@ -80,8 +80,8 @@ const SequenceDiagramToolbar = ({
                             className={`
                                 p-3 rounded-xl transition-all group relative
                                 ${isActive 
-                                    ? 'bg-indigo-50 text-indigo-600 ring-2 ring-indigo-500/20' 
-                                    : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}
+                                    ? 'bg-accent/10 text-accent ring-2 ring-indigo-500/20' 
+                                    : 'text-gray-400 hover:bg-surface-3 hover:text-muted'}
                             `}
                             title={type.desc}
                         >

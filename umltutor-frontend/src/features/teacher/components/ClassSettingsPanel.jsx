@@ -74,13 +74,13 @@ const ClassSettingsPanel = ({ classroom, onUpdate }) => {
 
     return (
         <div className="space-y-8 w-full mx-auto py-8">
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-8">
+            <div className="bg-white rounded-3xl border border-black/5 shadow-card overflow-hidden p-8">
                 <div className="flex items-center gap-3 mb-8">
-                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-accent/10 text-accent rounded-xl flex items-center justify-center">
                         <Settings size={20} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black text-gray-900 tracking-tight">Classroom Settings</h2>
+                        <h2 className="text-xl font-extrabold font-heading text-ink tracking-tight">Classroom Settings</h2>
                         <p className="text-sm text-gray-400 font-medium">Manage your classroom identity and enrollment controls.</p>
                     </div>
                 </div>
@@ -88,16 +88,16 @@ const ClassSettingsPanel = ({ classroom, onUpdate }) => {
                 <form onSubmit={handleSave} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Classroom Name</label>
+                            <label className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest ml-1">Classroom Name</label>
                             <input 
                                 type="text"
                                 value={name}
                                 onChange={e => setName(e.target.value)}
-                                className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-indigo-600 outline-none transition-all font-bold"
+                                className="w-full px-5 py-4 rounded-lg bg-surface-3 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none transition-all font-bold font-body"
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Student Limit (Null = Unlimited)</label>
+                            <label className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest ml-1">Student Limit (Null = Unlimited)</label>
                             <div className="relative">
                                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                                 <input 
@@ -105,56 +105,56 @@ const ClassSettingsPanel = ({ classroom, onUpdate }) => {
                                     value={maxStudents}
                                     onChange={e => setMaxStudents(e.target.value)}
                                     placeholder="e.g. 30"
-                                    className="w-full pl-12 pr-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-indigo-600 outline-none transition-all font-bold"
+                                    className="w-full pl-12 pr-5 py-4 rounded-lg bg-surface-3 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none transition-all font-bold font-body"
                                 />
                             </div>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Description</label>
+                        <label className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest ml-1">Description</label>
                         <textarea 
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             rows={3}
-                            className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-indigo-600 outline-none transition-all font-medium resize-none"
+                            className="w-full px-5 py-4 rounded-lg bg-surface-3 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none transition-all font-medium resize-none"
                         />
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-6 pt-4 border-t border-gray-50 mt-4">
-                        <div className="flex-1 flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                        <div className="flex-1 flex items-center justify-between p-4 bg-surface-3 rounded-lg">
                             <div>
-                                <p className="font-bold text-gray-900 text-sm">Enrollment Status</p>
+                                <p className="font-bold font-body text-ink text-sm">Enrollment Status</p>
                                 <p className="text-[10px] text-gray-400 font-medium">Toggle if new students can join using the code.</p>
                             </div>
                             <button 
                                 type="button"
                                 onClick={() => setIsEnrollmentOpen(!isEnrollmentOpen)}
-                                className={`w-14 h-7 rounded-full transition-all relative ${isEnrollmentOpen ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                                className={`w-14 h-7 rounded-full transition-all relative ${isEnrollmentOpen ? 'bg-accent' : 'bg-gray-300'}`}
                             >
-                                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm ${isEnrollmentOpen ? 'left-8' : 'left-1'}`}></div>
+                                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-card ${isEnrollmentOpen ? 'left-8' : 'left-1'}`}></div>
                             </button>
                         </div>
 
-                        <div className="flex-1 flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                        <div className="flex-1 flex items-center justify-between p-4 bg-surface-3 rounded-lg">
                             <div>
-                                <p className="font-bold text-gray-900 text-sm">Student Resource Uploads</p>
+                                <p className="font-bold font-body text-ink text-sm">Student Resource Uploads</p>
                                 <p className="text-[10px] text-gray-400 font-medium">Allow students to upload files to the classroom.</p>
                             </div>
                             <button 
                                 type="button"
                                 onClick={() => setAllowStudentUploads(!allowStudentUploads)}
-                                className={`w-14 h-7 rounded-full transition-all relative ${allowStudentUploads ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                                className={`w-14 h-7 rounded-full transition-all relative ${allowStudentUploads ? 'bg-accent' : 'bg-gray-300'}`}
                             >
-                                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm ${allowStudentUploads ? 'left-8' : 'left-1'}`}></div>
+                                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-card ${allowStudentUploads ? 'left-8' : 'left-1'}`}></div>
                             </button>
                         </div>
                     </div>
 
                     {status && (
-                        <div className={`p-4 rounded-2xl flex items-center gap-3 animate-in fade-in zoom-in duration-300 ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                        <div className={`p-4 rounded-lg flex items-center gap-3 animate-in fade-in zoom-in duration-300 ${status.type === 'success' ? 'bg-status-green/10 text-emerald-700' : 'bg-status-red/10 text-red-700'}`}>
                             {status.type === 'success' ? <CheckCircle size={18} /> : <Info size={18} />}
-                            <p className="text-xs font-bold">{status.message}</p>
+                            <p className="text-xs font-bold font-body">{status.message}</p>
                         </div>
                     )}
 
@@ -162,7 +162,7 @@ const ClassSettingsPanel = ({ classroom, onUpdate }) => {
                         <button 
                             type="submit"
                             disabled={isUpdating}
-                            className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
+                            className="flex items-center gap-2 px-8 py-4 bg-accent text-white rounded-lg font-extrabold font-heading shadow-hover shadow-accent/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
                         >
                             {isUpdating ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
                             SAVE CHANGES
@@ -171,18 +171,18 @@ const ClassSettingsPanel = ({ classroom, onUpdate }) => {
                 </form>
             </div>
 
-            <div className="bg-white rounded-3xl border border-amber-100 shadow-sm overflow-hidden p-8 border-l-4">
+            <div className="bg-white rounded-3xl border border-amber-100 shadow-card overflow-hidden p-8 border-l-4">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <Shield className="text-amber-500" size={20} />
-                            <h3 className="text-lg font-black text-gray-900">Access Control</h3>
+                            <h3 className="text-lg font-extrabold font-heading text-ink">Access Control</h3>
                         </div>
-                        <p className="text-sm text-gray-500 font-medium max-w-md">Your current join code is <span className="font-mono font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{classroom.code}</span>. Regenerating it will invalidate the current one immediately.</p>
+                        <p className="text-sm text-muted font-medium max-w-md">Your current join code is <span className="font-mono font-extrabold font-heading text-accent bg-accent/10 px-2 py-0.5 rounded">{classroom.code}</span>. Regenerating it will invalidate the current one immediately.</p>
                     </div>
                     <button 
                         onClick={handleRegenerateCode}
-                        className="flex items-center gap-2 px-5 py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-xs hover:bg-amber-100 transition-all active:scale-95"
+                        className="flex items-center gap-2 px-5 py-3 bg-amber-50 text-amber-600 rounded-xl font-extrabold font-heading text-xs hover:bg-amber-100 transition-all active:scale-95"
                     >
                         <RefreshCw size={14} /> REGENERATE CODE
                     </button>

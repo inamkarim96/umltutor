@@ -99,11 +99,11 @@ export class ErrorBoundary extends Component {
 
       // Default error UI
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+        <div className="min-h-screen bg-surface-3 flex items-center justify-center px-4">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-hover p-6">
             <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
               <svg
-                className="w-6 h-6 text-red-600"
+                className="w-6 h-6 text-status-red"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -117,14 +117,14 @@ export class ErrorBoundary extends Component {
               </svg>
             </div>
 
-            <h1 className="text-xl font-semibold text-gray-900 text-center mb-2">Something went wrong</h1>
+            <h1 className="text-xl font-semibold text-ink text-center mb-2">Something went wrong</h1>
 
-            <p className="text-gray-600 text-center mb-6">We're sorry, but something unexpected happened. Our team has been notified.</p>
+            <p className="text-muted text-center mb-6">We're sorry, but something unexpected happened. Our team has been notified.</p>
 
             {import.meta.env.DEV && this.state.error && (
-              <details className="mb-6 p-4 bg-gray-100 rounded-lg">
+              <details className="mb-6 p-4 bg-surface-3 rounded-lg">
                 <summary className="cursor-pointer font-medium text-gray-700 mb-2">Error Details (Development Only)</summary>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted">
                   <p className="font-medium mb-2">{this.state.error.message}</p>
                   {this.state.error.stack && (
                     <pre className="whitespace-pre-wrap text-xs bg-white p-2 rounded border">
@@ -145,7 +145,7 @@ export class ErrorBoundary extends Component {
 
               <button
                 onClick={this.handleReload}
-                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                className="w-full bg-gray-200 text-ink py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
               >
                 Reload Page
               </button>

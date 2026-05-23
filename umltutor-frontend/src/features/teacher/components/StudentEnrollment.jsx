@@ -116,7 +116,7 @@ const StudentEnrollment = ({ classId, enrolledStudents = [], onEnrollmentSuccess
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => searchQuery.trim() && setShowDropdown(true)}
-                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-400 font-medium"
+                        className="w-full pl-12 pr-4 py-4 bg-surface-3 border border-black/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-ink placeholder-gray-400 font-medium"
                     />
                 </div>
 
@@ -124,11 +124,11 @@ const StudentEnrollment = ({ classId, enrolledStudents = [], onEnrollmentSuccess
                 {showDropdown && (
                     <div 
                         ref={dropdownRef}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg max-h-64 overflow-y-auto z-50"
+                        className="absolute top-full left-0 right-0 mt-2 bg-white border border-black/10 rounded-lg shadow-hover max-h-64 overflow-y-auto z-50"
                     >
                         {isSearching ? (
                             <div className="p-4 text-center text-gray-400">
-                                <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+                                <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full mx-auto mb-2"></div>
                                 Searching...
                             </div>
                         ) : searchResults.length > 0 ? (
@@ -136,16 +136,16 @@ const StudentEnrollment = ({ classId, enrolledStudents = [], onEnrollmentSuccess
                                 <div
                                     key={student.id}
                                     onClick={() => handleStudentSelect(student)}
-                                    className="p-4 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                                    className="p-4 hover:bg-accent/10 cursor-pointer border-b border-black/5 last:border-b-0 transition-colors"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="font-semibold text-gray-900">
+                                            <p className="font-semibold text-ink">
                                                 {student.name || student.firstName + ' ' + student.lastName}
                                             </p>
-                                            <p className="text-sm text-gray-500">{student.email}</p>
+                                            <p className="text-sm text-muted">{student.email}</p>
                                         </div>
-                                        <Plus size={18} className="text-indigo-600" />
+                                        <Plus size={18} className="text-accent" />
                                     </div>
                                 </div>
                             ))
@@ -160,23 +160,23 @@ const StudentEnrollment = ({ classId, enrolledStudents = [], onEnrollmentSuccess
 
             {/* Selected Student Preview */}
             {selectedStudent && (
-                <div className="bg-indigo-50 rounded-2xl p-6 border border-indigo-100 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="bg-accent/10 rounded-lg p-6 border border-accent/10 animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                            <Users size={18} className="text-indigo-600" />
+                        <h3 className="font-semibold text-ink flex items-center gap-2">
+                            <Users size={18} className="text-accent" />
                             Selected Student
                         </h3>
                     </div>
-                    <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
+                    <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-accent/10 shadow-card">
                         <div>
-                            <p className="font-semibold text-gray-900">
+                            <p className="font-semibold text-ink">
                                 {selectedStudent.name || selectedStudent.firstName + ' ' + selectedStudent.lastName}
                             </p>
-                            <p className="text-sm text-gray-500">{selectedStudent.email}</p>
+                            <p className="text-sm text-muted">{selectedStudent.email}</p>
                         </div>
                         <button
                             onClick={clearSelection}
-                            className="bg-red-50 text-red-500 hover:bg-red-100 p-2 rounded-lg transition-colors"
+                            className="bg-status-red/10 text-status-red hover:bg-red-100 p-2 rounded-lg transition-colors"
                             title="Remove individual selection"
                         >
                             <X size={18} />
@@ -187,9 +187,9 @@ const StudentEnrollment = ({ classId, enrolledStudents = [], onEnrollmentSuccess
 
             {/* Enrollment Message */}
             {enrollmentMessage && (
-                <div className={`p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
-                    messageType === 'success' ? 'bg-green-50 text-green-700 border border-green-100' :
-                    messageType === 'error' ? 'bg-red-50 text-red-700 border border-red-100' :
+                <div className={`p-4 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
+                    messageType === 'success' ? 'bg-status-green/10 text-green-700 border border-green-100' :
+                    messageType === 'error' ? 'bg-status-red/10 text-red-700 border border-red-100' :
                     'bg-blue-50 text-blue-700 border border-blue-100'
                 }`}>
                     {messageType === 'success' ? <Check size={20} /> :
@@ -203,10 +203,10 @@ const StudentEnrollment = ({ classId, enrolledStudents = [], onEnrollmentSuccess
             <button
                 onClick={handleEnrollStudent}
                 disabled={isEnrolling || !selectedStudent}
-                className={`w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 ${
+                className={`w-full py-4 rounded-lg font-bold font-body transition-all flex items-center justify-center gap-3 ${
                     isEnrolling || !selectedStudent
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-[0_10px_20px_-5px_rgba(79,70,229,0.3)] hover:scale-[1.01] active:scale-[0.99]'
+                        : 'bg-accent text-white hover:bg-indigo-700 shadow-[0_10px_20px_-5px_rgba(79,70,229,0.3)] hover:scale-[1.01] active:scale-[0.99]'
                 }`}
             >
                 {isEnrolling ? (

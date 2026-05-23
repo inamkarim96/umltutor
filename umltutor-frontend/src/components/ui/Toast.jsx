@@ -94,13 +94,13 @@ const ToastItem = ({ toast, onRemove }) => {
   };
 
   const getToastStyles = () => {
-    const baseStyles = 'flex items-start p-4 rounded-lg shadow-lg border max-w-sm animate-slide-in';
+    const baseStyles = 'flex items-start p-4 rounded-lg shadow-hover border max-w-sm animate-slide-in';
 
     switch (toast.type) {
       case 'success':
-        return `${baseStyles} bg-green-50 border-green-200 text-green-800`;
+        return `${baseStyles} bg-status-green/10 border-green-200 text-status-green`;
       case 'error':
-        return `${baseStyles} bg-red-50 border-red-200 text-red-800`;
+        return `${baseStyles} bg-status-red/10 border-status-red/20 text-red-800`;
       case 'warning':
         return `${baseStyles} bg-yellow-50 border-yellow-200 text-yellow-800`;
       case 'info':
@@ -134,7 +134,7 @@ const ToastItem = ({ toast, onRemove }) => {
 
       <button
         onClick={() => onRemove(toast.id)}
-        className="flex-shrink-0 ml-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+        className="flex-shrink-0 ml-3 text-gray-400 hover:text-muted focus:outline-none"
         aria-label="Close toast"
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

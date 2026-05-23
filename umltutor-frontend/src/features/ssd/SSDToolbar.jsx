@@ -55,10 +55,10 @@ const SSDToolbar = ({
     console.log('Toolbar hasSelection:', hasSelection);
     console.log('Toolbar selectedElement exists:', !!hasSelection);
     return (
-        <div className="absolute top-20 right-4 flex flex-col gap-3 p-3 bg-white rounded-lg shadow-lg z-20 border border-gray-200 w-56 max-h-[calc(100vh-120px)] overflow-y-auto">
+        <div className="absolute top-20 right-4 flex flex-col gap-3 p-3 bg-white rounded-lg shadow-hover z-20 border border-black/10 w-56 max-h-[calc(100vh-120px)] overflow-y-auto">
             <div>
-                <div className="flex items-center justify-between mb-2 text-gray-500">
-                    <div className="text-xs font-bold uppercase tracking-wider">Lifelines</div>
+                <div className="flex items-center justify-between mb-2 text-muted">
+                    <div className="text-xs font-bold font-body uppercase tracking-wider">Lifelines</div>
                 </div>
                 <div className="flex flex-col gap-1">
                     <button
@@ -70,7 +70,7 @@ const SSDToolbar = ({
                             }
                         }}
                         tabIndex={0}
-                        className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-50 hover:bg-blue-50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex items-center gap-2 px-3 py-2 text-sm bg-surface-3 hover:bg-blue-50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         👤 Actor
                     </button>
@@ -83,7 +83,7 @@ const SSDToolbar = ({
                             }
                         }}
                         tabIndex={0}
-                        className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-50 hover:bg-green-50 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="flex items-center gap-2 px-3 py-2 text-sm bg-surface-3 hover:bg-status-green/10 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                         🖥️ System
                     </button>
@@ -96,7 +96,7 @@ const SSDToolbar = ({
                             }
                         }}
                         tabIndex={0}
-                        className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-50 hover:bg-purple-50 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="flex items-center gap-2 px-3 py-2 text-sm bg-surface-3 hover:bg-purple-50 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
                         📦 Object
                     </button>
@@ -106,7 +106,7 @@ const SSDToolbar = ({
             <div className="h-px bg-gray-200" />
 
             <div>
-                <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Messages</div>
+                <div className="text-xs font-bold font-body text-muted mb-2 uppercase tracking-wider">Messages</div>
                 <div className="grid grid-cols-2 gap-1 mb-2">
                     <button
                         onClick={onCreateCall}
@@ -117,7 +117,7 @@ const SSDToolbar = ({
                             }
                         }}
                         tabIndex={0}
-                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeTool === 'call' ? 'bg-blue-100 text-blue-700' : 'bg-gray-50 hover:bg-gray-100'}`}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeTool === 'call' ? 'bg-blue-100 text-blue-700' : 'bg-surface-3 hover:bg-surface-3'}`}
                     >
                         <CallMessageIcon /> Call
                     </button>
@@ -130,7 +130,7 @@ const SSDToolbar = ({
                             }
                         }}
                         tabIndex={0}
-                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-red-500 ${activeTool === 'return' ? 'bg-red-100 text-red-700' : 'bg-gray-50 hover:bg-gray-100'}`}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-red-500 ${activeTool === 'return' ? 'bg-red-100 text-red-700' : 'bg-surface-3 hover:bg-surface-3'}`}
                     >
                         <ReturnMessageIcon /> Return
                     </button>
@@ -143,7 +143,7 @@ const SSDToolbar = ({
                             }
                         }}
                         tabIndex={0}
-                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${activeTool === 'self' ? 'bg-purple-100 text-purple-700' : 'bg-gray-50 hover:bg-gray-100'}`}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${activeTool === 'self' ? 'bg-purple-100 text-purple-700' : 'bg-surface-3 hover:bg-surface-3'}`}
                     >
                         <SelfMessageIcon /> Self
                     </button>
@@ -157,7 +157,7 @@ const SSDToolbar = ({
                         }
                     }}
                     tabIndex={0}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-orange-500 ${activeTool === 'activation' ? 'bg-orange-100 text-orange-700' : 'bg-gray-50 hover:bg-orange-50'}`}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-orange-500 ${activeTool === 'activation' ? 'bg-orange-100 text-orange-700' : 'bg-surface-3 hover:bg-orange-50'}`}
                 >
                     <ActivationIcon /> Activation Bar
                 </button>
@@ -177,8 +177,8 @@ const SSDToolbar = ({
                     tabIndex={0}
                     disabled={!hasSelection}
                     className={`w-full py-2 text-sm rounded focus:outline-none focus:ring-2 transition-colors ${hasSelection
-                        ? 'bg-red-50 text-red-700 hover:bg-red-100 focus:ring-red-500 cursor-pointer'
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        ? 'bg-status-red/10 text-red-700 hover:bg-red-100 focus:ring-red-500 cursor-pointer'
+                        : 'bg-surface-3 text-gray-400 cursor-not-allowed'
                         }`}
                 >
                     ⌫ Delete
@@ -208,8 +208,8 @@ const SSDToolbar = ({
                 <>
                     <div className="h-px bg-gray-200 my-2" />
                     <div>
-                        <div className="flex items-center justify-between mb-2 text-gray-500">
-                            <div className="text-[10px] font-bold uppercase tracking-wider">Use Case Steps</div>
+                        <div className="flex items-center justify-between mb-2 text-muted">
+                            <div className="text-[10px] font-bold font-body uppercase tracking-wider">Use Case Steps</div>
                         </div>
                         <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
                             {ucdSteps.map((step, idx) => (
@@ -219,7 +219,7 @@ const SSDToolbar = ({
                                     className="text-left text-[11px] p-2 bg-blue-50/50 hover:bg-blue-100/70 border border-blue-100 rounded transition-all text-blue-800 line-clamp-2 hover:line-clamp-none group relative"
                                     title="Click to add message to SSD"
                                 >
-                                    <span className="font-bold mr-1">{idx + 1}.</span> {step.action || step.text}
+                                    <span className="font-bold font-body mr-1">{idx + 1}.</span> {step.action || step.text}
                                     <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-[10px]">➕</div>
                                 </button>
                             ))}

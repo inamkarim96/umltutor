@@ -67,21 +67,21 @@ const InterfaceNode = ({ id, data, selected }) => {
     };
 
     return (
-        <div className={`flex flex-col bg-white border-2 rounded shadow-md min-w-[150px] ${selected ? 'border-indigo-500' : 'border-gray-800'} ${hasErrors ? 'border-red-500 bg-red-50' : ''}`}>
+        <div className={`flex flex-col bg-white border-2 rounded shadow-md min-w-[150px] ${selected ? 'border-indigo-500' : 'border-gray-800'} ${hasErrors ? 'border-red-500 bg-status-red/10' : ''}`}>
             {/* Header Compartment */}
             <div className="p-2 border-b-2 border-gray-800 text-center bg-blue-50">
-                <div className="text-[10px] text-gray-500 italic">«interface»</div>
+                <div className="text-[10px] text-muted italic">«interface»</div>
                 {isEditingName ? (
                     <input
                         ref={nameInputRef}
-                        className="w-full text-center outline-none bg-transparent font-bold"
+                        className="w-full text-center outline-none bg-transparent font-bold font-body"
                         value={className}
                         onChange={(e) => setClassName(e.target.value)}
                         onBlur={handleNameBlur}
                         onKeyDown={(e) => e.key === 'Enter' && handleNameBlur()}
                     />
                 ) : (
-                    <div onDoubleClick={() => !isReadOnly && setIsEditingName(true)} className="cursor-text font-bold">
+                    <div onDoubleClick={() => !isReadOnly && setIsEditingName(true)} className="cursor-text font-bold font-body">
                         {className}
                     </div>
                 )}
@@ -92,7 +92,7 @@ const InterfaceNode = ({ id, data, selected }) => {
                 {methods.map((method, idx) => (
                     <div key={idx} className="flex items-center group/method">
                         <input
-                            className="flex-1 text-xs outline-none bg-transparent hover:bg-gray-50 focus:bg-white italic"
+                            className="flex-1 text-xs outline-none bg-transparent hover:bg-surface-3 focus:bg-white italic"
                             value={method}
                             readOnly={isReadOnly}
                             onChange={(e) => handleMethodChange(idx, e.target.value)}
@@ -101,7 +101,7 @@ const InterfaceNode = ({ id, data, selected }) => {
                         {!isReadOnly && (
                             <button 
                                 onClick={() => removeMethod(idx)}
-                                className="opacity-0 group-hover/method:opacity-100 text-red-500 text-[10px] ml-1"
+                                className="opacity-0 group-hover/method:opacity-100 text-status-red text-[10px] ml-1"
                             >
                                 ×
                             </button>

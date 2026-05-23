@@ -203,10 +203,10 @@ const SubmissionDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-surface-3">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Loading submission...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+          <p className="text-muted font-bold font-body uppercase tracking-widest text-xs">Loading submission...</p>
         </div>
       </div>
     );
@@ -214,17 +214,17 @@ const SubmissionDetail = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-10">
+      <div className="min-h-screen bg-surface-3 p-10">
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors mb-8"
+            className="flex items-center gap-2 text-muted hover:text-accent font-bold font-body transition-colors mb-8"
           >
             <ArrowLeft size={18} /> Back
           </button>
-          <div className="bg-white rounded-[2.5rem] border border-red-100 p-10">
-            <p className="text-red-600 font-black uppercase tracking-widest text-xs mb-2">Error</p>
-            <p className="text-gray-700 font-bold">{error}</p>
+          <div className="bg-white rounded-lg border border-red-100 p-10">
+            <p className="text-status-red font-extrabold font-heading uppercase tracking-widest text-xs mb-2">Error</p>
+            <p className="text-gray-700 font-bold font-body">{error}</p>
           </div>
         </div>
       </div>
@@ -233,15 +233,15 @@ const SubmissionDetail = () => {
 
   if (!submission) {
     return (
-      <div className="min-h-screen bg-gray-50 p-10">
+      <div className="min-h-screen bg-surface-3 p-10">
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors mb-8"
+            className="flex items-center gap-2 text-muted hover:text-accent font-bold font-body transition-colors mb-8"
           >
             <ArrowLeft size={18} /> Back
           </button>
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 p-10 text-center text-gray-400 font-bold italic">
+          <div className="bg-white rounded-lg border border-black/5 p-10 text-center text-gray-400 font-bold font-body italic">
             Submission not found.
           </div>
         </div>
@@ -250,26 +250,26 @@ const SubmissionDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10">
+    <div className="min-h-screen bg-surface p-6 md:p-10">
       <div className="max-w-[98%] 2xl:max-w-[1800px] w-full mx-auto space-y-8">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors"
+          className="flex items-center gap-2 text-muted hover:text-accent font-bold font-body transition-colors"
         >
           <ArrowLeft size={18} /> Back
         </button>
 
         {/* Header */}
-        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-10">
+        <div className="bg-white rounded-lg border border-black/5 shadow-card p-10">
           <div className="flex flex-col md:flex-row md:items-center gap-8 justify-between">
             <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-3xl flex items-center justify-center font-black text-2xl shadow-lg shadow-indigo-100">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-3xl flex items-center justify-center font-extrabold font-heading text-2xl shadow-hover shadow-accent/20">
                 {studentName?.charAt(0)?.toUpperCase() || <User size={24} />}
               </div>
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Student</p>
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight">{studentName}</h1>
-                <div className="mt-2 flex items-center gap-2 text-sm text-gray-500 font-bold">
+                <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-[0.2em]">Student</p>
+                <h1 className="text-3xl font-extrabold font-heading text-ink tracking-tight">{studentName}</h1>
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted font-bold font-body">
                   <Mail size={16} className="text-gray-300" />
                   {submission.student?.email || '—'}
                 </div>
@@ -277,13 +277,13 @@ const SubmissionDetail = () => {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-500 font-bold">
+              <div className="flex items-center gap-2 text-sm text-muted font-bold font-body">
                 <BookOpen size={16} className="text-gray-300" />
-                <span className="text-gray-900 font-black">{submission.assignment?.title || 'Assignment'}</span>
+                <span className="text-ink font-extrabold font-heading">{submission.assignment?.title || 'Assignment'}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500 font-bold">
+              <div className="flex items-center gap-2 text-sm text-muted font-bold font-body">
                 <Clock size={16} className="text-gray-300" />
-                Submitted: <span className="text-gray-900">{submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '—'}</span>
+                Submitted: <span className="text-ink">{submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '—'}</span>
               </div>
             </div>
 
@@ -291,10 +291,10 @@ const SubmissionDetail = () => {
               {/* 'Hide Brief' button removed per user request */}
 
               {/* Score Display For Student/Teacher */}
-              <div className="bg-indigo-50 px-6 py-4 rounded-3xl border border-indigo-100/50">
-                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 text-center">Total Marks</p>
+              <div className="bg-accent/10 px-6 py-4 rounded-3xl border border-accent/10/50">
+                <p className="text-[10px] font-extrabold font-heading text-indigo-400 uppercase tracking-widest mb-1 text-center">Total Marks</p>
                 <div className="flex items-baseline gap-1 justify-center">
-                  <span className="text-3xl font-black text-indigo-600">
+                  <span className="text-3xl font-extrabold font-heading text-accent">
                     {submission.assignment?.maxScore ?? '—'}
                   </span>
                 </div>
@@ -307,10 +307,10 @@ const SubmissionDetail = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2 space-y-4">
                 <div>
-                  <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <h3 className="text-[10px] font-extrabold font-heading text-accent uppercase tracking-widest mb-2 flex items-center gap-2">
                     <FileText size={12} /> Assignment Instructions
                   </h3>
-                  <div className="bg-gray-50 rounded-[2rem] p-8 text-sm text-gray-700 leading-relaxed max-h-80 overflow-y-auto font-medium border border-gray-100">
+                  <div className="bg-surface-3 rounded-lg p-8 text-sm text-gray-700 leading-relaxed max-h-80 overflow-y-auto font-medium border border-black/5">
                     {submission.assignment?.textContent ? (
                       <div className="whitespace-pre-wrap">{submission.assignment.textContent}</div>
                     ) : submission.assignment?.instructions ? (
@@ -324,20 +324,20 @@ const SubmissionDetail = () => {
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <h3 className="text-[10px] font-extrabold font-heading text-accent uppercase tracking-widest mb-2 flex items-center gap-2">
                     <Database size={12} /> Reference Materials
                   </h3>
                   <div className="space-y-2">
                     {submission.assignment?.assignmentFileUrl ? (
                       <div className="flex flex-col gap-2">
                         <div
-                          className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm"
+                          className="flex items-center justify-between p-4 bg-white border border-black/10 rounded-lg hover:border-indigo-300 hover:bg-accent/10/50 transition-all group shadow-card"
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
                               <FileText size={16} />
                             </div>
-                            <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]">
+                            <span className="text-xs font-bold font-body text-gray-700 truncate max-w-[120px]">
                               {submission.assignment.assignmentFileName || 'Resource File'}
                             </span>
                           </div>
@@ -348,7 +348,7 @@ const SubmissionDetail = () => {
                                 name: submission.assignment.assignmentFileName || 'Resource File',
                                 type: submission.assignment.assignmentFileType
                               })}
-                              className="p-2 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors"
+                              className="p-2 hover:bg-accent/20 rounded-lg text-accent transition-colors"
                               title="View Resource"
                             >
                               <Eye size={16} />
@@ -358,7 +358,7 @@ const SubmissionDetail = () => {
                               download={submission.assignment.assignmentFileName || 'Resource'}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                              className="p-2 hover:bg-accent/20 rounded-lg text-gray-400 hover:text-accent transition-colors"
                               title="Download Resource"
                             >
                               <Download size={16} />
@@ -367,8 +367,8 @@ const SubmissionDetail = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 ">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase">No extra files</p>
+                      <div className="p-8 text-center bg-surface-3 rounded-lg border border-dashed border-black/10 ">
+                        <p className="text-[10px] font-bold font-body text-gray-400 uppercase">No extra files</p>
                       </div>
                     )}
                   </div>
@@ -379,11 +379,11 @@ const SubmissionDetail = () => {
         </div>
 
         {/* Teacher Feedback & Remarks */}
-        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-10 space-y-8 animate-in slide-in-from-bottom duration-500">
+        <div className="bg-white rounded-lg border border-black/5 shadow-card p-10 space-y-8 animate-in slide-in-from-bottom duration-500">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teacher</p>
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight">Remarks & Feedback</h2>
+              <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1">Teacher</p>
+              <h2 className="text-2xl font-extrabold font-heading text-ink tracking-tight">Remarks & Feedback</h2>
             </div>
 
             {!isStudent && (
@@ -391,19 +391,19 @@ const SubmissionDetail = () => {
                 {submission?.tutorialRequested && !submission?.tutorialApproved && (
                   <button
                     onClick={() => dispatch(approveTutorialMode(submissionId))}
-                    className="flex items-center gap-3 px-10 py-4 bg-amber-500 text-white font-black rounded-[1.25rem] hover:bg-amber-600 shadow-xl shadow-amber-100 transition-all active:scale-95 text-sm uppercase tracking-widest mr-4"
+                    className="flex items-center gap-3 px-10 py-4 bg-amber-500 text-white font-extrabold font-heading rounded-[1.25rem] hover:bg-amber-600 shadow-xl shadow-amber-100 transition-all active:scale-95 text-sm uppercase tracking-widest mr-4"
                   >
                     <CheckCircle size={18} />
                     Approve Tutorial
                   </button>
                 )}
                 <div className="flex flex-col items-end mr-6">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Assigned Marks</p>
+                  <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1">Assigned Marks</p>
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-gray-50 rounded-2xl border border-gray-100 p-1">
+                    <div className="flex items-center bg-surface-3 rounded-lg border border-black/5 p-1">
                       <button
                         onClick={() => setMarks(m => Math.max(0, (Number(m) || 0) - 1))}
-                        className="p-2 hover:bg-white hover:shadow-sm rounded-xl text-gray-400 hover:text-indigo-600 transition-all active:scale-90"
+                        className="p-2 hover:bg-white hover:shadow-card rounded-xl text-gray-400 hover:text-accent transition-all active:scale-90"
                         title="Decrease marks"
                       >
                         <Minus size={16} strokeWidth={3} />
@@ -424,24 +424,24 @@ const SubmissionDetail = () => {
                           }
                         }}
                         placeholder=""
-                        className="w-16 bg-transparent border-none font-black text-indigo-600 focus:outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-16 bg-transparent border-none font-extrabold font-heading text-accent focus:outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <button
                         onClick={() => setMarks(m => Math.min(submission.assignment?.maxScore ?? Infinity, (Number(m) || 0) + 1))}
-                        className="p-2 hover:bg-white hover:shadow-sm rounded-xl text-gray-400 hover:text-indigo-600 transition-all active:scale-90"
+                        className="p-2 hover:bg-white hover:shadow-card rounded-xl text-gray-400 hover:text-accent transition-all active:scale-90"
                         title="Increase marks"
                       >
                         <Plus size={16} strokeWidth={3} />
                       </button>
                     </div>
-                    <span className="font-black text-gray-300 text-lg">/ {submission.assignment?.maxScore ?? '—'}</span>
+                    <span className="font-extrabold font-heading text-gray-300 text-lg">/ {submission.assignment?.maxScore ?? '—'}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleSaveRemarks(true)}
                   disabled={savingRemarks}
-                  className="flex items-center gap-3 px-10 py-4 bg-indigo-600 text-white font-black rounded-[1.25rem] hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-sm uppercase tracking-widest disabled:opacity-50"
+                  className="flex items-center gap-3 px-10 py-4 bg-accent text-white font-extrabold font-heading rounded-[1.25rem] hover:bg-indigo-700 shadow-xl shadow-accent/20 transition-all active:scale-95 text-sm uppercase tracking-widest disabled:opacity-50"
                 >
                   {savingRemarks ? (
                     <>
@@ -463,20 +463,20 @@ const SubmissionDetail = () => {
             disabled={isStudent}
             placeholder={isStudent ? "No feedback provided." : "Add feedback for student..."}
             rows={5}
-            className={`w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-3xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 flex-1 transition-all text-gray-900 font-medium ${isStudent ? 'opacity-70 cursor-not-allowed border-transparent bg-gray-50/50' : 'bg-white'}`}
+            className={`w-full px-6 py-4 bg-surface-3 border border-black/10 rounded-3xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 flex-1 transition-all text-ink font-medium ${isStudent ? 'opacity-70 cursor-not-allowed border-transparent bg-surface-3/50' : 'bg-white'}`}
           />
         </div>
 
         {/* Section-wise: Diagram (left) + Checking Panel (right) */}
         <div className="grid grid-cols-1 gap-10">
           {/* Use Case Diagram */}
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-gray-50 bg-gray-50/30">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Section</p>
-              <h3 className="text-xl font-black text-gray-900">Use Case Diagram</h3>
+          <div className="bg-white rounded-lg border border-black/5 shadow-card overflow-hidden">
+            <div className="p-8 border-b border-gray-50 bg-surface-3/30">
+              <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-[0.2em]">Section</p>
+              <h3 className="text-xl font-extrabold font-heading text-ink">Use Case Diagram</h3>
             </div>
             <div className="flex flex-col lg:flex-row w-full gap-8 h-auto lg:h-[700px] p-8">
-              <div className="w-full lg:w-[70%] lg:flex-none min-w-0 h-[500px] lg:h-full border border-slate-100 rounded-[2rem] overflow-hidden bg-slate-50/30 shadow-inner">
+              <div className="w-full lg:w-[70%] lg:flex-none min-w-0 h-[500px] lg:h-full border border-slate-100 rounded-lg overflow-hidden bg-slate-50/30 shadow-inner">
                 <UseCaseDiagramEditor
                   key={submission?.id || 'empty-uc'}
                   initialData={modelPayload.diagram}
@@ -485,7 +485,7 @@ const SubmissionDetail = () => {
                 />
               </div>
               <div className="w-full lg:w-[30%] min-w-[320px] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-full">
-                <div className="flex-1 overflow-hidden w-full rounded-[2rem] border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-slate-50/50">
+                <div className="flex-1 overflow-hidden w-full rounded-lg border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-slate-50/50">
                   <CheckingModePanel
                     activeSection="usecase"
                     modelOverride={modelPayload}
@@ -550,58 +550,58 @@ const SubmissionDetail = () => {
       {/* Resource Preview Modal (Shared Logic) */}
       {previewFile && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col shadow-hover overflow-hidden relative">
+            <div className="p-6 border-b border-black/5 flex justify-between items-center bg-white sticky top-0 z-10">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-accent/10 text-accent rounded-xl flex items-center justify-center">
                   <FileText size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900 leading-none">{previewFile.name}</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Resource Preview</p>
+                  <h3 className="text-lg font-extrabold font-heading text-ink leading-none">{previewFile.name}</h3>
+                  <p className="text-[10px] font-bold font-body text-gray-400 uppercase tracking-widest mt-1">Resource Preview</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <a
                   href={resolveResourceUrl(previewFile.url)}
                   download={previewFile.name}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-xl font-bold font-body text-xs hover:bg-accent/20 transition-all"
                 >
                   <Download size={16} /> Download
                 </a>
                 <button
                   onClick={() => setPreviewFile(null)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+                  className="p-2 hover:bg-surface-3 rounded-full transition-colors text-gray-400 hover:text-muted"
                 >
                   <X size={24} />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-gray-50/50 p-8 flex items-center justify-center">
+            <div className="flex-1 overflow-auto bg-surface-3/50 p-8 flex items-center justify-center">
               {previewFile.url && (previewFile.type?.startsWith('image/') ||
                 ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.url.toLowerCase().endsWith('.' + ext)) ||
                 ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.name.toLowerCase().endsWith('.' + ext))) ? (
                 <img
                   src={resolveResourceUrl(previewFile.url)}
                   alt={previewFile.name}
-                  className="max-w-full h-auto object-contain rounded-2xl shadow-lg border border-white"
+                  className="max-w-full h-auto object-contain rounded-lg shadow-hover border border-white"
                 />
               ) : (previewFile.type === 'application/pdf' || previewFile.url.toLowerCase().endsWith('.pdf') || previewFile.name.toLowerCase().endsWith('.pdf')) ? (
                 <iframe
                   src={resolveResourceUrl(previewFile.url)}
-                  className="w-full h-[70vh] rounded-2xl border border-gray-100 shadow-lg"
+                  className="w-full h-[70vh] rounded-lg border border-black/5 shadow-hover"
                   title="PDF Preview"
                 />
               ) : (
                 <div className="text-center p-20">
-                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-gray-300 shadow-sm border border-gray-50">
+                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-gray-300 shadow-card border border-gray-50">
                     <FileText size={32} />
                   </div>
-                  <p className="text-gray-400 font-bold">No interactive preview for this file type.</p>
+                  <p className="text-gray-400 font-bold font-body">No interactive preview for this file type.</p>
                   <button
                     onClick={() => window.open(resolveResourceUrl(previewFile.url), '_blank')}
-                    className="mt-4 px-6 py-2 bg-indigo-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest"
+                    className="mt-4 px-6 py-2 bg-accent text-white font-extrabold font-heading rounded-xl text-[10px] uppercase tracking-widest"
                   >
                     Open in New Tab
                   </button>

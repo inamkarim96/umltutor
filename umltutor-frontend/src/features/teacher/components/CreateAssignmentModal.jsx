@@ -117,12 +117,12 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h2 className="text-2xl font-black text-gray-900">{isEditMode ? 'Edit Assignment' : 'Create Assignment'}</h2>
+            <div className="bg-white rounded-lg shadow-hover w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="px-8 py-6 border-b border-black/5 flex justify-between items-center bg-surface-3/50">
+                    <h2 className="text-2xl font-extrabold font-heading text-ink">{isEditMode ? 'Edit Assignment' : 'Create Assignment'}</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                        className="p-2 text-gray-400 hover:text-muted hover:bg-surface-3 rounded-xl transition-all"
                     >
                         <X size={20} />
                     </button>
@@ -131,7 +131,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                 <div className="p-8 overflow-y-auto">
                     <form id="assignment-form" onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                            <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
                                 <Edit3 size={16} className="text-indigo-500" /> Assignment Title
                             </label>
                             <input
@@ -141,14 +141,14 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                 onChange={handleChange}
                                 required
                                 placeholder="e.g., UML Class Diagram Exercise"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-gray-900 font-medium"
+                                className="w-full px-4 py-3 bg-surface-3 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-ink font-medium"
                             />
                         </div>
 
 
 
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                            <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
                                 <Calendar size={16} className="text-indigo-500" /> Deadline (Due Date & Time)
                             </label>
                             <input
@@ -157,12 +157,12 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                 value={formData.deadline}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-gray-900 font-medium"
+                                className="w-full px-4 py-3 bg-surface-3 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-ink font-medium"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                            <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
                                 <Type size={16} className="text-indigo-500" /> Assignment Type
                             </label>
                             <select
@@ -170,7 +170,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                 value={formData.assignmentType}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-gray-900 font-medium"
+                                className="w-full px-4 py-3 bg-surface-3 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-ink font-medium"
                             >
                                 <option value="TEXT">Text Assignment</option>
                                 <option value="FILE">File Assignment</option>
@@ -179,7 +179,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
                         {formData.assignmentType === 'TEXT' && (
                             <div className="animate-in fade-in duration-200">
-                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
                                     <FileText size={16} className="text-indigo-500" /> Assignment Text Content
                                 </label>
                                 <textarea
@@ -189,34 +189,34 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                     required
                                     rows="5"
                                     placeholder="Enter the full text content of this assignment here..."
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-gray-900 resize-none font-medium"
+                                    className="w-full px-4 py-3 bg-surface-3 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-ink resize-none font-medium"
                                 />
                             </div>
                         )}
 
                         {formData.assignmentType === 'FILE' && (
                             <div className="animate-in fade-in duration-200">
-                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
                                     <Upload size={16} className="text-indigo-500" /> {isEditMode ? 'Update File' : 'Upload File'}
                                 </label>
 
                                 {isEditMode && initialData.assignmentFileName && !selectedFile && !removeExistingFile && (
-                                    <div className="mb-3 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between">
+                                    <div className="mb-3 px-4 py-2 bg-accent/10 border border-accent/10 rounded-xl flex items-center justify-between">
                                         <div className="flex items-center gap-2 overflow-hidden">
                                             <FileText size={14} className="text-indigo-500 shrink-0" />
-                                            <span className="text-xs font-bold text-indigo-700 truncate">{initialData.assignmentFileName}</span>
+                                            <span className="text-xs font-bold font-body text-indigo-700 truncate">{initialData.assignmentFileName}</span>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => setRemoveExistingFile(true)}
-                                            className="text-[10px] font-black uppercase text-red-500 hover:text-red-700"
+                                            className="text-[10px] font-extrabold font-heading uppercase text-status-red hover:text-red-700"
                                         >
                                             Remove
                                         </button>
                                     </div>
                                 )}
 
-                                <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${selectedFile ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50/50'}`}>
+                                <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${selectedFile ? 'border-indigo-300 bg-accent/10' : 'border-black/10 bg-surface-3 hover:border-indigo-300 hover:bg-accent/10/50'}`}>
                                     <input
                                         type="file"
                                         id="file-input"
@@ -226,38 +226,38 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                     />
                                     {selectedFile ? (
                                         <div className="flex flex-col items-center gap-2">
-                                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                                                <FileText size={20} className="text-indigo-600" />
+                                            <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center">
+                                                <FileText size={20} className="text-accent" />
                                             </div>
-                                            <p className="text-sm font-bold text-indigo-700">{selectedFile.name}</p>
+                                            <p className="text-sm font-bold font-body text-indigo-700">{selectedFile.name}</p>
                                             <p className="text-xs text-gray-400">{(selectedFile.size / 1024).toFixed(1)} KB</p>
                                             <button
                                                 type="button"
                                                 onClick={() => { setSelectedFile(null); }}
-                                                className="text-xs text-red-500 hover:text-red-700 font-bold mt-1"
+                                                className="text-xs text-status-red hover:text-red-700 font-bold font-body mt-1"
                                             >
                                                 Undo selection
                                             </button>
                                         </div>
                                     ) : (
                                         <label htmlFor="file-input" className="cursor-pointer flex flex-col items-center gap-2">
-                                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-surface-3 rounded-full flex items-center justify-center">
                                                 <Upload size={20} className="text-gray-400" />
                                             </div>
-                                            <p className="text-sm font-bold text-gray-600">
+                                            <p className="text-sm font-bold font-body text-muted">
                                                 {isEditMode ? 'Click to replace existing file' : 'Click to upload a file'}
                                             </p>
                                             <p className="text-xs text-gray-400">PDF, DOC, DOCX, PNG, JPG — max 10MB</p>
                                         </label>
                                     )}
                                 </div>
-                                {fileError && <p className="mt-2 text-xs font-bold text-red-500">{fileError}</p>}
+                                {fileError && <p className="mt-2 text-xs font-bold font-body text-status-red">{fileError}</p>}
                             </div>
                         )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
                                     <Calendar size={16} className="text-indigo-500" /> Release Date
                                 </label>
                                 <input
@@ -267,12 +267,12 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                     onChange={handleChange}
                                     required
                                     max={formData.deadline}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-gray-900 font-medium"
+                                    className="w-full px-4 py-3 bg-surface-3 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-ink font-medium"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
                                     <Type size={16} className="text-indigo-500" /> Max Score
                                 </label>
                                 <input
@@ -282,18 +282,18 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                     onChange={handleChange}
                                     required
                                     min="1"
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-gray-900 font-medium"
+                                    className="w-full px-4 py-3 bg-surface-3 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-ink font-medium"
                                 />
                             </div>
                         </div>
                     </form>
                 </div>
 
-                <div className="px-8 py-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+                <div className="px-8 py-6 border-t border-black/5 bg-surface-3/50 flex justify-end gap-3">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition-all"
+                        className="px-6 py-2.5 text-muted font-bold font-body hover:bg-gray-200 rounded-xl transition-all"
                     >
                         Cancel
                     </button>
@@ -301,9 +301,9 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                         type="submit"
                         form="assignment-form"
                         disabled={isSubmitting}
-                        className={`px-8 py-2.5 text-white font-black rounded-xl shadow-lg transition-all ${isSubmitting
+                        className={`px-8 py-2.5 text-white font-extrabold font-heading rounded-xl shadow-hover transition-all ${isSubmitting
                                 ? 'bg-indigo-400 cursor-not-allowed'
-                                : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5'
+                                : 'bg-accent hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5'
                             }`}
                     >
                         {isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Assignment')}

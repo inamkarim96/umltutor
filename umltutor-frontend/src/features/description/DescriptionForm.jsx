@@ -92,13 +92,13 @@ export const DescriptionForm = ({
         onSave(currentValues);
     };
 
-    const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-gray-700";
+    const inputClass = "w-full px-4 py-3 rounded-xl border border-black/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-gray-700";
 
     if (availableUseCases.length === 0 && !isDevelopmentMode) {
         return (
-            <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-center gap-4 text-amber-700">
+            <div className="bg-amber-50 border border-amber-200 p-6 rounded-lg flex items-center gap-4 text-amber-700">
                 <AlertCircle size={24} />
-                <p className="font-bold">No use cases found in diagram. Please add use cases in Step 1.</p>
+                <p className="font-bold font-body">No use cases found in diagram. Please add use cases in Step 1.</p>
             </div>
         );
     }
@@ -110,14 +110,14 @@ export const DescriptionForm = ({
                 {availableUseCases.length === 0 && isDevelopmentMode && (
                     <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-700 mb-6">
                         <AlertCircle size={20} />
-                        <p className="text-sm font-bold">Warning: No Use Cases detected in the diagram. You can still write descriptions in Development Mode.</p>
+                        <p className="text-sm font-bold font-body">Warning: No Use Cases detected in the diagram. You can still write descriptions in Development Mode.</p>
                     </div>
                 )}
 
                 {/* 1. Select Use Case */}
                 {!isReadOnly && (
                     <div className="space-y-4">
-                        <label className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-400">
+                        <label className="flex items-center gap-2 text-sm font-extrabold font-heading uppercase tracking-widest text-slate-400">
                             <Activity size={14} />
                             1. Select Use Case
                         </label>
@@ -133,7 +133,7 @@ export const DescriptionForm = ({
                 )}
 
                 <div className="space-y-4">
-                    <label className="flex items-center justify-between text-sm font-black uppercase tracking-widest text-slate-400">
+                    <label className="flex items-center justify-between text-sm font-extrabold font-heading uppercase tracking-widest text-slate-400">
                         <div className="flex items-center gap-2">
                             <User size={14} />
                             2. Primary Actor
@@ -148,12 +148,12 @@ export const DescriptionForm = ({
                         autoComplete="off"
                         onBlur={handleFieldBlur}
                     />
-                    {errors.primaryActor && <p className="mt-2 text-xs text-red-500 font-bold">{errors.primaryActor.message}</p>}
+                    {errors.primaryActor && <p className="mt-2 text-xs text-status-red font-bold font-body">{errors.primaryActor.message}</p>}
                 </div>
 
                 {/* 3. Preconditions */}
                 <div className="space-y-4">
-                    <label className="flex items-center justify-between text-sm font-black uppercase tracking-widest text-slate-400">
+                    <label className="flex items-center justify-between text-sm font-extrabold font-heading uppercase tracking-widest text-slate-400">
                         <div className="flex items-center gap-2">
                             <ScrollText size={14} />
                             3. Preconditions
@@ -167,12 +167,12 @@ export const DescriptionForm = ({
                         onBlur={handleFieldBlur}
                         placeholder="Describe system state before execution..."
                     />
-                    {errors.preconditions && <p className="mt-2 text-xs text-red-500 font-bold">{errors.preconditions.message}</p>}
+                    {errors.preconditions && <p className="mt-2 text-xs text-status-red font-bold font-body">{errors.preconditions.message}</p>}
                 </div>
 
                 {/* 4. Postconditions */}
                 <div className="space-y-4">
-                    <label className="flex items-center justify-between text-sm font-black uppercase tracking-widest text-slate-400">
+                    <label className="flex items-center justify-between text-sm font-extrabold font-heading uppercase tracking-widest text-slate-400">
                         <div className="flex items-center gap-2">
                             <ScrollText size={14} />
                             4. Postconditions
@@ -186,7 +186,7 @@ export const DescriptionForm = ({
                         onBlur={handleFieldBlur}
                         placeholder="Describe system state after successful completion..."
                     />
-                    {errors.postconditions && <p className="mt-2 text-xs text-red-500 font-bold">{errors.postconditions.message}</p>}
+                    {errors.postconditions && <p className="mt-2 text-xs text-status-red font-bold font-body">{errors.postconditions.message}</p>}
                 </div>
 
                 {/* 5. Main Success Scenario */}
@@ -206,7 +206,7 @@ const MainSuccessScenarioCard = ({ isReadOnly, onFieldBlur }) => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-400 uppercase">
+                <div className="flex items-center gap-2 text-sm font-extrabold font-heading uppercase tracking-widest text-slate-400 uppercase">
                     <ListChecks size={14} />
                     5. Main Success Scenario
                 </div>
@@ -214,27 +214,27 @@ const MainSuccessScenarioCard = ({ isReadOnly, onFieldBlur }) => {
                     <button
                         type="button"
                         onClick={() => append({ stepNumber: fields.length + 1, action: '' })}
-                        className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-xs hover:bg-indigo-100 transition-all border border-indigo-100"
+                        className="px-4 py-2 bg-accent/10 text-accent rounded-lg font-bold font-body text-xs hover:bg-accent/20 transition-all border border-accent/10"
                     >
                         + Add Step
                     </button>
                 )}
             </div>
             {errors.mainFlow?.message && (
-                <p className="mt-[-1rem] mb-4 text-xs text-red-500 font-bold px-6">{errors.mainFlow.message}</p>
+                <p className="mt-[-1rem] mb-4 text-xs text-status-red font-bold font-body px-6">{errors.mainFlow.message}</p>
             )}
 
             <div className="space-y-4">
                 {fields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-4 group">
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0 text-xs font-black text-gray-400 border border-gray-100">
+                        <div className="w-10 h-10 rounded-xl bg-surface-3 flex items-center justify-center shrink-0 text-xs font-extrabold font-heading text-gray-400 border border-black/5">
                             {index + 1}
                         </div>
                         <div className="flex-1">
                             <input
                                 {...register(`mainFlow.${index}.action`)}
                                 disabled={isReadOnly}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
+                                className="w-full px-4 py-3 rounded-xl border border-black/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
                                 placeholder="Action step content..."
                                 autoComplete="off"
                                 onBlur={onFieldBlur}
@@ -244,7 +244,7 @@ const MainSuccessScenarioCard = ({ isReadOnly, onFieldBlur }) => {
                             <button
                                 type="button"
                                 onClick={() => remove(index)}
-                                className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
+                                className="p-2.5 text-gray-400 hover:text-status-red hover:bg-status-red/10 rounded-xl transition-all border border-transparent hover:border-red-100"
                                 title="Remove Step"
                             >
                                 <Trash2 size={18} />
@@ -264,18 +264,18 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-400">
+            <div className="flex items-center gap-2 text-sm font-extrabold font-heading uppercase tracking-widest text-slate-400">
                 <Split size={14} />
                 6. Alternative Flows (Optional)
             </div>
             <div className="space-y-4">
                 {fields.map((field, index) => (
-                    <div key={field.id} className="p-6 rounded-2xl bg-gray-50/50 border border-gray-100 relative group">
+                    <div key={field.id} className="p-6 rounded-lg bg-surface-3/50 border border-black/5 relative group">
                         {!isReadOnly && (
                             <button
                                 type="button"
                                 onClick={() => remove(index)}
-                                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 transition-all hover:bg-red-50 rounded-lg"
+                                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-status-red transition-all hover:bg-status-red/10 rounded-lg"
                                 title="Remove Alternative Flow"
                             >
                                 <Trash2 size={16} />
@@ -283,10 +283,10 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                             <div className="md:col-span-3 space-y-2">
-                                <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Related Step</label>
+                                <label className="text-[10px] font-extrabold font-heading uppercase text-gray-400 tracking-wider">Related Step</label>
                                 <select
                                     {...register(`alternativeFlows.${index}.relatedStep`, { valueAsNumber: true })}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 font-bold text-xs bg-white h-10"
+                                    className="w-full px-3 py-2 rounded-lg border border-black/10 font-bold font-body text-xs bg-white h-10"
                                     onBlur={onFieldBlur}
                                 >
                                     {mainFlow.map((_, i) => <option key={i} value={i + 1}>Step {i + 1}</option>)}
@@ -294,20 +294,20 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                             </div>
                             <div className="md:col-span-9 space-y-3">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Condition</label>
+                                    <label className="text-[10px] font-extrabold font-heading uppercase text-gray-400 tracking-wider">Condition</label>
                                     <input
                                         {...register(`alternativeFlows.${index}.condition`)}
-                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium"
+                                        className="w-full px-4 py-2.5 rounded-lg border border-black/10 text-sm font-medium"
                                         placeholder="If this condition is met..."
                                         autoComplete="off"
                                         onBlur={onFieldBlur}
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">System Response</label>
+                                    <label className="text-[10px] font-extrabold font-heading uppercase text-gray-400 tracking-wider">System Response</label>
                                     <input
                                         {...register(`alternativeFlows.${index}.response`)}
-                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium"
+                                        className="w-full px-4 py-2.5 rounded-lg border border-black/10 text-sm font-medium"
                                         placeholder="Then the system performs this action..."
                                         autoComplete="off"
                                         onBlur={onFieldBlur}
@@ -321,7 +321,7 @@ const AlternativeFlowsCard = ({ isReadOnly, onFieldBlur }) => {
                     <button
                         type="button"
                         onClick={() => append({ relatedStep: 1, condition: '', response: '' })}
-                        className="w-full py-5 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 font-bold hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all text-sm"
+                        className="w-full py-5 border-2 border-dashed border-black/10 rounded-lg text-gray-400 font-bold font-body hover:border-indigo-400 hover:text-accent hover:bg-accent/10/50 transition-all text-sm"
                     >
                         + Add Alternative Flow
                     </button>

@@ -223,7 +223,7 @@ const SSDMessageEdge = ({
                         <div className="flex items-center h-full">
                             <div className={`
                                 text-[11px] px-1.5 py-0.5 rounded leading-tight select-none
-                                font-semibold text-gray-900 bg-white/90
+                                font-semibold text-ink bg-white/90
                                 ${selected ? 'ring-1 ring-blue-400' : ''}
                             `}>
                                 {labelText}
@@ -373,8 +373,8 @@ const SSDMessageEdge = ({
                         <div className={`
                             text-center text-[11px] px-1.5 py-0.5 rounded leading-tight select-none
                             ${isReturn
-                                ? 'font-normal text-gray-600 italic bg-white/70'
-                                : 'font-semibold text-gray-900 bg-white/80'
+                                ? 'font-normal text-muted italic bg-white/70'
+                                : 'font-semibold text-ink bg-white/80'
                             }
                             ${selected ? 'ring-1 ring-blue-400' : ''}
                         `}>

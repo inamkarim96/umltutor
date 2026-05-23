@@ -118,10 +118,10 @@ export const UseCaseDescriptionEditor = ({
 
     if (useCaseNodes.length === 0 && isTutorialMode) {
         return (
-            <div className="flex flex-col items-center justify-center h-[500px] text-center p-8 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+            <div className="flex flex-col items-center justify-center h-[500px] text-center p-8 bg-surface-3 rounded-3xl border-2 border-dashed border-black/10">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-3xl mb-4">💡</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No Use Cases Found</h3>
-                <p className="text-gray-500 max-w-md">Please go back to <b>Step 1: Use Case Diagram</b> and add at least one Use Case node to the diagram before writing descriptions.</p>
+                <h3 className="text-xl font-bold font-body text-ink mb-2">No Use Cases Found</h3>
+                <p className="text-muted max-w-md">Please go back to <b>Step 1: Use Case Diagram</b> and add at least one Use Case node to the diagram before writing descriptions.</p>
             </div>
         );
     }
@@ -129,8 +129,8 @@ export const UseCaseDescriptionEditor = ({
     return (
         <div className="flex flex-col h-full overflow-visible">
             <header className="mb-6 px-4">
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Step 2: Use Case Descriptions</h2>
-                <p className="text-sm text-gray-500 font-medium">Define the behavior and requirements for each use case.</p>
+                <h2 className="text-2xl font-extrabold font-heading text-ink tracking-tight">Step 2: Use Case Descriptions</h2>
+                <p className="text-sm text-muted font-medium">Define the behavior and requirements for each use case.</p>
             </header>
 
             <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-12">
@@ -146,14 +146,14 @@ export const UseCaseDescriptionEditor = ({
                             className={`flex flex-col xl:flex-row w-full gap-6 lg:gap-8 mb-16 ${isCheckingActive ? 'items-start' : ''}`}
                         >
                             {/* Left: Description Form Card */}
-                            <div className="flex-1 min-w-0 bg-white rounded-[2.5rem] border border-gray-200 p-8 shadow-xl shadow-gray-100/50 transition-all">
+                            <div className="flex-1 min-w-0 bg-white rounded-lg border border-black/10 p-8 shadow-xl shadow-gray-100/50 transition-all">
                                 <div className="flex items-center justify-between mb-8">
                                     <div className="flex items-center gap-3">
-                                        <span className="bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-black shadow-md flex items-center justify-center min-w-[3rem]">
+                                        <span className="bg-accent text-white px-4 py-1.5 rounded-full text-sm font-extrabold font-heading shadow-md flex items-center justify-center min-w-[3rem]">
                                             {displayLabel}
                                         </span>
                                         <div className="h-px w-24 bg-slate-100"></div>
-                                        <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                                        <span className="text-xs font-extrabold font-heading uppercase tracking-[0.2em] text-slate-400">
                                             Use Case Description Section
                                         </span>
                                     </div>
@@ -161,7 +161,7 @@ export const UseCaseDescriptionEditor = ({
                                     {!isReadOnly && (
                                         <button
                                             onClick={() => handleRemoveBlock(index)}
-                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
+                                            className="p-2 text-slate-300 hover:text-status-red hover:bg-status-red/10 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-extrabold font-heading uppercase tracking-widest"
                                             title="Remove Section"
                                         >
                                             <X size={14} /> Remove
@@ -189,7 +189,7 @@ export const UseCaseDescriptionEditor = ({
 
                             {/* Right: Checking Report Card */}
                             {isCheckingActive && (
-                                <div className="w-full xl:w-96 flex-shrink-0 flex flex-col h-auto animate-in slide-in-from-right-4 duration-500 bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden shadow-xl shadow-gray-100/50">
+                                <div className="w-full xl:w-96 flex-shrink-0 flex flex-col h-auto animate-in slide-in-from-right-4 duration-500 bg-white rounded-lg border border-black/10 overflow-hidden shadow-xl shadow-gray-100/50">
                                     {/* The panel will naturally fill the space */}
                                     <CheckingModePanel
                                         activeSection="description"
@@ -210,7 +210,7 @@ export const UseCaseDescriptionEditor = ({
                 {!isReadOnly && (
                     <button
                         onClick={handleAddBlock}
-                        className="w-full py-6 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-500 font-black hover:bg-indigo-50 hover:border-indigo-400 transition-all flex items-center justify-center gap-2"
+                        className="w-full py-6 border-2 border-dashed border-accent/20 rounded-lg text-indigo-500 font-extrabold font-heading hover:bg-accent/10 hover:border-indigo-400 transition-all flex items-center justify-center gap-2"
                     >
                         <span className="text-xl">+</span>
                         Add Another Use Case Description

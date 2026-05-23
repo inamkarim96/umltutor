@@ -161,7 +161,7 @@ const ActorNode = ({ id, data, selected }) => {
     return (
         <div
             ref={nodeRef}
-            className={`group relative flex flex-col items-center p-2 ${!isReadOnly ? 'cursor-pointer' : 'cursor-default'} ${hasErrors ? 'border-2 border-dashed border-red-500 bg-red-50/50 rounded-xl' : ''}`}
+            className={`group relative flex flex-col items-center p-2 ${!isReadOnly ? 'cursor-pointer' : 'cursor-default'} ${hasErrors ? 'border-2 border-dashed border-red-500 bg-status-red/10/50 rounded-xl' : ''}`}
             style={{
                 zIndex: 50,
                 width: `${currentWidth}px`,
@@ -174,7 +174,7 @@ const ActorNode = ({ id, data, selected }) => {
             {hasErrors && (
                 <div
                     title={checkErrors.map(e => e.message).join('\n')}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center cursor-help z-[110] shadow-lg animate-bounce"
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-status-red/100 text-white text-xs rounded-full flex items-center justify-center cursor-help z-[110] shadow-hover animate-bounce"
                 >
                     ❌
                 </div>
@@ -186,7 +186,7 @@ const ActorNode = ({ id, data, selected }) => {
                     width={currentIconSize}
                     height={currentIconSize * 1.5}
                     viewBox="0 0 40 60"
-                    className="text-gray-900 fill-current pointer-events-none"
+                    className="text-ink fill-current pointer-events-none"
                 >
                     <circle cx="20" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
                     <line x1="20" y1="18" x2="20" y2="35" stroke="currentColor" strokeWidth="2" />
@@ -196,7 +196,7 @@ const ActorNode = ({ id, data, selected }) => {
                 </svg>
                 {!isReadOnly && (
                     <div
-                        className="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full cursor-ew-resize hover:bg-indigo-600 opacity-0 group-hover/icon:opacity-100 resize-handle nodrag"
+                        className="absolute top-0 right-0 w-2 h-2 bg-accent/100 rounded-full cursor-ew-resize hover:bg-accent opacity-0 group-hover/icon:opacity-100 resize-handle nodrag"
                         style={{ transform: 'translate(50%, -50%)' }}
                         onMouseDown={handleIconResizeStart}
                         title="Drag to resize actor icon"
@@ -221,7 +221,7 @@ const ActorNode = ({ id, data, selected }) => {
                     />
                 ) : (
                     <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900 select-none pointer-events-none">{label}</span>
+                        <span className="text-sm font-medium text-ink select-none pointer-events-none">{label}</span>
                         {isLocked && <Lock size={12} className="text-indigo-500 ml-1" />}
                     </div>
                 )}

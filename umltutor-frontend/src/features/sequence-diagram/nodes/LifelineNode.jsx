@@ -8,11 +8,11 @@ const LifelineNode = ({ data, selected }) => {
             <div 
                 className={`
                     w-32 h-12 flex items-center justify-center 
-                    bg-white border-2 rounded-sm shadow-sm transition-all
-                    ${selected ? 'border-indigo-600 ring-2 ring-indigo-100' : 'border-gray-800'}
+                    bg-white border-2 rounded-sm shadow-card transition-all
+                    ${selected ? 'border-accent ring-2 ring-indigo-100' : 'border-gray-800'}
                 `}
             >
-                <div className="text-[11px] font-black tracking-tight text-gray-900 px-2 text-center uppercase truncate">
+                <div className="text-[11px] font-extrabold font-heading tracking-tight text-ink px-2 text-center uppercase truncate">
                     {data.label || 'Instance:Class'}
                 </div>
             </div>
@@ -38,7 +38,7 @@ const LifelineNode = ({ data, selected }) => {
             
             {/* Delete Handle if active */}
             {selected && !data.isReadOnly && (
-                <div className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-lg animate-in zoom-in">
+                <div className="absolute -top-3 -right-3 w-6 h-6 bg-status-red/100 text-white rounded-full flex items-center justify-center text-[10px] shadow-hover animate-in zoom-in">
                     ✕
                 </div>
             )}

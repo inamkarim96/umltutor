@@ -250,7 +250,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
             {/* ── Name Box ──────────────────────────────────────────────── */}
             <div
                 className={`
-                px-4 py-2 rounded-lg border shadow-sm min-w-[110px] text-center
+                px-4 py-2 rounded-lg border shadow-card min-w-[110px] text-center
                 bg-white border-gray-900 transition-colors
                 ${selected ? 'ring-2 ring-blue-400 bg-blue-50' : ''}
                 cursor-grab active:cursor-grabbing
@@ -293,7 +293,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                             width={currentIconSize}
                             height={currentIconSize}
                             viewBox="0 0 24 24"
-                            className="text-green-600"
+                            className="text-status-green"
                         >
                             <rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
                             <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" strokeWidth="2" />
@@ -308,7 +308,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                                 onTouchStart={handleIconResizeStart}
                                 title={`Resize system icon (Min: ${MIN_ICON_SIZE}px, Max: ${MAX_ICON_SIZE}px)`}
                             >
-                                <div className="w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 group-hover/iconresize:bg-green-600 group-hover/iconresize:scale-150 transition-all" />
+                                <div className="w-2 h-2 bg-status-green/100 rounded-full opacity-0 group-hover:opacity-100 group-hover/iconresize:bg-green-600 group-hover/iconresize:scale-150 transition-all" />
                             </div>
                         )}
                     </div>
@@ -354,7 +354,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                         autoFocus
                     />
                 ) : (
-                    <span className="text-sm font-semibold text-gray-900">{label}</span>
+                    <span className="text-sm font-semibold text-ink">{label}</span>
                 )}
             </div>
 
@@ -375,7 +375,7 @@ const SSDLifelineNode = ({ id, data, selected }) => {
                         onTouchStart={handleResizeStart}
                         title="Drag vertically to change lifeline height"
                     >
-                        <div className="w-6 h-6 rounded-full opacity-80 shadow-md border-2 border-white bg-gray-500 group-hover/resize:scale-110 group-hover/resize:bg-blue-500 transition-all cursor-ns-resize" />
+                        <div className="w-6 h-6 rounded-full opacity-80 shadow-md border-2 border-white bg-surface-30 group-hover/resize:scale-110 group-hover/resize:bg-blue-500 transition-all cursor-ns-resize" />
                     </div>
                 )}
 

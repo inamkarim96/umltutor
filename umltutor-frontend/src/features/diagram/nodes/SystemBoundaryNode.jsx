@@ -128,7 +128,7 @@ const SystemBoundaryNode = ({ id, data, selected }) => {
     return (
         <div
             ref={nodeRef}
-            className={`border-2 rounded-sm relative group cursor-pointer animate-none ${hasErrors ? 'border-dashed border-red-500 bg-red-50/10' : 'border-gray-800 bg-gray-50/5'}`}
+            className={`border-2 rounded-sm relative group cursor-pointer animate-none ${hasErrors ? 'border-dashed border-red-500 bg-status-red/10/10' : 'border-gray-800 bg-surface-3/5'}`}
             style={{
                 zIndex: 0,
                 width: `${currentWidth}px`,
@@ -139,7 +139,7 @@ const SystemBoundaryNode = ({ id, data, selected }) => {
             {hasErrors && (
                 <div
                     title={checkErrors.map(e => e.message).join('\n')}
-                    className="absolute -top-6 -right-2 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center cursor-help z-[110] shadow-lg animate-bounce pointer-events-auto"
+                    className="absolute -top-6 -right-2 w-6 h-6 bg-status-red/100 text-white text-xs rounded-full flex items-center justify-center cursor-help z-[110] shadow-hover animate-bounce pointer-events-auto"
                 >
                     ❌
                 </div>
@@ -147,7 +147,7 @@ const SystemBoundaryNode = ({ id, data, selected }) => {
 
             {/* Title bar - Interactive for editing */}
             <div
-                className={`system-title absolute top-[-18px] left-1/2 transform -translate-x-1/2 px-4 py-1 rounded shadow-sm border transition-colors flex items-center gap-2 bg-white border-gray-300 text-gray-900 ${!isReadOnly ? 'cursor-text' : 'cursor-default'}`}
+                className={`system-title absolute top-[-18px] left-1/2 transform -translate-x-1/2 px-4 py-1 rounded shadow-card border transition-colors flex items-center gap-2 bg-white border-gray-300 text-ink ${!isReadOnly ? 'cursor-text' : 'cursor-default'}`}
                 onDoubleClick={handleDoubleClick}
                 style={{
                     zIndex: 5,
@@ -164,11 +164,11 @@ const SystemBoundaryNode = ({ id, data, selected }) => {
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className="text-center font-bold border-none outline-none bg-transparent w-full min-w-[100px]"
+                        className="text-center font-bold font-body border-none outline-none bg-transparent w-full min-w-[100px]"
                         autoFocus
                     />
                 ) : (
-                    <span className="font-bold text-lg whitespace-nowrap select-none">
+                    <span className="font-bold font-body text-lg whitespace-nowrap select-none">
                         {label || 'Double click to name system'}
                     </span>
                 )}

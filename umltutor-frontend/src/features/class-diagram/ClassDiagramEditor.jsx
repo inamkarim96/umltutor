@@ -119,12 +119,12 @@ const ClassDiagramEditor = ({ assignmentId, initialData, isReadOnly = false }) =
     return (
         <div className="flex flex-col h-full bg-slate-50 relative">
             <UMLMarkers />
-            <div className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between shrink-0">
+            <div className="px-6 py-4 bg-white border-b border-black/5 flex items-center justify-between shrink-0">
                 <div>
-                    <h2 className="text-xl font-black text-gray-900 tracking-tight">Class Diagram</h2>
-                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">Structural Model</p>
+                    <h2 className="text-xl font-extrabold font-heading text-ink tracking-tight">Class Diagram</h2>
+                    <p className="text-[10px] font-bold font-body text-indigo-500 uppercase tracking-widest mt-0.5">Structural Model</p>
                 </div>
-                <div className="text-xs font-bold text-gray-400 italic">
+                <div className="text-xs font-bold font-body text-gray-400 italic">
                     {isReadOnly ? 'Read-only View' : 'Double-click to edit • Drag handles to connect'}
                 </div>
             </div>

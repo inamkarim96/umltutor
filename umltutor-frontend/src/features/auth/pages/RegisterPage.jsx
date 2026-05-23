@@ -116,15 +116,15 @@ const RegisterPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4 py-12">
-            <div className="max-w-xl w-full bg-white p-12 rounded-[2.5rem] border border-gray-100 shadow-2xl transition-all relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+        <div className="min-h-screen flex items-center justify-center bg-surface px-4 py-12">
+            <div className="max-w-xl w-full bg-white p-12 rounded-lg border border-black/5 shadow-card hover:shadow-hover transition-all duration-300 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
 
                 <div className="relative z-10">
-                    <h2 className="text-center text-4xl font-black text-gray-900 tracking-tight mb-3">Join UML Tutor</h2>
-                    <p className="text-center text-sm text-gray-500 font-medium mb-10">
+                    <h2 className="text-center text-4xl font-heading font-extrabold text-ink tracking-tight mb-3">Join UML Tutor</h2>
+                    <p className="text-center text-sm text-muted font-medium mb-10">
                         Already have an account?{' '}
-                        <Link to="/login" className="text-indigo-600 font-black hover:text-indigo-700 transition-all underline-offset-4 decoration-2">
+                        <Link to="/login" className="text-accent font-bold font-body hover:text-accent/80 transition-all underline-offset-4 decoration-2 hover:underline">
                             Sign in instead
                         </Link>
                     </p>
@@ -133,9 +133,9 @@ const RegisterPage = () => {
                 <div className="mt-8 space-y-6">
                     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
                         {errorMessage && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded-xl flex flex-col gap-2 animate-shake">
-                                <div className="flex items-center gap-2 font-bold select-none">
-                                    <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <div className="bg-status-red/10 border border-status-red/20 text-status-red px-4 py-4 rounded-sm flex flex-col gap-2 animate-shake">
+                                <div className="flex items-center gap-2 font-bold font-body select-none">
+                                    <svg className="w-5 h-5 text-status-red" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                     </svg>
                                     {errorMessage}
@@ -146,118 +146,118 @@ const RegisterPage = () => {
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">First name</label>
+                                    <label htmlFor="firstName" className="block text-sm font-bold font-body text-ink">First name</label>
                                     <input
                                         id="firstName"
                                         type="text"
                                         {...register('firstName')}
-                                        className={`mt-1.5 block w-full px-4 py-2.5 border ${errors.firstName ? 'border-red-300' : 'border-gray-200'
-                                            } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50`}
+                                        className={`mt-1.5 block w-full px-4 py-2.5 border-2 ${errors.firstName ? 'border-status-red' : 'border-transparent'
+                                            } rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all`}
                                         placeholder="First"
                                     />
                                     {errors.firstName && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                                        <p className="mt-1 text-xs font-bold font-body text-status-red">{errors.firstName.message}</p>
                                     )}
                                 </div>
 
                                 <div>
-                                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Last name</label>
+                                    <label htmlFor="lastName" className="block text-sm font-bold font-body text-ink">Last name</label>
                                     <input
                                         id="lastName"
                                         type="text"
                                         {...register('lastName')}
-                                        className={`mt-1.5 block w-full px-4 py-2.5 border ${errors.lastName ? 'border-red-300' : 'border-gray-200'
-                                            } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50`}
+                                        className={`mt-1.5 block w-full px-4 py-2.5 border-2 ${errors.lastName ? 'border-status-red' : 'border-transparent'
+                                            } rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all`}
                                         placeholder="Last"
                                     />
                                     {errors.lastName && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
+                                        <p className="mt-1 text-xs font-bold font-body text-status-red">{errors.lastName.message}</p>
                                     )}
                                 </div>
                             </div>
 
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Email address</label>
+                                <label htmlFor="email" className="block text-sm font-bold font-body text-ink">Email address</label>
                                 <input
                                     id="email"
                                     type="email"
                                     autoComplete="email"
                                     {...register('email')}
-                                    className={`mt-1.5 block w-full px-4 py-2.5 border ${errors.email ? 'border-red-300' : 'border-gray-200'
-                                        } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50`}
+                                    className={`mt-1.5 block w-full px-4 py-2.5 border-2 ${errors.email ? 'border-status-red' : 'border-transparent'
+                                        } rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all`}
                                     placeholder="you@example.com"
                                 />
                                 {errors.email && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                                    <p className="mt-1 text-xs font-bold font-body text-status-red">{errors.email.message}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label htmlFor="role" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">I am a</label>
+                                <label htmlFor="role" className="block text-sm font-bold font-body text-ink">I am a</label>
                                 <select
                                     id="role"
                                     {...register('role')}
-                                    className={`mt-1.5 block w-full px-4 py-2.5 border ${errors.role ? 'border-red-300' : 'border-gray-200'
-                                        } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50`}
+                                    className={`mt-1.5 block w-full px-4 py-2.5 border-2 ${errors.role ? 'border-status-red' : 'border-transparent'
+                                        } rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all`}
                                 >
                                     <option value="">Select your role</option>
                                     <option value={UserRole.STUDENT}>Student</option>
                                     <option value={UserRole.TEACHER}>Teacher</option>
                                 </select>
                                 {errors.role && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
+                                    <p className="mt-1 text-xs font-bold font-body text-status-red">{errors.role.message}</p>
                                 )}
                             </div>
 
                             <div className={authState.needsProfileCompletion ? "hidden" : ""}>
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Password</label>
+                                <label htmlFor="password" className="block text-sm font-bold font-body text-ink">Password</label>
                                 <div className="relative mt-1.5">
                                     <input
                                         id="password"
                                         type={showPassword ? 'text' : 'password'}
                                         autoComplete="new-password"
                                         {...register('password')}
-                                        className={`block w-full px-4 py-2.5 border ${errors.password ? 'border-red-300' : 'border-gray-200'
-                                            } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 pr-12`}
+                                        className={`block w-full px-4 py-2.5 border-2 ${errors.password ? 'border-status-red' : 'border-transparent'
+                                            } rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all pr-12`}
                                         placeholder="••••••••"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-gray-100"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted hover:text-accent transition-colors rounded-sm hover:bg-surface-3"
                                         tabIndex="-1"
                                     >
                                         {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                     </button>
                                 </div>
                                 {errors.password && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                                    <p className="mt-1 text-xs font-bold font-body text-status-red">{errors.password.message}</p>
                                 )}
                             </div>
 
                             <div className={authState.needsProfileCompletion ? "hidden" : ""}>
-                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 tracking-wide font-semibold">Confirm password</label>
+                                <label htmlFor="confirmPassword" className="block text-sm font-bold font-body text-ink">Confirm password</label>
                                 <div className="relative mt-1.5">
                                     <input
                                         id="confirmPassword"
                                         type={showConfirmPassword ? 'text' : 'password'}
                                         autoComplete="new-password"
                                         {...register('confirmPassword')}
-                                        className={`block w-full px-4 py-2.5 border ${errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
-                                            } rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 pr-12`}
+                                        className={`block w-full px-4 py-2.5 border-2 ${errors.confirmPassword ? 'border-status-red' : 'border-transparent'
+                                            } rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all pr-12`}
                                         placeholder="••••••••"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-gray-100"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted hover:text-accent transition-colors rounded-sm hover:bg-surface-3"
                                         tabIndex="-1"
                                     >
                                         {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                     </button>
                                 </div>
                                 {errors.confirmPassword && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                                    <p className="mt-1 text-xs font-bold font-body text-status-red">{errors.confirmPassword.message}</p>
                                 )}
                             </div>
                         </div>
@@ -266,10 +266,9 @@ const RegisterPage = () => {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className={`w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white ${isLoading
-                                    ? 'bg-indigo-400 cursor-not-allowed'
-                                    : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                                    } transition-all duration-200 transform active:scale-95`}
+                                className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-card hover:shadow-hover hover:-translate-y-[2px] text-sm font-bold font-body text-white transition-all transform active:scale-98 ${
+                                    isLoading ? 'bg-accent/50 cursor-not-allowed' : 'bg-accent'
+                                }`}
                             >
                                 {isLoading ? (
                                     <span className="flex items-center">

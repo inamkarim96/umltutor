@@ -11,10 +11,10 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="min-h-screen flex items-center justify-center bg-surface-3">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
+                    <p className="mt-4 text-muted">Loading...</p>
                 </div>
             </div>
         );
@@ -30,11 +30,11 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     if (requiredRole && authState?.user?.role !== requiredRole) {
         // Show unauthorized page instead of redirecting
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="min-h-screen flex items-center justify-center bg-surface-3">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold text-red-600 mb-4">Unauthorized</h1>
-                    <p className="text-gray-600 mb-4">You don't have permission to access this page.</p>
-                    <p className="text-sm text-gray-500">
+                    <h1 className="text-2xl font-bold font-body text-status-red mb-4">Unauthorized</h1>
+                    <p className="text-muted mb-4">You don't have permission to access this page.</p>
+                    <p className="text-sm text-muted">
                         Current role: {authState?.user?.role} | Required: {requiredRole}
                     </p>
                 </div>

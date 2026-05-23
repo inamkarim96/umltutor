@@ -139,18 +139,18 @@ const SequenceDiagramEditor = ({ assignmentId, isReadOnly = false, modelOverride
     return (
         <div className="flex flex-col h-full bg-slate-50 relative">
             <SequenceMarkers />
-            <div className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between shrink-0">
+            <div className="px-6 py-4 bg-white border-b border-black/5 flex items-center justify-between shrink-0">
                 <div>
-                    <h2 className="text-xl font-black text-gray-900 tracking-tight">Sequence Diagram</h2>
-                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">Behavioral Design</p>
+                    <h2 className="text-xl font-extrabold font-heading text-ink tracking-tight">Sequence Diagram</h2>
+                    <p className="text-[10px] font-bold font-body text-indigo-500 uppercase tracking-widest mt-0.5">Behavioral Design</p>
                 </div>
                 <div className="flex items-center gap-4">
                      {!activeUseCaseId && (
-                        <div className="px-4 py-2 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-100 animate-pulse">
+                        <div className="px-4 py-2 bg-amber-50 text-amber-700 text-xs font-bold font-body rounded-lg border border-amber-100 animate-pulse">
                            Select a Use Case from the Sidebar to start designing
                         </div>
                     )}
-                    <div className="text-xs font-bold text-gray-400 italic">
+                    <div className="text-xs font-bold font-body text-gray-400 italic">
                         {isReadOnly ? 'Read-only View' : 'Drag lifelines to arrange • Connect handles to send messages'}
                     </div>
                 </div>

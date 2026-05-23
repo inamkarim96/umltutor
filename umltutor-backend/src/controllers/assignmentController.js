@@ -5,30 +5,55 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const assignmentService = _interopRequireDefault(require('../services/assignmentService')).default;
 const fileUpload = require('../utils/fileUpload');
 
+/**
+ * Module-level helper — adds submissionCount from pre-computed _count.
+ * Avoids duplicate inline spread pattern across 3 handlers.
+ */
+const addSubmissionCount = (a) => ({ ...a, submissionCount: a._count?.submissions || 0 });
+
 const createAssignmentDefinition = async (req, res, next) => {
     try {
-        const { title, releaseDate, dueDate, deadline, assignmentType } = req.body;
+        // Destructure only the fields the service actually uses — avoids spreading the
+        // entire req.body which may carry large diagram data sent by the frontend.
+        const {
+            title,
+            releaseDate,
+            dueDate,
+            deadline,
+            assignmentType,
+            type,
+            textContent,
+            contentText,
+            maxScore,
+            classId: bodyClassId,
+        } = req.body;
+
         const finalDueDate = deadline || dueDate;
         if (!title || !releaseDate || !finalDueDate || !assignmentType) {
             return res.status(400).json({ success: false, error: { message: 'Missing required fields' } });
         }
-        const textContent = req.body.textContent || req.body.contentText || null;
+
         let cdnUrl = req.file ? await fileUpload.uploadToCDN(req.file, 'assignments') : null;
         let fileInfo = req.file ? fileUpload.getFileInfo(req.file) : null;
 
         const assignmentData = {
-            ...req.body,
-            classId: req.params.classId ? Number(req.params.classId) : (req.body.classId ? Number(req.body.classId) : null),
-            teacherId: req.user.id,
+            title,
             releaseDate: new Date(releaseDate),
             dueDate: new Date(finalDueDate),
-            textContent: assignmentType === 'TEXT' ? textContent : null,
+            // Service accepts either `type` or `assignmentType`
+            assignmentType,
+            type,
+            textContent: assignmentType === 'TEXT' ? (textContent || contentText || null) : null,
+            maxScore: maxScore != null ? Number(maxScore) : undefined,
+            classId: req.params.classId ? Number(req.params.classId) : (bodyClassId ? Number(bodyClassId) : null),
+            teacherId: req.user.id,
             ...(req.file && {
                 assignmentFileUrl: cdnUrl,
                 assignmentFileName: req.file.originalname,
                 assignmentFileType: fileInfo?.type
             })
         };
+
         const assignment = await assignmentService.createAssignmentDefinition(assignmentData);
         res.status(201).json({ success: true, data: { ...assignment, submissionCount: 0 } });
     } catch (error) {
@@ -39,14 +64,9 @@ const createAssignmentDefinition = async (req, res, next) => {
 const getClassAssignments = async (req, res, next) => {
     try {
         const assignments = await assignmentService.getClassAssignments(req.params.classId, req.user.id, req.user.role);
-        if (req.user.role === 'TEACHER') {
-            const transformed = assignments.map(a => ({
-                ...a,
-                submissionCount: a._count?.submissions || 0
-            }));
-            return res.json({ success: true, data: transformed });
-        }
-        res.json({ success: true, data: assignments });
+        // Teachers get submissionCount; students get raw assignments (no _count field)
+        const data = req.user.role === 'TEACHER' ? assignments.map(addSubmissionCount) : assignments;
+        res.json({ success: true, data });
     } catch (error) {
         next(error);
     }
@@ -55,11 +75,7 @@ const getClassAssignments = async (req, res, next) => {
 const getAssignmentDefinitions = async (req, res, next) => {
     try {
         const assignments = await assignmentService.getAssignmentDefinitions(req.user.id, req.query.status);
-        const transformed = assignments.map(a => ({
-            ...a,
-            submissionCount: a._count?.submissions || 0
-        }));
-        res.json({ success: true, data: transformed });
+        res.json({ success: true, data: assignments.map(addSubmissionCount) });
     } catch (error) {
         next(error);
     }
@@ -69,7 +85,7 @@ const getAssignmentDefinition = async (req, res, next) => {
     try {
         const assignment = await assignmentService.getAssignmentDefinition(req.params.id, req.user.id);
         if (!assignment) return res.status(404).json({ success: false, error: { message: 'Assignment not found' } });
-        res.json({ success: true, data: { ...assignment, submissionCount: assignment._count?.submissions || 0 } });
+        res.json({ success: true, data: addSubmissionCount(assignment) });
     } catch (error) {
         next(error);
     }

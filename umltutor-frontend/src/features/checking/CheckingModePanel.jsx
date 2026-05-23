@@ -922,14 +922,14 @@ const CheckingModePanel = ({
             const sectionErrors = issuesList.filter(i => i.severity === 'error' || i.type === 'error');
             if (sectionErrors.length === 0) return <div className="text-slate-600 mb-1">✓ {successMsg}</div>;
             return sectionErrors.map((i, idx) => (
-                <div key={idx} className="text-red-500 mb-1 font-bold">✗ {i.message}</div>
+                <div key={idx} className="text-status-red mb-1 font-bold font-body">✗ {i.message}</div>
             ));
         };
 
         return (
             <div className="space-y-6 font-mono leading-relaxed">
                 <div className="space-y-1">
-                    <h3 className="font-black text-slate-800 uppercase tracking-wider mb-4">
+                    <h3 className="font-extrabold font-heading text-slate-800 uppercase tracking-wider mb-4">
                         CHECKING REPORT
                     </h3>
                 </div>
@@ -941,8 +941,8 @@ const CheckingModePanel = ({
                             if (missingDiagramIssue) {
                                 return (
                                     <>
-                                        <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingDiagramIssue.message}</div>
-                                        <div className="text-indigo-600 leading-tight">! Please add a System Boundary, Actors, and Use Cases to proceed.</div>
+                                        <div className="text-status-red font-extrabold font-heading mb-2 uppercase tracking-tighter">✗ {missingDiagramIssue.message}</div>
+                                        <div className="text-accent leading-tight">! Please add a System Boundary, Actors, and Use Cases to proceed.</div>
                                     </>
                                 );
                             }
@@ -971,8 +971,8 @@ const CheckingModePanel = ({
                             if (missingDescIssue) {
                                 return (
                                     <>
-                                        <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingDescIssue.message}</div>
-                                        <div className="text-indigo-600 leading-tight">! Please create a Use Case Description for this Use Case to proceed.</div>
+                                        <div className="text-status-red font-extrabold font-heading mb-2 uppercase tracking-tighter">✗ {missingDescIssue.message}</div>
+                                        <div className="text-accent leading-tight">! Please create a Use Case Description for this Use Case to proceed.</div>
                                     </>
                                 );
                             }
@@ -985,11 +985,11 @@ const CheckingModePanel = ({
 
                             return (
                                 <>
-                                    <div className={`${hasNoTitle ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoTitle ? '✗' : '✓'} Use Case Name defined</div>
-                                    <div className={`${hasNoActor ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoActor ? '✗' : '✓'} Primary Actor defined</div>
-                                    <div className={`${hasNoPre ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoPre ? '✗' : '✓'} Preconditions defined</div>
-                                    <div className={`${hasNoPost ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoPost ? '✗' : '✓'} Postconditions defined</div>
-                                    <div className={`${hasNoFlow ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{hasNoFlow ? '✗' : '✓'} Main Success Scenario defined</div>
+                                    <div className={`${hasNoTitle ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>{hasNoTitle ? '✗' : '✓'} Use Case Name defined</div>
+                                    <div className={`${hasNoActor ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>{hasNoActor ? '✗' : '✓'} Primary Actor defined</div>
+                                    <div className={`${hasNoPre ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>{hasNoPre ? '✗' : '✓'} Preconditions defined</div>
+                                    <div className={`${hasNoPost ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>{hasNoPost ? '✗' : '✓'} Postconditions defined</div>
+                                    <div className={`${hasNoFlow ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>{hasNoFlow ? '✗' : '✓'} Main Success Scenario defined</div>
                                 </>
                             );
                         })()}
@@ -1003,8 +1003,8 @@ const CheckingModePanel = ({
                             if (missingSsdIssue) {
                                 return (
                                     <>
-                                        <div className="text-red-600 font-black mb-2 uppercase tracking-tighter">✗ {missingSsdIssue.message}</div>
-                                        <div className="text-indigo-600 leading-tight">! Please create a System Sequence Diagram to proceed.</div>
+                                        <div className="text-status-red font-extrabold font-heading mb-2 uppercase tracking-tighter">✗ {missingSsdIssue.message}</div>
+                                        <div className="text-accent leading-tight">! Please create a System Sequence Diagram to proceed.</div>
                                     </>
                                 );
                             }
@@ -1014,8 +1014,8 @@ const CheckingModePanel = ({
 
                             return (
                                 <>
-                                    <div className={`${flowIssuesList.length > 0 ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{flowIssuesList.length > 0 ? '✗' : '✓'} Message Flow properly structured</div>
-                                    <div className={`${consistencyIssuesList.length > 0 ? 'text-red-500 font-bold' : 'text-slate-600'} mb-1`}>{consistencyIssuesList.length > 0 ? '✗' : '✓'} Model Consistency maintained</div>
+                                    <div className={`${flowIssuesList.length > 0 ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>{flowIssuesList.length > 0 ? '✗' : '✓'} Message Flow properly structured</div>
+                                    <div className={`${consistencyIssuesList.length > 0 ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>{consistencyIssuesList.length > 0 ? '✗' : '✓'} Model Consistency maintained</div>
                                 </>
                             );
                         })()}
@@ -1023,13 +1023,13 @@ const CheckingModePanel = ({
                 )}
 
                 <div className="pt-4 border-t border-slate-100">
-                    <div className="text-red-500 font-bold mb-1">X {errors.length} Error(s) found</div>
-                    {warnings.length > 0 && <div className="text-amber-600 font-bold mb-1">! {warnings.length} Warning(s) found</div>}
+                    <div className="text-status-red font-bold font-body mb-1">X {errors.length} Error(s) found</div>
+                    {warnings.length > 0 && <div className="text-amber-600 font-bold font-body mb-1">! {warnings.length} Warning(s) found</div>}
                 </div>
 
                 {suggestions.length > 0 && (
                     <div className="pt-4">
-                        <h4 className="font-black text-slate-800 mb-2">Suggestions:</h4>
+                        <h4 className="font-extrabold font-heading text-slate-800 mb-2">Suggestions:</h4>
                         <ul className="space-y-2">
                             {suggestions.map((s, idx) => (
                                 <li key={idx} className="flex gap-2 text-slate-600">
@@ -1068,17 +1068,17 @@ const CheckingModePanel = ({
 
     if (!report) {
         return (
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-full">
-                <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 mb-2">Checking Mode</h2>
-                    <p className="text-sm text-gray-600 mb-4">
+            <div className="bg-white rounded-lg shadow-xl border border-black/10 overflow-hidden flex flex-col h-full">
+                <div className="p-6 border-b border-black/5">
+                    <h2 className="text-lg font-bold font-body text-ink mb-2">Checking Mode</h2>
+                    <p className="text-sm text-muted mb-4">
                         {onRunChecker ? (isStudent ? 'Your UML model is ready for review.' : 'Run validation checks on your UML model to identify structural issues and inconsistencies.') : 'Review the official feedback and consistency findings provided by your teacher.'}
                     </p>
                     {onRunChecker && !isStudent && (
                         <button
                             onClick={runChecks}
                             disabled={isRunning}
-                            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full px-4 py-3 bg-accent text-white rounded-lg font-bold font-body hover:bg-indigo-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isRunning ? (
                                 <>
@@ -1093,16 +1093,16 @@ const CheckingModePanel = ({
                 </div>
                 <div className="flex-1 p-6 flex items-center justify-center">
                     <div className="text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-2xl">🔍</div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        <div className="w-16 h-16 bg-surface-3 rounded-full flex items-center justify-center mb-4 text-2xl">🔍</div>
+                        <h3 className="text-lg font-semibold text-ink mb-2">
                             {onRunChecker ? 'Ready to Check' : 'No report available yet'}
                         </h3>
-                        <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                        <p className="text-sm text-muted max-w-xs mx-auto">
                             {onRunChecker ? 'Click "Run Checker" to validate your UML model and see a detailed report.' : 'Once the teacher reviews your assignment, their report will be displayed here.'}
                         </p>
                     </div>
                 </div>
-                <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400 font-bold uppercase tracking-widest flex justify-between">
+                <div className="px-5 py-3 bg-surface-3 border-t border-black/5 text-[10px] text-gray-400 font-bold font-body uppercase tracking-widest flex justify-between">
                     <span>Manual validation mode</span>
                 </div>
             </div>
@@ -1111,28 +1111,28 @@ const CheckingModePanel = ({
 
     if (isRunning) {
         return (
-            <div className="flex flex-col items-center justify-center h-80 bg-white/50 backdrop-blur-md rounded-2xl border border-gray-100 shadow-xl">
+            <div className="flex flex-col items-center justify-center h-80 bg-white/50 backdrop-blur-md rounded-lg border border-black/5 shadow-xl">
                 <div className="relative">
-                    <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                    <div className="w-16 h-16 border-4 border-accent/10 border-t-indigo-600 rounded-full animate-spin" />
                     <div className="absolute inset-0 flex items-center justify-center text-xl">🔍</div>
                 </div>
-                <p className="mt-6 text-sm font-bold text-gray-900 tracking-tight">Analyzing UML Artifacts...</p>
-                <p className="mt-1 text-xs text-gray-500">Checking cross-artifact consistency rules</p>
+                <p className="mt-6 text-sm font-bold font-body text-ink tracking-tight">Analyzing UML Artifacts...</p>
+                <p className="mt-1 text-xs text-muted">Checking cross-artifact consistency rules</p>
             </div>
         );
     }
 
     return (
         <div data-testid="checking-report" className="flex flex-col h-full bg-white overflow-hidden">
-            <div className="p-3 border-b border-gray-100 flex flex-col gap-3 shrink-0 bg-slate-50/20">
+            <div className="p-3 border-b border-black/5 flex flex-col gap-3 shrink-0 bg-slate-50/20">
                 {/* Header Row: Title & Button */}
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex flex-col min-w-0 flex-1">
-                        <h2 className="text-sm font-black text-gray-900 truncate">
+                        <h2 className="text-sm font-extrabold font-heading text-ink truncate">
                             Checking Report
                         </h2>
                         {label && (
-                            <span className="text-[8px] text-gray-400 font-black uppercase tracking-widest truncate mt-0.5">
+                            <span className="text-[8px] text-gray-400 font-extrabold font-heading uppercase tracking-widest truncate mt-0.5">
                                 {label}
                             </span>
                         )}
@@ -1142,7 +1142,7 @@ const CheckingModePanel = ({
                         <button
                             onClick={runChecks}
                             disabled={isRunning}
-                            className="shrink-0 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-1.5 active:scale-95 disabled:bg-gray-400"
+                            className="shrink-0 px-2.5 py-1.5 bg-accent hover:bg-indigo-700 text-white rounded-lg font-extrabold font-heading text-[9px] uppercase tracking-widest transition-all shadow-card flex items-center gap-1.5 active:scale-95 disabled:bg-gray-400"
                         >
                             {isRunning ? (
                                 <>
@@ -1160,22 +1160,22 @@ const CheckingModePanel = ({
                 <div className="flex items-center justify-between gap-2">
                     {!isStudent && (
                         <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 shadow-sm">
-                                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                                <span className="text-[10px] font-black">{errorsCount} ERRORS</span>
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-status-red/10 text-status-red rounded border border-red-100 shadow-card">
+                                <span className="w-1.5 h-1.5 bg-status-red/100 rounded-full animate-pulse" />
+                                <span className="text-[10px] font-extrabold font-heading">{errorsCount} ERRORS</span>
                             </div>
-                            <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-50 text-yellow-700 rounded border border-yellow-100 shadow-sm">
-                                <span className="text-[10px] font-black">{warningsCount} WARNINGS</span>
+                            <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-50 text-yellow-700 rounded border border-yellow-100 shadow-card">
+                                <span className="text-[10px] font-extrabold font-heading">{warningsCount} WARNINGS</span>
                             </div>
                         </div>
                     )}
 
-                    <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 border border-gray-200" title="Adjust text size">
-                        <button onClick={handleDecreaseFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90"><Minus size={11} strokeWidth={3} /></button>
-                        <span className="text-[10px] font-black text-gray-500 w-5 text-center select-none">{fontSize}</span>
-                        <button onClick={handleIncreaseFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90"><Plus size={11} strokeWidth={3} /></button>
+                    <div className="flex items-center bg-surface-3/80 rounded-lg p-0.5 border border-black/10" title="Adjust text size">
+                        <button onClick={handleDecreaseFontSize} className="p-1 text-muted hover:text-accent hover:bg-white rounded transition-all active:scale-90"><Minus size={11} strokeWidth={3} /></button>
+                        <span className="text-[10px] font-extrabold font-heading text-muted w-5 text-center select-none">{fontSize}</span>
+                        <button onClick={handleIncreaseFontSize} className="p-1 text-muted hover:text-accent hover:bg-white rounded transition-all active:scale-90"><Plus size={11} strokeWidth={3} /></button>
                         <div className="w-px h-3 bg-gray-300 mx-0.5"></div>
-                        <button onClick={handleResetFontSize} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white rounded transition-all active:scale-90" title="Reset font size"><RotateCcw size={9} strokeWidth={3} /></button>
+                        <button onClick={handleResetFontSize} className="p-1 text-muted hover:text-accent hover:bg-white rounded transition-all active:scale-90" title="Reset font size"><RotateCcw size={9} strokeWidth={3} /></button>
                     </div>
                 </div>
             </div>

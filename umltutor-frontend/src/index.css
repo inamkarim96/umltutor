@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-body text-ink bg-surface antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading text-ink;
+  }
+}
+
+/* Custom Cursor Variables */
+:root {
+  --cursor-x: 50%;
+  --cursor-y: 50%;
+}

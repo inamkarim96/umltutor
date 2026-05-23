@@ -20,38 +20,38 @@ const ClassDiagramToolbar = ({
     ];
 
     return (
-        <div className="absolute top-4 right-4 flex flex-col gap-3 p-3 bg-white rounded-xl shadow-xl z-10 border border-gray-200 w-48">
+        <div className="absolute top-4 right-4 flex flex-col gap-3 p-3 bg-white rounded-xl shadow-xl z-10 border border-black/10 w-48">
             <div>
-                <div className="text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest px-1">Elements</div>
+                <div className="text-[10px] font-extrabold font-heading uppercase text-gray-400 mb-2 tracking-widest px-1">Elements</div>
                 <div className="flex flex-col gap-1">
                     <button
                         onClick={onAddClass}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-700 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition-all"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-bold font-body text-gray-700 bg-surface-3 hover:bg-accent/10 hover:text-indigo-700 rounded-lg transition-all"
                     >
                         <Square size={16} /> Class
                     </button>
                     <button
                         onClick={onAddInterface}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-700 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-bold font-body text-gray-700 bg-surface-3 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all"
                     >
                         <Layers size={16} /> Interface
                     </button>
                 </div>
             </div>
 
-            <div className="h-px bg-gray-100" />
+            <div className="h-px bg-surface-3" />
 
             <div>
-                <div className="text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest px-1">Relationship Type</div>
+                <div className="text-[10px] font-extrabold font-heading uppercase text-gray-400 mb-2 tracking-widest px-1">Relationship Type</div>
                 <div className="grid grid-cols-1 gap-1">
                     {relationships.map((rel) => (
                         <button
                             key={rel.id}
                             onClick={() => onRelationshipChange(rel.id)}
-                            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold font-body rounded-lg transition-all ${
                                 activeRelationship === rel.id
-                                    ? 'bg-indigo-600 text-white shadow-md'
-                                    : 'text-gray-600 bg-gray-50 hover:bg-gray-100'
+                                    ? 'bg-accent text-white shadow-md'
+                                    : 'text-muted bg-surface-3 hover:bg-surface-3'
                             }`}
                         >
                             <rel.icon size={14} className={rel.id === 'implementation' || rel.id === 'dependency' ? 'stroke-dasharray-2' : ''} />
@@ -61,18 +61,18 @@ const ClassDiagramToolbar = ({
                 </div>
             </div>
 
-            <div className="h-px bg-gray-100" />
+            <div className="h-px bg-surface-3" />
 
             <div className="flex flex-col gap-1">
                 <button
                     onClick={onDelete}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold font-body text-muted bg-surface-3 hover:bg-surface-3 rounded-lg transition-all"
                 >
                     <Trash2 size={16} /> Delete
                 </button>
                 <button
                     onClick={onClear}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold font-body text-status-red bg-status-red/10 hover:bg-red-100 rounded-lg transition-all"
                 >
                     <RotateCcw size={16} /> Clear All
                 </button>

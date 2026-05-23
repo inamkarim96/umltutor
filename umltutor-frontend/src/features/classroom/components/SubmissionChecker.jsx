@@ -206,7 +206,7 @@ const SubmissionChecker = ({
   const getSeverityColor = (severity) => {
     switch (severity) {
       case 'critical':
-        return 'text-red-600 bg-red-50 border-red-200';
+        return 'text-status-red bg-status-red/10 border-status-red/20';
       case 'high':
         return 'text-orange-600 bg-orange-50 border-orange-200';
       case 'medium':
@@ -214,7 +214,7 @@ const SubmissionChecker = ({
       case 'low':
         return 'text-blue-600 bg-blue-50 border-blue-200';
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return 'text-muted bg-surface-3 border-black/10';
     }
   };
 
@@ -236,10 +236,10 @@ const SubmissionChecker = ({
 
   if (isChecking) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-card border border-black/10 p-6">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
-          <span className="text-gray-600">Running submission checks...</span>
+          <span className="text-muted">Running submission checks...</span>
         </div>
       </div>
     );
@@ -247,36 +247,36 @@ const SubmissionChecker = ({
 
   if (!checkResult) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="text-center text-gray-500 py-8">Failed to run submission checks</div>
+      <div className="bg-white rounded-lg shadow-card border border-black/10 p-6">
+        <div className="text-center text-muted py-8">Failed to run submission checks</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-lg shadow-card border border-black/10 p-6">
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Submission Readiness Check</h3>
-        <p className="text-gray-600">Review the checklist below before submitting your assignment</p>
+        <h3 className="text-lg font-semibold text-ink mb-2">Submission Readiness Check</h3>
+        <p className="text-muted">Review the checklist below before submitting your assignment</p>
       </div>
 
       {/* Summary */}
       <div className={`rounded-lg p-4 mb-6 ${checkResult.canSubmit
-          ? 'bg-green-50 border border-green-200'
-          : 'bg-red-50 border border-red-200'
+          ? 'bg-status-green/10 border border-green-200'
+          : 'bg-status-red/10 border border-status-red/20'
         }`}>
         <div className="flex items-center justify-between">
           <div>
-            <div className={`font-semibold ${checkResult.canSubmit ? 'text-green-800' : 'text-red-800'}`}>
+            <div className={`font-semibold ${checkResult.canSubmit ? 'text-status-green' : 'text-red-800'}`}>
               {checkResult.canSubmit ? '✅ Ready to Submit' : '❌ Cannot Submit Yet'}
             </div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-sm text-muted mt-1">
               {checkResult.summary.completedRequirements} of {checkResult.summary.totalRequirements} requirements completed
             </div>
           </div>
           <div className="text-right">
             {checkResult.summary.criticalErrors > 0 && (
-              <div className="text-sm font-medium text-red-600">
+              <div className="text-sm font-medium text-status-red">
                 {checkResult.summary.criticalErrors} critical error{checkResult.summary.criticalErrors > 1 ? 's' : ''}
               </div>
             )}
@@ -291,23 +291,23 @@ const SubmissionChecker = ({
 
       {/* Checklist */}
       <div className="mb-6">
-        <h4 className="font-medium text-gray-900 mb-3">Submission Checklist</h4>
+        <h4 className="font-medium text-ink mb-3">Submission Checklist</h4>
         <div className="space-y-2">
           {checkResult.checklist.map((item) => (
             <div
               key={item.id}
               className={`flex items-start gap-3 p-3 rounded-lg border ${item.completed
-                  ? 'bg-green-50 border-green-200'
+                  ? 'bg-status-green/10 border-green-200'
                   : item.required
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-gray-50 border-gray-200'
+                    ? 'bg-status-red/10 border-status-red/20'
+                    : 'bg-surface-3 border-black/10'
                 }`}
             >
               <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${item.completed
-                  ? 'bg-green-500 border-green-500'
+                  ? 'bg-status-green/100 border-status-green'
                   : item.required
                     ? 'border-red-300 bg-red-100'
-                    : 'border-gray-300 bg-gray-100'
+                    : 'border-gray-300 bg-surface-3'
                 }`}>
                 {item.completed && (
                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -318,16 +318,16 @@ const SubmissionChecker = ({
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{getCategoryIcon(item.category)}</span>
-                  <span className={`font-medium ${item.completed ? 'text-green-800' : item.required ? 'text-red-800' : 'text-gray-700'}`}>
+                  <span className={`font-medium ${item.completed ? 'text-status-green' : item.required ? 'text-red-800' : 'text-gray-700'}`}>
                     {item.title}
                   </span>
                   {item.required && !item.completed && (
                     <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">Required</span>
                   )}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">{item.description}</div>
+                <div className="text-sm text-muted mt-1">{item.description}</div>
                 {item.details && (
-                  <div className="text-xs text-gray-500 mt-1">{item.details}</div>
+                  <div className="text-xs text-muted mt-1">{item.details}</div>
                 )}
               </div>
             </div>
@@ -338,7 +338,7 @@ const SubmissionChecker = ({
       {/* Errors and Warnings */}
       {(checkResult.errors.length > 0 || checkResult.warnings.length > 0) && (
         <div className="mb-6">
-          <h4 className="font-medium text-gray-900 mb-3">Issues Found</h4>
+          <h4 className="font-medium text-ink mb-3">Issues Found</h4>
           <div className="space-y-2">
             {checkResult.errors.map((error) => (
               <div
@@ -375,13 +375,13 @@ const SubmissionChecker = ({
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+      <div className="flex items-center justify-between pt-4 border-t border-black/10">
         <div>
           {!checkResult.canSubmit && (
             <div>
               <button
                 onClick={() => setShowProceedAnyway(!showProceedAnyway)}
-                className="text-sm text-gray-600 hover:text-gray-800 underline"
+                className="text-sm text-muted hover:text-ink underline"
               >
                 I understand and want to submit anyway
               </button>
@@ -405,7 +405,7 @@ const SubmissionChecker = ({
         <div className="flex gap-2">
           <button
             onClick={runSubmissionCheck}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+            className="px-4 py-2 text-muted border border-gray-300 rounded hover:bg-surface-3"
           >
             Re-run Check
           </button>
