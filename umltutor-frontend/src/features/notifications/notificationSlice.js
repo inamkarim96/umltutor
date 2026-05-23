@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import notificationAPI from '../../services/notificationAPI';
+import { isListFetchStale } from '../../utils/fetchStaleGuard';
 
 export const fetchNotifications = createAsyncThunk(
   'notifications/fetchAll',
@@ -9,6 +10,13 @@ export const fetchNotifications = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch notifications');
     }
+  },
+  {
+    condition: (_, { getState }) => {
+      const { isLoading, notifications, lastFetchedAt } = getState().notifications;
+      if (isLoading) return false;
+      return isListFetchStale(lastFetchedAt, notifications.length > 0);
+    },
   }
 );
 
@@ -39,7 +47,8 @@ const initialState = {
   notifications: [],
   isLoading: false,
   error: null,
-  unreadCount: 0
+  unreadCount: 0,
+  lastFetchedAt: null,
 };
 
 const notificationSlice = createSlice({
@@ -68,6 +77,7 @@ const notificationSlice = createSlice({
         state.isLoading = false;
         state.notifications = action.payload || [];
         state.unreadCount = (action.payload || []).filter(n => !n.isRead).length;
+        state.lastFetchedAt = Date.now();
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
         state.isLoading = false;

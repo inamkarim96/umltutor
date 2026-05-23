@@ -70,10 +70,10 @@ const submissionRepository = {
     },
 
     /**
-     * Transaction support
+     * Transaction support — passes options (timeout, maxWait) through to Prisma
      */
-    async transaction(callback) {
-        return prisma.$transaction(callback);
+    async transaction(callback, options) {
+        return prisma.$transaction(callback, options);
     }
 };
 

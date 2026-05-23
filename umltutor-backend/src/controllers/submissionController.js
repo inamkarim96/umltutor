@@ -17,9 +17,11 @@ const submitAssignment = async (req, res) => {
     const model = req.body.diagramData || {};
 
     const submissionData = {
-      useCaseDiagram: req.body.useCaseDiagram || workflowPayload?.diagramData || model.diagram || req.body.diagramData,
+      useCaseDiagram: req.body.useCaseDiagram || workflowPayload?.diagramData || model.diagram,
       useCaseDescription: req.body.useCaseDescription || workflowPayload?.descriptions || model.descriptions || req.body.description,
       systemSequenceDiagram: req.body.systemSequenceDiagram || workflowPayload?.ssdData || model.ssds,
+      classDiagram: req.body.classDiagram || model.classDiagram,
+      sequenceDiagram: req.body.sequenceDiagram || model.sequenceDiagrams || model.sequenceDiagram,
       submissionText: req.body.submissionText,
       submissionNote: req.body.description || req.body.submissionNote,
       status: req.body.status,
@@ -30,7 +32,15 @@ const submitAssignment = async (req, res) => {
       })
     };
 
-    const hasContent = !!(submissionData.useCaseDiagram || submissionData.useCaseDescription || submissionData.systemSequenceDiagram || submissionData.submissionText || submissionData.submissionFile);
+    const hasContent = !!(
+      submissionData.useCaseDiagram ||
+      submissionData.useCaseDescription ||
+      submissionData.systemSequenceDiagram ||
+      submissionData.classDiagram ||
+      submissionData.sequenceDiagram ||
+      submissionData.submissionText ||
+      submissionData.submissionFile
+    );
 
     if (!hasContent) {
       return res.status(400).json({
@@ -39,12 +49,15 @@ const submitAssignment = async (req, res) => {
       });
     }
 
-    const submission = await _submissionService2.default.createSubmission(Number(assignmentId), studentId, submissionData);
+    const lean = req.query.lean !== 'false';
+    const submission = await _submissionService2.default.createSubmission(
+      Number(assignmentId),
+      studentId,
+      submissionData,
+      { lean }
+    );
 
-    res.status(201).json({
-      success: true,
-      data: submission
-    });
+    res.status(201).json({ success: true, data: submission });
   } catch (error) {
     console.error('Error in submitAssignment controller:', error);
     res.status(error.status || 500).json({
@@ -68,36 +81,13 @@ const getMySubmission = async (req, res) => {
 const getSubmissionStatus = async (req, res) => {
   try {
     const assignmentId = req.params.assignmentId || req.params.id;
-    const studentId = req.user.id;
-    const submission = await require('../repositories/submissionRepository').default.findUnique({
-      where: { assignmentId_studentId: { assignmentId: Number(assignmentId), studentId } },
-      include: { evaluation: true }
-    });
-
-    if (!submission) return res.json({ success: true, data: { status: 'pending' } });
-
-    let report = submission.evaluation?.validationReport;
-    if (typeof report === 'string') try { report = JSON.parse(report); } catch (e) { report = null; }
-
-    const allIssues = [];
-    if (report && typeof report === 'object') {
-      Object.values(report).forEach(section => { if (section && Array.isArray(section.issues)) allIssues.push(...section.issues); });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        id: submission.id,
-        status: submission.status,
-        submittedAt: submission.submittedAt,
-        score: submission.evaluation?.totalScore ?? 0,
-        remarks: submission.evaluation?.remarks,
-        issues: allIssues,
-        fullReport: report,
-        tutorialRequested: submission.tutorialRequested,
-        tutorialApproved: submission.tutorialApproved
-      }
-    });
+    const includeReport = req.query.includeReport === 'true';
+    const data = await _submissionService2.default.getSubmissionStatus(
+      Number(assignmentId),
+      req.user.id,
+      { includeReport }
+    );
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: { message: error.message } });
   }

@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const prisma = require('../utils/prisma').default;
 const { deleteFile } = require('../utils/fileUpload');
 const path = require('path');
+const serviceCache = require('../utils/serviceCache');
 
 class ResourceService {
   async addResource(classId, uploaderId, fileData, folder = null) {
@@ -11,8 +12,11 @@ class ResourceService {
 
     // If student, check if class allows student uploads
     const classData = await prisma.class.findUnique({
-      where: { id: Number(classId) }
+      where: { id: Number(classId) },
+      select: { teacherId: true, allowStudentUploads: true }
     });
+
+    if (!classData) throw new Error('Class not found');
 
     if (uploaderId !== classData.teacherId) {
       if (!classData.allowStudentUploads) {
@@ -20,7 +24,7 @@ class ResourceService {
       }
     }
 
-    return await prisma.resource.create({
+    const resource = await prisma.resource.create({
       data: {
         name: originalName,
         url,
@@ -31,13 +35,31 @@ class ResourceService {
         uploadedBy: Number(uploaderId)
       }
     });
+
+    // Invalidate resource list cache for the class
+    serviceCache.invalidate(`resources:class:${classId}`);
+
+    return resource;
   }
 
   async getClassResources(classId) {
-    return await prisma.resource.findMany({
-      where: { classId: Number(classId) },
-      orderBy: { createdAt: 'desc' }
-    });
+    const cacheKey = `resources:class:${classId}`;
+    return serviceCache.cached(cacheKey, 60, () =>
+      prisma.resource.findMany({
+        where: { classId: Number(classId) },
+        select: {
+          id: true,
+          name: true,
+          url: true,
+          type: true,
+          size: true,
+          folder: true,
+          uploadedBy: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+    );
   }
 
   async deleteResource(resourceId, userId, role) {
@@ -58,6 +80,9 @@ class ResourceService {
       where: { id: Number(resourceId) }
     });
 
+    // Invalidate resource list cache for the class
+    serviceCache.invalidate(`resources:class:${resource.classId}`);
+
     // Optionally handle actual file deletion if needed
     // But usually url is external or we keep it for audit.
     // If local, we should delete:
@@ -68,3 +93,4 @@ class ResourceService {
 }
 
 exports.default = new ResourceService();
+

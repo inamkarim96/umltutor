@@ -16,6 +16,8 @@ import { auth } from '../config/firebase';
 import * as authService from '../services/authService';
 import { useAppDispatch } from '../app/hooks';
 import { setUser as setReduxUser, setToken as setReduxToken, logout as reduxLogout } from '../features/auth';
+import { clearAuthTokenCache } from '../services/apiClient';
+import { clearProfileCache } from '../services/authService';
 
 const AuthContext = createContext(undefined);
 
@@ -52,7 +54,7 @@ export const AuthProvider = ({ children }) => {
                     checkingInProgress.current = true;
                     
                     const isEmailVerified = firebaseUser.emailVerified;
-                    const token = await firebaseUser.getIdToken();
+                    const token = await firebaseUser.getIdToken(false);
                     localStorage.setItem('token', token);
 
                     try {
@@ -225,6 +227,8 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             await signOut(auth);
+            clearAuthTokenCache();
+            clearProfileCache();
             localStorage.removeItem('token');
             setAuthState({
                 isAuthenticated: false,

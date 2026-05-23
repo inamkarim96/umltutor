@@ -12,7 +12,21 @@ const notificationRepository = {
     },
 
     async findMany(where, orderBy, take) {
-        return prisma.notification.findMany({ where, orderBy, take });
+        return prisma.notification.findMany({
+            where,
+            orderBy,
+            take,
+            select: {
+                id: true,
+                userId: true,
+                title: true,
+                message: true,
+                type: true,
+                relatedId: true,
+                isRead: true,
+                createdAt: true,
+            },
+        });
     },
 
     async findFirst(where) {

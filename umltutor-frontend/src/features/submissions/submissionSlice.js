@@ -1,16 +1,17 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import submissionService from '../../services/submissionService';
+import { isListFetchStale } from '../../utils/fetchStaleGuard';
 
 // --- THUNKS ---
 
 export const submitAssignmentData = createAsyncThunk(
   'submission/submitData',
-  async ({ assignmentId, data }, { rejectWithValue }) => {
+  async ({ assignmentId, data, lean = true }, { rejectWithValue }) => {
     try {
       if (!assignmentId || isNaN(Number(assignmentId))) {
         return rejectWithValue('Cannot submit: Invalid assignment ID.');
       }
-      return await submissionService.submitAssignmentData(assignmentId, data);
+      return await submissionService.submitAssignmentData(assignmentId, data, { lean });
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to submit assignment');
     }
@@ -25,6 +26,13 @@ export const fetchMySubmissions = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch submissions');
     }
+  },
+  {
+    condition: (_, { getState }) => {
+      const { isLoading, submissions, lastFetchedAt } = getState().submission;
+      if (isLoading) return false;
+      return isListFetchStale(lastFetchedAt, submissions.length > 0);
+    },
   }
 );
 
@@ -41,9 +49,11 @@ export const fetchAllSubmissionsForTeacher = createAsyncThunk(
 
 export const fetchSubmissionStatus = createAsyncThunk(
   'submission/fetchStatus',
-  async (assignmentId, { rejectWithValue }) => {
+  async (arg, { rejectWithValue }) => {
     try {
-      return await submissionService.getSubmissionStatus(assignmentId);
+      const assignmentId = typeof arg === 'object' ? arg.assignmentId : arg;
+      const includeReport = typeof arg === 'object' ? !!arg.includeReport : false;
+      return await submissionService.getSubmissionStatus(assignmentId, { includeReport });
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch status');
     }
@@ -128,7 +138,8 @@ const initialState = {
   isLoading: false,
   isSubmitting: false,
   error: null,
-  success: false
+  success: false,
+  lastFetchedAt: null,
 };
 
 const submissionSlice = createSlice({
@@ -154,7 +165,15 @@ const submissionSlice = createSlice({
       .addCase(submitAssignmentData.fulfilled, (state, action) => {
         state.isSubmitting = false;
         state.success = true;
-        state.currentSubmission = action.payload;
+        const payload = action.payload;
+        if (payload) {
+          state.currentSubmission = {
+            ...(state.currentSubmission || {}),
+            id: payload.id ?? state.currentSubmission?.id,
+            status: payload.status ?? state.currentSubmission?.status,
+            submittedAt: payload.submittedAt ?? state.currentSubmission?.submittedAt,
+          };
+        }
       })
       .addCase(submitAssignmentData.rejected, (state, action) => {
         state.isSubmitting = false;
@@ -164,6 +183,7 @@ const submissionSlice = createSlice({
       // My Submissions
       .addCase(fetchMySubmissions.fulfilled, (state, action) => {
         state.submissions = action.payload;
+        state.lastFetchedAt = Date.now();
       })
       // Teacher All Submissions
       .addCase(fetchAllSubmissionsForTeacher.fulfilled, (state, action) => {

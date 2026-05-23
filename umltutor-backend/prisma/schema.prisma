@@ -107,6 +107,8 @@ model Submission {
   useCaseDiagram      UseCaseDiagram?
   useCaseDescriptions UseCaseDescription[]
   ssdDiagrams         SSDDiagram[]
+  classDiagram        ClassDiagram?
+  sequenceDiagrams    SequenceDiagram[]
   evaluation          Evaluation?
 
   @@unique([assignmentId, studentId])
@@ -151,6 +153,30 @@ model SSDDiagram {
   @@unique([submissionId, relatedId])
 }
 
+model ClassDiagram {
+  id           Int      @id @default(autoincrement())
+  submissionId Int      @unique
+  data         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model SequenceDiagram {
+  id           Int      @id @default(autoincrement())
+  submissionId Int
+  relatedId    String   // Linked to Use Case ID
+  data         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, relatedId])
+}
+
+
 model Evaluation {
   id                 Int       @id @default(autoincrement())
   submissionId       Int       @unique
@@ -175,6 +201,9 @@ model Notification {
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, isRead])
 }
 
 model Announcement {

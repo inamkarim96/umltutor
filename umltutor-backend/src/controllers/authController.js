@@ -82,13 +82,9 @@ const getProfile = async (req, res, next) => {
             return;
         }
 
-        const userId = req.user.userId;
-        const user = await authService.getProfile(userId);
-
-
         res.status(200).json({
             success: true,
-            data: { user },
+            data: { user: req.user },
         });
     } catch (error) {
         next(error);

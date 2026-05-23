@@ -118,15 +118,19 @@ const addMultipleStudentsToClass = async (req, res, next) => {
             return res.status(400).json({ success: false, message: "No student IDs provided" });
         }
 
-        const results = [];
-        for (const sid of idsToProcess) {
+        const promises = idsToProcess.map(async (sid) => {
             try {
                 const result = await classService.addStudentToClass(req.params.classId, sid, req.user.id);
-                results.push(result);
+                return result;
             } catch (err) {
                 console.warn(`Failed to add student ${sid}:`, err.message);
+                return null;
             }
-        }
+        });
+
+        const resolvedResults = await Promise.all(promises);
+        const results = resolvedResults.filter(r => r !== null);
+        
         res.json({ success: true, message: "Students successfully processed", results });
     } catch (error) {
         next(error);

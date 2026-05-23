@@ -2,6 +2,7 @@
 var _jwt = require('../utils/jwt');
 
 var _prisma = require('../utils/prisma'); var _prisma2 = _interopRequireDefault(_prisma);
+const userCache = require('../utils/userCache');
 
 // Extend Express Request type to include user information
 
@@ -49,17 +50,21 @@ var _prisma = require('../utils/prisma'); var _prisma2 = _interopRequireDefault(
         // Verify token
         const decoded = _jwt.verifyToken.call(void 0, token);
 
-        // Get full user data from database
-        const user = await _prisma2.default.user.findUnique({
-            where: { id: Number(decoded.userId) },
-            select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                role: true,
-            },
-        });
+        // Cache-first user lookup — avoids a DB hit on every authenticated request
+        let user = userCache.getById(Number(decoded.userId));
+        if (!user) {
+            user = await _prisma2.default.user.findUnique({
+                where: { id: Number(decoded.userId) },
+                select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                    role: true,
+                },
+            });
+            if (user) userCache.setById(user.id, user);
+        }
 
         if (!user) {
             res.status(401).json({

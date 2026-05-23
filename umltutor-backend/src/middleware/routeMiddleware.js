@@ -2,6 +2,8 @@
 
 const admin = require('../config/firebase-admin');
 const logger = require('../utils/logger');
+const userCache = require('../utils/userCache');
+const { verifyIdTokenCached } = require('../utils/tokenCache');
 const { sendError, AuthenticationError, AuthorizationError } = require('../utils/errors');
 
 /**
@@ -25,10 +27,11 @@ class RouteMiddleware {
       }
 
       const idToken = authHeader.substring(7);
-      
+      const authStart = Date.now();
+
       let decodedToken;
       try {
-        decodedToken = await admin.auth().verifyIdToken(idToken);
+        decodedToken = await verifyIdTokenCached(admin, idToken);
       } catch (verifyError) {
         console.error(`[Auth] Token verification failed: ${verifyError.message}`);
         return res.status(401).json({
@@ -40,11 +43,31 @@ class RouteMiddleware {
 
       const { email, uid, name, email_verified } = decodedToken;
 
-      const prisma = require('../config/prisma');
-      
-      const user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() },
-      });
+      const verifyMs = Date.now() - authStart;
+
+      let user = userCache.get(uid, email);
+      const userStart = Date.now();
+      if (!user) {
+        const prisma = require('../config/prisma');
+        user = await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+          select: {
+            id: true,
+            role: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        });
+        if (user) {
+          userCache.set(uid, email, user);
+          userCache.setById(user.id, user);
+        }
+      }
+      const authMs = Date.now() - authStart;
+      if (authMs > 50) {
+        console.log(`[Perf] auth ${req.method} ${req.originalUrl} verify=${verifyMs}ms user=${Date.now() - userStart}ms total=${authMs}ms`);
+      }
 
       const isSyncRequest = req.path === '/sync' || req.originalUrl.includes('/auth/sync');
 
@@ -142,7 +165,8 @@ class RouteMiddleware {
     const originalJson = res.json;
     res.json = function(data) {
       const responseTime = Date.now() - startTime;
-      if (res.statusCode >= 400) {
+      res.setHeader('X-Response-Time', `${responseTime}ms`);
+      if (res.statusCode >= 400 || responseTime > 50) {
         console.log(`[HTTP] ${req.method} ${req.originalUrl} - ${res.statusCode} (${responseTime}ms)`);
       }
       return originalJson.call(this, data);

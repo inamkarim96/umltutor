@@ -6,6 +6,8 @@ export {
     updateDiagram,
     updateDescription,
     updateSSD,
+    updateClassDiagram,
+    updateSequenceDiagram,
     setActiveUseCase,
     renameNode,
     removeNode,

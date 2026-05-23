@@ -90,18 +90,18 @@ const validateRelationalSSD = async (
   const errors = [];
 
   try {
-    // Get existing participants for this diagram
-    const existingParticipants = await prisma.sSDParticipant.findMany({
-      where: { diagramId }
-    });
-
-    // Get existing messages for this diagram
-    const existingMessages = await prisma.sSDMessage.findMany({
-      where: { diagramId },
-      include: {
-        returnToMessage: true
-      }
-    });
+    // Get existing participants and messages for this diagram in parallel
+    const [existingParticipants, existingMessages] = await Promise.all([
+      prisma.sSDParticipant.findMany({
+        where: { diagramId }
+      }),
+      prisma.sSDMessage.findMany({
+        where: { diagramId },
+        include: {
+          returnToMessage: true
+        }
+      })
+    ]);
 
     // Validate participant constraints
     const systemCount = existingParticipants.filter((p) => p.type === 'system').length;

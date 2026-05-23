@@ -35,6 +35,12 @@ const umlSlice = createSlice({
         if (typeof normalizedModel.diagram === 'string') {
           try { normalizedModel.diagram = JSON.parse(normalizedModel.diagram); } catch { normalizedModel.diagram = { nodes: [], edges: [] }; }
         }
+        if (typeof normalizedModel.classDiagram === 'string') {
+          try { normalizedModel.classDiagram = JSON.parse(normalizedModel.classDiagram); } catch { normalizedModel.classDiagram = { nodes: [], edges: [] }; }
+        }
+        if (typeof normalizedModel.sequenceDiagrams === 'string') {
+          try { normalizedModel.sequenceDiagrams = JSON.parse(normalizedModel.sequenceDiagrams); } catch { normalizedModel.sequenceDiagrams = {}; }
+        }
       }
       if (mode === 'tutorial') {
         state.tutorialModel = normalizedModel;
@@ -82,6 +88,23 @@ const umlSlice = createSlice({
         model.updatedAt = new Date().toISOString();
       }
     },
+    updateClassDiagram: (state, action) => {
+      const { mode, diagram } = action.payload;
+      const model = mode === 'tutorial' ? state.tutorialModel : state.developmentModel;
+      if (model) {
+        model.classDiagram = diagram;
+        model.updatedAt = new Date().toISOString();
+      }
+    },
+    updateSequenceDiagram: (state, action) => {
+      const { mode, id, sequence } = action.payload;
+      const model = mode === 'tutorial' ? state.tutorialModel : state.developmentModel;
+      if (model) {
+        if (!model.sequenceDiagrams || typeof model.sequenceDiagrams !== 'object') model.sequenceDiagrams = {};
+        model.sequenceDiagrams[id] = sequence;
+        model.updatedAt = new Date().toISOString();
+      }
+    },
     setActiveUseCase: (state, action) => {
       state.activeUseCaseId = action.payload;
     },
@@ -105,6 +128,11 @@ const umlSlice = createSlice({
         model.ssds[nodeId].useCaseName = newName;
       }
 
+      // 4. Cascade to Sequence Diagrams if it's a Use Case
+      if (nodeType === 'usecase' && model.sequenceDiagrams && model.sequenceDiagrams[nodeId]) {
+        model.sequenceDiagrams[nodeId].useCaseName = newName;
+      }
+
       model.updatedAt = new Date().toISOString();
     },
     removeNode: (state, action) => {
@@ -122,6 +150,7 @@ const umlSlice = createSlice({
       if (nodeType === 'usecase') {
         if (model.descriptions) delete model.descriptions[nodeId];
         if (model.ssds) delete model.ssds[nodeId];
+        if (model.sequenceDiagrams) delete model.sequenceDiagrams[nodeId];
       }
 
       model.updatedAt = new Date().toISOString();
@@ -156,6 +185,8 @@ const umlSlice = createSlice({
           diagram: { nodes: [], edges: [] },
           descriptions: {},
           ssds: {},
+          classDiagram: { nodes: [], edges: [] },
+          sequenceDiagrams: {},
           updatedAt: new Date().toISOString(),
           version: 1
         };
@@ -176,6 +207,8 @@ export const {
   updateDiagram,
   updateDescription,
   updateSSD,
+  updateClassDiagram,
+  updateSequenceDiagram,
   setActiveUseCase,
   renameNode,
   removeNode,

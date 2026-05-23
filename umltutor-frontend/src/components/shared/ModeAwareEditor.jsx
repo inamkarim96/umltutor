@@ -17,6 +17,8 @@ import { useManualSave } from '../../hooks/useManualSave';
 import { UseCaseDiagramEditor } from '../../features/diagram';
 import { UseCaseDescriptionEditor } from '../../features/description';
 import { SSDDiagramEditor, validateAllSSDsTutorial } from '../../features/ssd';
+import { ClassDiagramEditor } from '../../features/class-diagram';
+import { SequenceDiagramEditor } from '../../features/sequence-diagram';
 import { CheckingModePanel } from '../../features/checking';
 import { validateUseCaseDiagramTutorial } from '../../features/diagram';
 import { validateAllDescriptionsTutorial } from '../../features/description';
@@ -26,6 +28,7 @@ import { selectAllAssignments, selectAssignmentDetail } from '../../features/ass
 import { submitAssignmentData, selectIsSubmitting, fetchSubmissionStatus, selectCurrentSubmission, requestTutorialMode } from '../../features/submissions';
 import { selectUser } from '../../features/auth';
 import { runSubmissionCheckLogic } from '../../features/submissions/submissionLogic';
+import { buildSavePayload } from '../../utils/savePayloadUtils';
 
 import ConfirmModal from './ConfirmModal';
 import {
@@ -68,7 +71,9 @@ const StepSelectionModal = ({ isOpen, onClose, onSelect, format }) => {
           {[
             { id: 'usecase', label: 'Step 1', desc: 'Use Case Diagram' },
             { id: 'description', label: 'Step 2', desc: 'Use Case Descriptions' },
-            { id: 'ssd', label: 'Step 3', desc: 'System Sequence Diagrams' }
+            { id: 'ssd', label: 'Step 3', desc: 'System Sequence Diagrams' },
+            { id: 'class-diagram', label: 'Step 4', desc: 'Class Diagram' },
+            { id: 'sequence-diagram', label: 'Step 5', desc: 'Sequence Diagram' }
           ].map(step => (
             <button
               key={step.id}
@@ -185,15 +190,11 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         // Authenticated student: Save to backend database
         if (isStudentWork && assignmentId) {
           await dispatch(submitAssignmentData({
-            assignmentId: assignmentId,
-            data: {
-              status: 'draft',
-              diagramData: model
-            }
+            assignmentId,
+            data: buildSavePayload(model, { status: 'draft', section: activeSection }),
+            lean: true,
           })).unwrap();
           successToast('Progress saved securely to the database.');
-          // Refresh status so auto-save/draft indicator can be updated if desired
-          dispatch(fetchSubmissionStatus(assignmentId));
         }
       }
     } catch (error) {
@@ -246,12 +247,12 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
     autoOpenedRef.current = false;
   }, [assignmentId]);
 
-  // Fetch status on mount if not available
+  // Fetch full report only when graded (lightweight status loaded by WorkspacePage)
   useEffect(() => {
-    if (isStudentWork && assignmentId && !currentSubmission) {
-      dispatch(fetchSubmissionStatus(assignmentId));
+    if (isStudentWork && assignmentId && currentSubmission?.status === 'graded' && !currentSubmission?.fullReport) {
+      dispatch(fetchSubmissionStatus({ assignmentId, includeReport: true }));
     }
-  }, [isStudentWork, assignmentId, currentSubmission, dispatch]);
+  }, [isStudentWork, assignmentId, currentSubmission?.status, currentSubmission?.fullReport, dispatch]);
 
   // Auto-Progression for Tutorial Mode
   useEffect(() => {
@@ -317,6 +318,21 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
       // Enforce flow only in Tutorial mode
       isLocked: isTutorialMode && (tutorialStep === 'USE_CASE' || tutorialStep === 'DESCRIPTION'),
       isActive: !isTutorialMode || tutorialStep === 'SEQUENCE'
+    },
+    {
+      id: 'class-diagram',
+      label: '4. Class Diagram',
+      icon: Database,
+      // For now, unlocked in development mode, can be locked in tutorial if needed
+      isLocked: isTutorialMode && (tutorialStep === 'USE_CASE' || tutorialStep === 'DESCRIPTION' || tutorialStep === 'SEQUENCE'),
+      isActive: true
+    },
+    {
+      id: 'sequence-diagram',
+      label: '5. Sequence Diagram',
+      icon: Share2,
+      isLocked: false,
+      isActive: true
     },
   ];
 
@@ -384,6 +400,23 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         }
         setIsSubmitModalOpen(true);
       } else {
+        successToast('SSD completed! Moving to Class Diagram.');
+      }
+      setActiveSection('class-diagram');
+    } else if (activeSection === 'class-diagram') {
+      if (isTutorialMode) {
+        // Class Diagram tutorial validation would go here
+        successToast('Class Diagram validated! Moving to Sequence Diagram.');
+      } else {
+        successToast('Class Diagram completed! Moving to Sequence Diagram.');
+      }
+      setActiveSection('sequence-diagram');
+    } else if (activeSection === 'sequence-diagram') {
+      if (isTutorialMode) {
+        successToast('Sequence Diagram validated!');
+      } else if (isStudentWork) {
+        setIsSubmitModalOpen(true);
+      } else {
         successToast('All steps completed in Development Mode.');
       }
     }
@@ -392,12 +425,9 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   const handleFinalSubmit = async ({ description }) => {
     try {
       await dispatch(submitAssignmentData({
-        assignmentId: assignmentId,
-        data: {
-          status: 'submitted',
-          description,
-          diagramData: model // Send the whole model: diagrams, descriptions, etc.
-        }
+        assignmentId,
+        data: buildSavePayload(model, { status: 'submitted' }),
+        lean: false,
       })).unwrap();
 
       successToast('Assignment submitted successfully!');
@@ -470,6 +500,19 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
           reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
           onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
           modelOverride={model}
+        />;
+      case 'class-diagram':
+        return <ClassDiagramEditor
+          key={effectivelyReadOnly ? 'read-only' : 'editable'}
+          assignmentId={model.id}
+          initialData={model.classDiagram}
+          isReadOnly={effectivelyReadOnly}
+        />;
+      case 'sequence-diagram':
+        return <SequenceDiagramEditor
+          key={effectivelyReadOnly ? 'read-only' : 'editable'}
+          assignmentId={model.id}
+          isReadOnly={effectivelyReadOnly}
         />;
       default:
         return null;
@@ -801,8 +844,46 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
               />
             </div>
             {isTutorialMode && sections[2].isLocked && (
-              <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the Use Case Descriptions step first to unlock this section.</div>
+              <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the previous steps to unlock this section.</div>
             )}
+          </div>
+
+          {/* Section 4: Class Diagram */}
+          <div id="section-class-diagram" className={`flex flex-col mt-16 ${isTutorialMode && sections[3].isLocked ? 'grayscale opacity-70 pointer-events-none' : ''}`}>
+            <h3 className="text-2xl font-black text-indigo-600 mb-6 flex items-center gap-3">
+              <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">4</span>
+              Class Diagram
+            </h3>
+            <div className="max-w-[1300px] w-full mx-auto">
+              <div className="h-[700px] border border-gray-200 rounded-[2.5rem] overflow-hidden bg-white shadow-xl shadow-gray-100/50">
+                <ClassDiagramEditor 
+                  key={effectivelyReadOnly ? 'read-only' : 'editable'} 
+                  assignmentId={model.id} 
+                  initialData={model.classDiagram} 
+                  isReadOnly={effectivelyReadOnly} 
+                />
+              </div>
+            </div>
+            {isTutorialMode && sections[3].isLocked && (
+              <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center text-sm font-bold text-gray-400">Complete the previous steps to unlock this section.</div>
+            )}
+          </div>
+
+          {/* Section 5: Sequence Diagram */}
+          <div id="section-sequence-diagram" className="flex flex-col mt-16">
+            <h3 className="text-2xl font-black text-indigo-600 mb-6 flex items-center gap-3">
+              <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">5</span>
+              Sequence Diagram
+            </h3>
+            <div className="max-w-[1300px] w-full mx-auto">
+              <div className="h-[700px] border border-gray-200 rounded-[2.5rem] overflow-hidden bg-white shadow-xl shadow-gray-100/50">
+                <SequenceDiagramEditor 
+                  key={effectivelyReadOnly ? 'read-only' : 'editable'} 
+                  assignmentId={model.id} 
+                  isReadOnly={effectivelyReadOnly} 
+                />
+              </div>
+            </div>
           </div>
           {/* Bottom floating navigation removed per user request */}
         </div>
@@ -973,7 +1054,7 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
               <div className="w-16 h-16 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-sm font-black text-indigo-600 uppercase tracking-widest">Preparing High-Quality Export...</p>
               <p className="text-xs text-gray-500 mt-1">Including your work and checking report</p>
-              <p className="text-[10px] text-gray-400 mt-4 italic">Sequential rendering in progress (Diagrams → Descriptions → SSDs)</p>
+              <p className="text-[10px] text-gray-400 mt-4 italic">Sequential rendering in progress (Diagrams → Descriptions → SSDs → Class Diagram)</p>
             </div>
           </div>
           <div
@@ -1048,6 +1129,43 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
                         useCaseId={id}
                         reportOverride={currentSubmission?.fullReport}
                         modelOverride={model}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Step 4: Class Diagram & Report */}
+              <div className="flex flex-col gap-12" data-export-section="class-diagram">
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">4. Class Diagram</h1>
+                <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '800px' }}>
+                  <ClassDiagramEditor
+                    assignmentId={model.id}
+                    initialData={model.classDiagram}
+                    isReadOnly={true}
+                  />
+                </div>
+                <div className="w-full">
+                  <CheckingModePanel
+                    activeSection="class-diagram"
+                    reportOverride={currentSubmission?.fullReport}
+                    modelOverride={model}
+                  />
+                </div>
+              </div>
+
+              {/* Step 5: Sequence Diagrams & Reports */}
+              <div className="flex flex-col gap-12" data-export-section="sequence-diagrams">
+                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">5. Sequence Diagrams</h1>
+                {model?.descriptions && Object.keys(model.descriptions).map(id => (
+                  <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
+                    <h2 className="text-2xl font-black text-slate-800 italic">5.1 Sequence: {model.descriptions[id]?.useCaseName}</h2>
+                    <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '700px' }}>
+                      <SequenceDiagramEditor
+                        assignmentId={model.id}
+                        isReadOnly={true}
+                        modelOverride={model}
+                        useCaseId={id}
                       />
                     </div>
                   </div>

@@ -1,5 +1,40 @@
 "use strict"; Object.defineProperty(exports, "__esModule", { value: true }); function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } var _ssdValidationService = require('./ssdValidationService');
 
+const VERB_DICTIONARY = new Set([
+    'create', 'add', 'update', 'delete', 'register', 'login', 'logout',
+    'view', 'search', 'generate', 'submit', 'process', 'send', 'receive',
+    'manage', 'book', 'place', 'track', 'upload', 'download', 'approve',
+    'reject', 'withdraw', 'purchase', 'make'
+]);
+
+const INTERNAL_VERBS = new Set([
+    'calculate', 'calculates', 'process', 'processes', 'validate', 'validates',
+    'check', 'checks', 'compute', 'computes', 'verify', 'verifies',
+    'update', 'updates', 'store', 'stores', 'save', 'saves',
+    'record', 'records', 'log', 'logs', 'retrieve', 'retrieves',
+    'fetch', 'fetches', 'look', 'looks', 'find', 'finds',
+    'search', 'searches', 'load', 'loads', 'compare', 'compares',
+    'sort', 'sorts', 'filter', 'filters', 'encrypt', 'encrypts',
+    'decrypt', 'decrypts', 'hash', 'hashes', 'resolve', 'resolves',
+    'create', 'creates', 'set', 'sets', 'read', 'reads',
+]);
+
+const EXTERNAL_VERBS = new Set([
+    'display', 'displays', 'show', 'shows', 'confirm', 'confirms',
+    'generate', 'generates', 'return', 'returns', 'notify', 'notifies',
+    'send', 'sends', 'present', 'presents', 'provide', 'provides',
+    'redirect', 'redirects', 'output', 'outputs', 'emit', 'emits',
+    'render', 'renders', 'respond', 'responds', 'report', 'reports',
+    'give', 'gives', 'reply', 'replies', 'inform', 'informs',
+    'print', 'prints', 'broadcast', 'broadcasts',
+]);
+
+const STOP_WORDS = new Set([
+    'the', 'of', 'a', 'an', 'is', 'to', 'for', 'and', 'with', 'by',
+    'in', 'on', 'at', 'as', 'be', 'this', 'that', 'its', 'it',
+    'from', 'or', 'into', 'their', 'has', 'have', 'was', 'are',
+    'will', 'should', 'can', 'then', 'after', 'before', 'when', 'if',
+]);
 
 class CheckingEngine {
 
@@ -112,28 +147,6 @@ class CheckingEngine {
         // The first meaningful word is typically the verb
         const verb = words[0] || '';
 
-        const INTERNAL_VERBS = new Set([
-            'calculate', 'calculates', 'process', 'processes', 'validate', 'validates',
-            'check', 'checks', 'compute', 'computes', 'verify', 'verifies',
-            'update', 'updates', 'store', 'stores', 'save', 'saves',
-            'record', 'records', 'log', 'logs', 'retrieve', 'retrieves',
-            'fetch', 'fetches', 'look', 'looks', 'find', 'finds',
-            'search', 'searches', 'load', 'loads', 'compare', 'compares',
-            'sort', 'sorts', 'filter', 'filters', 'encrypt', 'encrypts',
-            'decrypt', 'decrypts', 'hash', 'hashes', 'resolve', 'resolves',
-            'create', 'creates', 'set', 'sets', 'read', 'reads',
-        ]);
-
-        const EXTERNAL_VERBS = new Set([
-            'display', 'displays', 'show', 'shows', 'confirm', 'confirms',
-            'generate', 'generates', 'return', 'returns', 'notify', 'notifies',
-            'send', 'sends', 'present', 'presents', 'provide', 'provides',
-            'redirect', 'redirects', 'output', 'outputs', 'emit', 'emits',
-            'render', 'renders', 'respond', 'responds', 'report', 'reports',
-            'give', 'gives', 'reply', 'replies', 'inform', 'informs',
-            'print', 'prints', 'broadcast', 'broadcasts',
-        ]);
-
         if (INTERNAL_VERBS.has(verb)) return 'self';
         if (EXTERNAL_VERBS.has(verb)) return 'external';
 
@@ -158,13 +171,6 @@ class CheckingEngine {
      * This is purely informational – no validation, no errors.
      */
     static suggestFromSentence(sentence) {
-        const STOP_WORDS = new Set([
-            'the', 'of', 'a', 'an', 'is', 'to', 'for', 'and', 'with', 'by',
-            'in', 'on', 'at', 'as', 'be', 'this', 'that', 'its', 'it',
-            'from', 'or', 'into', 'their', 'has', 'have', 'was', 'are',
-            'will', 'should', 'can', 'then', 'after', 'before', 'when', 'if',
-        ]);
-
         // Strip the leading actor/system identifier (first word) and lowercase everything
         const raw = (sentence || '').replace(/\./g, '').trim();
         const words = raw.split(/\s+/).filter(w => w.length > 0);
@@ -357,14 +363,6 @@ class CheckingEngine {
             });
         }
 
-        // Verb dictionary for Use Case name validation
-        const VERB_DICTIONARY = [
-            'create', 'add', 'update', 'delete', 'register', 'login', 'logout',
-            'view', 'search', 'generate', 'submit', 'process', 'send', 'receive',
-            'manage', 'book', 'place', 'track', 'upload', 'download', 'approve',
-            'reject', 'withdraw', 'purchase', 'make'
-        ];
-
         useCases.forEach((uc) => {
             const label = useCaseLabels.get(uc.id);
 
@@ -389,7 +387,7 @@ class CheckingEngine {
                     });
                 } else {
                     const firstWord = words[0].toLowerCase();
-                    if (!VERB_DICTIONARY.includes(firstWord)) {
+                    if (!VERB_DICTIONARY.has(firstWord)) {
                         issues.push({
                             type: 'diagram', severity: 'error', location: 'diagram',
                             code: 'USE_CASE_INVALID_NAME',
@@ -666,6 +664,7 @@ class CheckingEngine {
         const messages = [...(ssd.messages || [])].sort((a, b) => a.order - b.order);
         const steps = desc.mainFlow || [];
         const lifelines = ssd.lifelines || [];
+        const lifelineMap = new Map(lifelines.map(l => [l.id, l]));
 
         // Find the numeric index based on the diagram order (Top-to-Bottom, Left-to-Right)
         // This should match the frontend's section numbering (3.x vs 2.x)
@@ -683,7 +682,7 @@ class CheckingEngine {
         if (messages.length > 0) {
             const firstMsg = messages.find(m => !m.isReturn);
             if (firstMsg) {
-                const sender = lifelines.find(l => l.id === firstMsg.fromLifelineId);
+                const sender = lifelineMap.get(firstMsg.fromLifelineId);
 
                 if (sender && sender.type === 'actor' && desc.primaryActor) {
                     const senderLabelLower = (sender.label || '').trim().toLowerCase();
@@ -781,8 +780,8 @@ class CheckingEngine {
                 }
                 expectedMessageIdx = Math.max(expectedMessageIdx, matchedMsgIdx + 1);
 
-                const sender = lifelines.find(l => l.id === msg.fromLifelineId);
-                const receiver = lifelines.find(l => l.id === msg.toLifelineId);
+                const sender = lifelineMap.get(msg.fromLifelineId);
+                const receiver = lifelineMap.get(msg.toLifelineId);
 
                 // Validate source
                 const isActorStep = stepText.includes('actor') || stepText.includes('user') || (desc.primaryActor && stepText.includes(desc.primaryActor.toLowerCase()));

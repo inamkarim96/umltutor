@@ -2,8 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var _userRepository = require('../repositories/userRepository');
-var _userRepository2 = _interopRequireDefault(_userRepository);
+const studentService = _interopRequireDefault(require('../services/studentService')).default;
 
 const searchStudents = async (req, res) => {
   try {
@@ -16,7 +15,7 @@ const searchStudents = async (req, res) => {
       });
     }
 
-    const students = await _userRepository2.default.searchStudents(query);
+    const students = await studentService.searchStudents(query);
     
     // Map to the requested response format
     const formattedStudents = students.map(s => ({
@@ -36,3 +35,4 @@ const searchStudents = async (req, res) => {
 };
 
 exports.searchStudents = searchStudents;
+

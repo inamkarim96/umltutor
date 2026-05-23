@@ -39,6 +39,10 @@ export const exportStepWithReport = async (section, format, activeModel, report,
             selector = itemId ? `[data-description-id="${itemId}"]` : '.use-case-description-editor';
         } else if (section === 'ssd') {
             selector = itemId ? `[data-testid="ssd-card"][data-usecase-id="${itemId}"]` : '[data-testid="ssd-card"]';
+        } else if (section === 'class-diagram') {
+            selector = '.react-flow';
+        } else if (section === 'sequence-diagram') {
+            selector = '.react-flow';
         }
 
         const element = document.querySelector(selector) || document.querySelector('.flex-1.relative.overflow-hidden');
@@ -194,6 +198,21 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
             }
         }
 
+        // --- SECTION 4: CLASS DIAGRAM & REPORT ---
+        const step4 = renderer.querySelector('[data-export-section="class-diagram"]');
+        if (step4) {
+            await addSectionToPdf(step4, '4. Class Diagram & Checking Report');
+        }
+
+        // --- SECTION 5: SEQUENCE DIAGRAMS & REPORTS ---
+        const step5 = renderer.querySelector('[data-export-section="sequence-diagrams"]');
+        if (step5) {
+            const seqBlocks = Array.from(step5.children).filter(el => el.tagName !== 'H1');
+            for (let i = 0; i < seqBlocks.length; i++) {
+                await addSectionToPdf(seqBlocks[i], `5.${i + 1} Sequence Diagram & Checking Report`);
+            }
+        }
+
         const fileName = `${userInfo.studentName ? userInfo.studentName + ' - ' : ''}${userInfo.assignmentTitle || 'UML-Design-Report'}.pdf`;
         pdf.save(fileName);
     } catch (error) {
@@ -241,7 +260,9 @@ export const exportDiagramAsImage = async (activeSection, format) => {
         ? '[data-testid="usecase-canvas"] .react-flow'
         : activeSection === 'ssd'
             ? '[data-testid="ssd-canvas"] .react-flow'
-            : `#${activeSection}-section`;
+            : activeSection === 'class-diagram' || activeSection === 'sequence-diagram'
+                ? '.react-flow'
+                : `#${activeSection}-section`;
 
     const diagramElement = document.querySelector(selector);
     if (!diagramElement) {

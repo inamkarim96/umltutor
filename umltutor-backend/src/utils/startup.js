@@ -63,9 +63,22 @@ const initializeApplication = async () => {
       if (verbose) console.log('✅ Database connectivity verified');
     } catch (error) {
       console.error('❌ Database connection failed:', error.message);
-      // In production/Vercel, we might not want to crash immediately if DB is temporarily down,
-      // but for debugging purposes, logging it clearly is essential.
     }
+
+    if (process.env.CACHE_MEMORY_ONLY !== 'true') {
+      try {
+        const cacheService = require('./redis');
+        const ok = await cacheService.ping();
+        if (!ok) {
+          console.warn('[Cache] Redis unavailable — API will use in-memory cache only');
+        }
+      } catch (error) {
+        console.warn('[Cache] Redis ping skipped:', error.message);
+      }
+    }
+
+    const { warmFirebaseAuth } = require('./warmFirebaseAuth');
+    await warmFirebaseAuth();
 
     if (verbose) console.log('🎉 Application initialization complete!\n');
     

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import assignmentService from '../../services/assignmentService';
+import { isListFetchStale } from '../../utils/fetchStaleGuard';
 
 // --- THUNKS ---
 
@@ -14,6 +15,13 @@ export const fetchAllAssignments = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch assignments');
     }
+  },
+  {
+    condition: (_, { getState }) => {
+      const { isLoading, assignments, lastFetchedAt } = getState().assignments;
+      if (isLoading) return false;
+      return isListFetchStale(lastFetchedAt, assignments.length > 0);
+    },
   }
 );
 
@@ -72,7 +80,8 @@ const initialState = {
   assignmentDetail: null,
   isLoading: false,
   error: null,
-  success: false
+  success: false,
+  lastFetchedAt: null,
 };
 
 const assignmentSlice = createSlice({
@@ -100,6 +109,7 @@ const assignmentSlice = createSlice({
       .addCase(fetchAllAssignments.fulfilled, (state, action) => {
         state.isLoading = false;
         state.assignments = action.payload;
+        state.lastFetchedAt = Date.now();
       })
       .addCase(fetchAllAssignments.rejected, (state, action) => {
         state.isLoading = false;

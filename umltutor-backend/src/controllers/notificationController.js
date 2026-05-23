@@ -6,7 +6,12 @@ const notificationService = _interopRequireDefault(require('../services/notifica
 
 const getNotifications = async (req, res, next) => {
     try {
+        const t0 = Date.now();
         const notifications = await notificationService.getUserNotifications(req.user.id);
+        const handlerMs = Date.now() - t0;
+        if (handlerMs > 50) {
+            console.log(`[Perf] notifications data fetch ${handlerMs}ms (user ${req.user.id})`);
+        }
         res.json({ success: true, data: notifications });
     } catch (error) {
         next(error);

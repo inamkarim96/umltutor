@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import classroomService from '../../services/classService';
+import { isListFetchStale } from '../../utils/fetchStaleGuard';
 
 // --- THUNKS ---
 
@@ -16,6 +17,13 @@ export const fetchClasses = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch classes');
     }
+  },
+  {
+    condition: (_, { getState }) => {
+      const { isLoading, classes, lastFetchedAt } = getState().classroom;
+      if (isLoading) return false;
+      return isListFetchStale(lastFetchedAt, classes.length > 0);
+    },
   }
 );
 
@@ -201,7 +209,8 @@ const initialState = {
   resources: {}, // key: classId, value: array of resources
   isLoading: false,
   error: null,
-  success: false
+  success: false,
+  lastFetchedAt: null,
 };
 
 const classroomSlice = createSlice({
@@ -226,6 +235,7 @@ const classroomSlice = createSlice({
       .addCase(fetchClasses.fulfilled, (state, action) => {
         state.isLoading = false;
         state.classes = action.payload;
+        state.lastFetchedAt = Date.now();
       })
       .addCase(fetchClasses.rejected, (state, action) => {
         state.isLoading = false;

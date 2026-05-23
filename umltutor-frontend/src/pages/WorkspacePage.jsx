@@ -46,7 +46,7 @@ const WorkspacePage = ({ mode }) => {
                     dispatch(fetchAssignmentById({ id: assignmentId, role: 'STUDENT' }));
                 } else {
                     // Always try to fetch submission status to ensure locking is accurate
-                    dispatch(fetchSubmissionStatus(assignmentId));
+                    dispatch(fetchSubmissionStatus({ assignmentId, includeReport: false }));
                 }
             }
         }

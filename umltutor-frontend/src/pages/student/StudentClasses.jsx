@@ -17,7 +17,7 @@ const StudentClasses = () => {
 
     React.useEffect(() => {
         if (classes.length === 0) {
-            dispatch(fetchClasses());
+            dispatch(fetchClasses('STUDENT'));
         }
     }, [dispatch, classes.length]);
 
@@ -32,7 +32,7 @@ const StudentClasses = () => {
             setIsJoining(false);
             setShowJoinForm(false);
             // Refresh classes to show the newly joined class
-            dispatch(fetchClasses());
+            dispatch(fetchClasses('STUDENT'));
         } catch (error) {
             setJoinError(error || 'Failed to join class. Please check the code.');
             setIsJoining(false);

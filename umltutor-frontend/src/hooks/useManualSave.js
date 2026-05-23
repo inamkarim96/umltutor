@@ -67,14 +67,14 @@ export const useManualSave = (activeSection) => {
                         // Image export for description (screenshot)
                         await exportDiagramAsImage(activeSection, format);
                     }
-                } else if (activeSection === 'usecase' || activeSection === 'ssd') {
+                } else if (activeSection === 'usecase' || activeSection === 'ssd' || activeSection === 'class-diagram' || activeSection === 'sequence-diagram') {
                     await exportDiagramAsImage(activeSection, format);
                 } else {
                     throw new Error(`${format.toUpperCase()} export not available for ${activeSection} editor`);
                 }
             } else {
                 // Image export for diagrams
-                if (activeSection === 'usecase' || activeSection === 'ssd') {
+                if (activeSection === 'usecase' || activeSection === 'ssd' || activeSection === 'class-diagram' || activeSection === 'sequence-diagram') {
                     await exportDiagramAsImage(activeSection, format);
                 } else {
                     throw new Error(`Image export not available for ${activeSection} editor`);

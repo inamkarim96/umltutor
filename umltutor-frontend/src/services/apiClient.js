@@ -4,6 +4,31 @@ import { eventBus, GLOBAL_EVENTS } from '../utils/events';
 
 const API_BASE_URL = process.env.API_BASE_URL || '';
 
+let cachedToken = null;
+let tokenExpiresAt = 0;
+
+async function getAuthToken() {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        return localStorage.getItem('token');
+    }
+    const now = Date.now();
+    if (cachedToken && now < tokenExpiresAt) {
+        return cachedToken;
+    }
+    // false = use cached token when still valid (~1h); avoids refresh latency per request
+    const token = await currentUser.getIdToken(false);
+    cachedToken = token;
+    tokenExpiresAt = now + 55 * 60 * 1000;
+    localStorage.setItem('token', token);
+    return token;
+}
+
+export function clearAuthTokenCache() {
+    cachedToken = null;
+    tokenExpiresAt = 0;
+}
+
 /**
  * Centralized API Client with authentication and standard response handling
  */
@@ -20,19 +45,9 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
     async (config) => {
         try {
-            const currentUser = auth.currentUser;
-            if (currentUser) {
-                // getIdToken() returns cached token OR silently refreshes if expired
-                const token = await currentUser.getIdToken();
+            const token = await getAuthToken();
+            if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
-                // Keep localStorage in sync for any legacy code that reads it
-                localStorage.setItem('token', token);
-            } else {
-                // Fallback: use cached token from localStorage if Firebase user is not yet loaded
-                const token = localStorage.getItem('token');
-                if (token) {
-                    config.headers.Authorization = `Bearer ${token}`;
-                }
             }
         } catch (err) {
             console.warn('Failed to get Firebase token for request:', err);
@@ -85,6 +100,7 @@ apiClient.interceptors.response.use(
                         type: 'warning'
                     });
                 } else if (!isAuthEndpoint) {
+                    clearAuthTokenCache();
                     console.warn('Unauthorized access - session may have expired');
                     eventBus.emit(GLOBAL_EVENTS.AUTH_FAILURE);
                     eventBus.emit(GLOBAL_EVENTS.SHOW_TOAST, {
