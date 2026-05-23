@@ -1,85 +1,179 @@
 import apiClient from './apiClient';
+import { inflightGet, clearInflight } from '../utils/inflightRequest';
 
 /**
- * Unified Submission Service organized by user role and feature
- * Clear separation between Student and Teacher operations
+ * Unified Submission Service — GETs deduplicated; writes use lean draft saves.
+ * Optimized with optimistic updates, artifact compression, and cache invalidation.
  */
+
+// Local cache for optimistic updates
+const optimisticCache = new Map();
+
+function setOptimisticCache(key, value) {
+  optimisticCache.set(key, { value, timestamp: Date.now() });
+}
+
+function getOptimisticCache(key) {
+  const cached = optimisticCache.get(key);
+  if (cached && Date.now() - cached.timestamp < 5000) { // 5 second TTL
+    return cached.value;
+  }
+  optimisticCache.delete(key);
+  return null;
+}
+
+function clearOptimisticCache(pattern) {
+  for (const key of optimisticCache.keys()) {
+    if (key.includes(pattern)) {
+      optimisticCache.delete(key);
+    }
+  }
+}
 class SubmissionService {
   // === TEACHER OPERATIONS ===
-  
-  // Submission Management
+
   async getAllSubmissions(filters) {
-    return apiClient.get('/api/submissions/teacher/all', { params: filters });
+    const key = `submissions:teacher:all:${JSON.stringify(filters || {})}`;
+    return inflightGet(key, () => apiClient.get('/api/submissions/teacher/all', { params: filters }));
+  }
+
+  async getAllSubmissionsPaginated(filters, page = 1, limit = 20) {
+    const key = `submissions:teacher:all:page:${page}:limit:${limit}:${JSON.stringify(filters || {})}`;
+    return inflightGet(key, () => apiClient.get('/api/submissions/teacher/all', { params: { ...filters, page, limit } }));
   }
 
   async getAssignmentSubmissions(assignmentId) {
-    return apiClient.get(`/api/submissions/${assignmentId}/all`);
+    return inflightGet(`submissions:assignment:${assignmentId}`, () =>
+      apiClient.get(`/api/submissions/${assignmentId}/all`)
+    );
   }
 
   async getSubmissionDetail(submissionId) {
-    return apiClient.get(`/api/submissions/${submissionId}`);
+    return inflightGet(`submissions:detail:${submissionId}`, () =>
+      apiClient.get(`/api/submissions/${submissionId}`)
+    );
   }
 
-  // Grading & Feedback
   async runSubmissionCheck(submissionId, { section, targetId } = {}) {
-    return apiClient.post(`/api/submissions/${submissionId}/run-check`, { section, targetId });
+    const result = await apiClient.post(`/api/submissions/${submissionId}/run-check`, { section, targetId });
+    // Invalidate relevant caches
+    clearInflight(`submissions:detail:${submissionId}`);
+    clearInflight(`submissions:status:*`);
+    return result;
   }
 
   async saveSubmissionRemarks(submissionId, { remarks, score } = {}) {
-    return apiClient.patch(`/api/submissions/${submissionId}/remarks`, { remarks, score });
+    const result = await apiClient.patch(`/api/submissions/${submissionId}/remarks`, { remarks, score });
+    // Invalidate relevant caches
+    clearInflight(`submissions:detail:${submissionId}`);
+    clearInflight(`submissions:assignment:*`);
+    return result;
   }
 
   async saveSubmissionFeedback(submissionId, { report, remarks, score, isDraft } = {}) {
-    return apiClient.post(`/api/submissions/${submissionId}/save-feedback`, { report, remarks, score, isDraft });
+    const result = await apiClient.post(`/api/submissions/${submissionId}/save-feedback`, {
+      report,
+      remarks,
+      score,
+      isDraft,
+    });
+    // Invalidate relevant caches
+    clearInflight(`submissions:detail:${submissionId}`);
+    clearInflight(`submissions:assignment:*`);
+    clearInflight(`submissions:analytics:*`);
+    return result;
   }
 
   async gradeSubmission(submissionId, data) {
     const score = data.score || data.grade;
     const remarks = data.remarks || data.feedback;
-    return apiClient.post(`/api/submissions/${submissionId}/grade`, { score, remarks });
+    const result = await apiClient.post(`/api/submissions/${submissionId}/grade`, { score, remarks });
+    // Invalidate relevant caches
+    clearInflight(`submissions:detail:${submissionId}`);
+    clearInflight(`submissions:assignment:*`);
+    clearInflight(`submissions:analytics:*`);
+    return result;
   }
 
-  // Analytics & Reporting
   async getSubmissionAnalytics(assignmentId) {
-    return apiClient.get(`/api/submissions/${assignmentId}/analytics`);
+    return inflightGet(`submissions:analytics:${assignmentId}`, () =>
+      apiClient.get(`/api/submissions/${assignmentId}/analytics`)
+    );
   }
 
   // === STUDENT OPERATIONS ===
-  
-  // Submission Lifecycle
-  async submitAssignmentData(assignmentId, data) {
-    // Standard UML workflow save
-    return apiClient.post(`/api/submissions/${assignmentId}`, data);
+
+  async submitAssignmentData(assignmentId, data, { lean = true, optimistic = false } = {}) {
+    const params = lean ? { lean: 'true' } : {};
+    
+    if (optimistic) {
+      const cacheKey = `submissions:me:${assignmentId}`;
+      setOptimisticCache(cacheKey, { ...data, status: 'submitting' });
+    }
+    
+    try {
+      const result = await apiClient.post(`/api/submissions/${assignmentId}`, data, { params });
+      // Invalidate relevant caches
+      clearInflight(`submissions:me:${assignmentId}`);
+      clearInflight('submissions:student:me');
+      clearOptimisticCache(assignmentId);
+      return result;
+    } catch (error) {
+      clearOptimisticCache(assignmentId);
+      throw error;
+    }
   }
 
-  async updateSubmission(assignmentId, data) {
-    // Legacy support or specific update if needed
-    return apiClient.post(`/api/submissions/${assignmentId}`, { ...data, status: 'draft' });
+  async updateSubmission(assignmentId, data, { optimistic = false } = {}) {
+    if (optimistic) {
+      const cacheKey = `submissions:me:${assignmentId}`;
+      setOptimisticCache(cacheKey, { ...data, status: 'draft' });
+    }
+    
+    try {
+      const result = await apiClient.post(`/api/submissions/${assignmentId}`, { ...data, status: 'draft' }, { params: { lean: 'true' } });
+      // Invalidate relevant caches
+      clearInflight(`submissions:me:${assignmentId}`);
+      clearInflight('submissions:student:me');
+      clearOptimisticCache(assignmentId);
+      return result;
+    } catch (error) {
+      clearOptimisticCache(assignmentId);
+      throw error;
+    }
   }
 
-  // Submission Status & Progress
   async getMySubmission(assignmentId) {
-    return apiClient.get(`/api/submissions/${assignmentId}/me`);
+    const key = `submissions:me:${assignmentId}`;
+    // Check optimistic cache first
+    const optimistic = getOptimisticCache(key);
+    if (optimistic) return optimistic;
+    
+    return inflightGet(key, () => apiClient.get(`/api/submissions/${assignmentId}/me`));
   }
 
   async getMySubmissions() {
-    return apiClient.get('/api/submissions/student/me');
+    return inflightGet('submissions:student:me', () => apiClient.get('/api/submissions/student/me'));
   }
 
-  async getSubmissionStatus(assignmentId) {
-    return apiClient.get(`/api/submissions/${assignmentId}/status`);
+  async getSubmissionStatus(assignmentId, { includeReport = false } = {}) {
+    const key = `submissions:status:${assignmentId}:${includeReport ? 'full' : 'lite'}`;
+    const params = includeReport ? { includeReport: 'true' } : {};
+    return inflightGet(key, () =>
+      apiClient.get(`/api/submissions/${assignmentId}/status`, { params })
+    );
   }
 
   async getSubmissionReceipt(id) {
     return apiClient.get(`/api/submissions/${id}/receipt`);
   }
 
-  // Student Analytics
   async getStudentAnalytics() {
-    return apiClient.get('/api/submissions/student/analytics');
+    return inflightGet('submissions:student:analytics', () =>
+      apiClient.get('/api/submissions/student/analytics')
+    );
   }
 
-  // Tutorial Mode
   async requestTutorialMode(submissionId) {
     return apiClient.post(`/api/submissions/${submissionId}/request-tutorial`);
   }

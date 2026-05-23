@@ -8,7 +8,11 @@ const userRepository = _interopRequireDefault(require('../repositories/userRepos
 const assignmentRepository = _interopRequireDefault(require('../repositories/assignmentRepository')).default;
 const notificationRepository = _interopRequireDefault(require('../repositories/notificationRepository')).default;
 const prisma = require('../utils/prisma').default;
-const cacheService = _interopRequireDefault(require('../utils/redis')).default;
+const serviceCache = require('../utils/serviceCache');
+
+/**
+ * Class Service - optimized with analytics query optimization and bulk operations.
+ */
 
 class ClassService {
   /**
@@ -35,7 +39,7 @@ class ClassService {
     });
 
     // Invalidate teacher's class cache
-    await cacheService.del(`classes:teacher:${teacherId}`);
+    serviceCache.invalidate(`classes:teacher:${teacherId}`);
     return newClass;
   }
 
@@ -44,19 +48,24 @@ class ClassService {
    */
   async getClasses(teacherId) {
     const cacheKey = `classes:teacher:${teacherId}`;
-    const cached = await cacheService.get(cacheKey);
-    if (cached) return cached;
-
-    const classes = await classRepository.findMany({
-      where: { teacherId: Number(teacherId) },
-      include: {
-        _count: { select: { students: true, assignments: true } }
-      },
-      orderBy: { createdAt: 'desc' }
+    return serviceCache.cached(cacheKey, 600, async () => {
+      return classRepository.findMany({
+        where: { teacherId: Number(teacherId) },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          description: true,
+          teacherId: true,
+          allowStudentUploads: true,
+          isEnrollmentOpen: true,
+          maxStudents: true,
+          createdAt: true,
+          _count: { select: { students: true, assignments: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
     });
-
-    await cacheService.set(cacheKey, classes, 600); // Cache for 10 mins
-    return classes;
   }
 
   /**
@@ -64,34 +73,34 @@ class ClassService {
    */
   async getJoinedClasses(studentId) {
     const cacheKey = `classes:student:${studentId}:joined`;
-    const cached = await cacheService.get(cacheKey);
-    if (cached) return cached;
+    return serviceCache.cached(cacheKey, 600, async () => {
+      const classes = await classRepository.findMany({
+        where: { students: { some: { studentId: Number(studentId) } } },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          description: true,
+          allowStudentUploads: true,
+          createdAt: true,
+          teacher: { select: { id: true, firstName: true, lastName: true } },
+          _count: { select: { students: true, assignments: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
 
-    const classes = await classRepository.findMany({
-      where: {
-        students: { some: { studentId: Number(studentId) } }
-      },
-      include: {
-        teacher: { select: { id: true, firstName: true, lastName: true } },
-        _count: { select: { students: true, assignments: true } }
-      },
-      orderBy: { createdAt: 'desc' }
+      return classes.map((c) => ({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        description: c.description,
+        teacherName: c.teacher ? `${c.teacher.firstName} ${c.teacher.lastName}` : 'Unknown Teacher',
+        totalStudents: c._count.students,
+        totalAssignments: c._count.assignments,
+        allowStudentUploads: c.allowStudentUploads,
+        createdAt: c.createdAt,
+      }));
     });
-
-    const result = classes.map(c => ({
-      id: c.id,
-      name: c.name,
-      code: c.code,
-      description: c.description,
-      teacherName: c.teacher ? `${c.teacher.firstName} ${c.teacher.lastName}` : 'Unknown Teacher',
-      totalStudents: c._count.students,
-      totalAssignments: c._count.assignments,
-      allowStudentUploads: c.allowStudentUploads,
-      createdAt: c.createdAt
-    }));
-
-    await cacheService.set(cacheKey, result, 600);
-    return result;
   }
 
   /**
@@ -142,8 +151,8 @@ class ClassService {
     ]);
 
     // Invalidate caches
-    await cacheService.del(`classes:student:${studentId}:joined`);
-    await cacheService.del(`classes:teacher:${classItem.teacherId}`);
+    serviceCache.invalidate(`classes:student:${studentId}:joined`);
+    serviceCache.invalidate(`classes:teacher:${classItem.teacherId}`);
 
     return {
       id: classItem.id,
@@ -158,30 +167,49 @@ class ClassService {
    * Get class details with students and assignments
    */
   async getClassDetail(classId, teacherId) {
-    const classItem = await classRepository.findFirst({
-      where: { id: Number(classId), teacherId: Number(teacherId) },
-      include: {
-        students: { 
-          select: { 
-            student: { 
-              select: { id: true, firstName: true, lastName: true, email: true } 
-            } 
-          } 
+    const cacheKey = `classes:detail:${classId}:${teacherId}`;
+    return serviceCache.cached(cacheKey, 120, async () => {
+      const classItem = await classRepository.findFirst({
+        where: { id: Number(classId), teacherId: Number(teacherId) },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          description: true,
+          teacherId: true,
+          allowStudentUploads: true,
+          isEnrollmentOpen: true,
+          maxStudents: true,
+          createdAt: true,
+          students: {
+            select: {
+              student: { select: { id: true, firstName: true, lastName: true, email: true } },
+            },
+          },
+          assignments: {
+            select: {
+              id: true,
+              title: true,
+              dueDate: true,
+              maxScore: true,
+              createdAt: true,
+            },
+            orderBy: { dueDate: 'asc' },
+          },
         },
-        assignments: true
+      });
+
+      if (!classItem) {
+        const error = new Error('Class not found or access denied');
+        error.status = 404;
+        throw error;
       }
-    });
 
-    if (!classItem) {
-      const error = new Error('Class not found or access denied');
-      error.status = 404;
-      throw error;
-    }
-
-    return {
-      ...classItem,
-      students: classItem.students.map(s => s.student)
-    };
+      return {
+        ...classItem,
+        students: classItem.students.map((s) => s.student),
+      };
+    }, 60_000);
   }
   /**
    * Remove a student from a class
@@ -232,12 +260,28 @@ class ClassService {
    * Get students in a class
    */
   async getClassStudents(classId, userId, role) {
+    const cid = Number(classId);
+    const uid = Number(userId);
+
+    // Single query — fetch class with the full student list in one round-trip
     const classItem = await classRepository.findUnique({
-      where: { id: Number(classId) },
-      include: {
+      where: { id: cid },
+      select: {
+        teacherId: true,
         students: {
-          where: { studentId: role === 'STUDENT' ? Number(userId) : undefined },
-          select: { studentId: true }
+          select: {
+            studentId: true,
+            student: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+                createdAt: true,
+              }
+            }
+          }
         }
       }
     });
@@ -248,8 +292,8 @@ class ClassService {
       throw error;
     }
 
-    const isTeacherOwner = role === 'TEACHER' && classItem.teacherId === Number(userId);
-    const isEnrolledStudent = role === 'STUDENT' && classItem.students.length > 0;
+    const isTeacherOwner = role === 'TEACHER' && classItem.teacherId === uid;
+    const isEnrolledStudent = role === 'STUDENT' && classItem.students.some(s => s.studentId === uid);
 
     if (!isTeacherOwner && !isEnrolledStudent) {
       const error = new Error('Access denied. You must be the teacher or an enrolled student.');
@@ -257,32 +301,17 @@ class ClassService {
       throw error;
     }
 
-    const result = await classRepository.findUnique({
-      where: { id: Number(classId) },
-      select: {
-        students: {
-          select: {
-            student: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: isTeacherOwner,
-                role: isTeacherOwner,
-                createdAt: isTeacherOwner
-              }
-            }
-          }
-        }
-      }
+    // For students, omit sensitive fields (email, role, createdAt)
+    const students = classItem.students.map(s => {
+      const { email, role: userRole, createdAt, ...publicFields } = s.student;
+      return isTeacherOwner ? s.student : publicFields;
     });
 
-    const students = result.students.map(s => s.student);
     return students.sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''));
   }
 
   /**
-   * Get analytics for a class
+   * Get analytics for a class - optimized with single query
    */
   async getClassAnalytics(classId, teacherId) {
     const classItem = await classRepository.findFirst({
@@ -312,26 +341,24 @@ class ClassService {
       };
     }
 
-    const assignmentIds = (await assignmentRepository.findMany({
-      where: { classId: Number(classId) },
-      select: { id: true }
-    })).map(a => a.id);
+    // Optimized single query for all analytics data
+    const analytics = await prisma.$queryRaw`
+      SELECT 
+        COUNT(DISTINCT s.id) as total_submissions,
+        COUNT(DISTINCT CASE WHEN s.status = 'graded' THEN s.id END) as graded_submissions,
+        COALESCE(AVG(e.totalScore), 0) as average_grade
+      FROM "Submission" s
+      LEFT JOIN "Evaluation" e ON s.id = e."submissionId"
+      WHERE s."assignmentId" IN (
+        SELECT id FROM "Assignment" WHERE "classId" = ${Number(classId)}
+      )
+      AND s.status IN ('submitted', 'graded')
+    `;
 
-    // Get all submissions for these assignments that are 'submitted' or 'graded'
-    const submissions = await prisma.submission.findMany({
-      where: { 
-        assignmentId: { in: assignmentIds }, 
-        status: { in: ['submitted', 'graded'] } 
-      },
-      include: { evaluation: true }
-    });
-
-    const totalSubmissions = submissions.length;
-    const gradedSubmissions = submissions.filter(s => s.status === 'graded');
-    const gradedCount = gradedSubmissions.length;
-    
-    const totalScore = gradedSubmissions.reduce((acc, s) => acc + (s.evaluation?.totalScore || 0), 0);
-    const averageGrade = gradedCount > 0 ? totalScore / gradedCount : 0;
+    const result = analytics[0] || { total_submissions: 0, graded_submissions: 0, average_grade: 0 };
+    const totalSubmissions = Number(result.total_submissions) || 0;
+    const gradedSubmissions = Number(result.graded_submissions) || 0;
+    const averageGrade = Number(result.average_grade) || 0;
     
     const submissionRate = (totalSubmissions / (totalStudents * totalAssignments)) * 100;
 
@@ -341,7 +368,7 @@ class ClassService {
       submissionRate: parseFloat(submissionRate.toFixed(2)),
       averageGrade: parseFloat(averageGrade.toFixed(2)),
       totalSubmissions,
-      gradedSubmissions: gradedCount
+      gradedSubmissions
     };
   }
 
@@ -414,6 +441,78 @@ class ClassService {
       where: { classId_userId: { classId: Number(classId), userId: Number(studentId) } },
       data: { role: data.role }
     });
+  }
+
+  /**
+   * Bulk add students to a class - optimized with single transaction
+   */
+  async bulkAddStudents(classId, studentData, teacherId) {
+    const classItem = await classRepository.findFirst({
+      where: { id: Number(classId), teacherId: Number(teacherId) }
+    });
+
+    if (!classItem) {
+      throw new Error('Class not found or access denied');
+    }
+
+    if (classItem.maxStudents && classItem.maxStudents > 0) {
+      const currentCount = await prisma.classStudent.count({ where: { classId: Number(classId) } });
+      if (currentCount + studentData.length > classItem.maxStudents) {
+        throw new Error('Adding these students would exceed the maximum student limit.');
+      }
+    }
+
+    // Bulk insert in single transaction
+    const result = await prisma.$transaction(
+      studentData.map(student => 
+        prisma.classStudent.upsert({
+          where: { 
+            classId_studentId: { 
+              classId: Number(classId), 
+              studentId: Number(student.studentId) 
+            } 
+          },
+          update: {},
+          create: {
+            classId: Number(classId),
+            studentId: Number(student.studentId)
+          }
+        })
+      )
+    );
+
+    // Invalidate caches
+    serviceCache.invalidate(`classes:detail:${classId}`);
+    serviceCache.invalidate(`classes:${classId}:students*`);
+    
+    return { added: result.length, total: studentData.length };
+  }
+
+  /**
+   * Bulk remove students from a class - optimized with single query
+   */
+  async bulkRemoveStudents(classId, studentIds, teacherId) {
+    const classItem = await classRepository.findFirst({
+      where: { id: Number(classId), teacherId: Number(teacherId) }
+    });
+
+    if (!classItem) {
+      throw new Error('Class not found or access denied');
+    }
+
+    // Single delete query for all students
+    const result = await prisma.classStudent.deleteMany({
+      where: {
+        classId: Number(classId),
+        studentId: { in: studentIds.map(id => Number(id)) }
+      }
+    });
+
+    // Invalidate caches
+    serviceCache.invalidate(`classes:detail:${classId}`);
+    serviceCache.invalidate(`classes:${classId}:students*`);
+    
+    return { removed: result.count, total: studentIds.length };
   }
 }
 

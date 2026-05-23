@@ -1,81 +1,141 @@
 import apiClient from './apiClient';
+import { inflightGet, clearInflight } from '../utils/inflightRequest';
 
 /**
- * Unified Classroom Service organized by user role and feature
- * Clear separation between Student and Teacher operations
+ * Unified Classroom Service — GETs deduplicated for fast dashboard loads.
+ * Optimized with pagination support and cache invalidation.
  */
 class ClassroomService {
   // === TEACHER OPERATIONS ===
-  
-  // Class Management
+
   async getClasses() {
-    return apiClient.get('/api/classes');
+    return inflightGet('classes:teacher', () => apiClient.get('/api/classes'));
+  }
+
+  async getClassesPaginated(page = 1, limit = 20) {
+    const key = `classes:teacher:page:${page}:limit:${limit}`;
+    return inflightGet(key, () => apiClient.get('/api/classes', { params: { page, limit } }));
   }
 
   async getClass(id) {
-    return apiClient.get(`/api/classes/${id}`);
+    return inflightGet(`classes:detail:${id}`, () => apiClient.get(`/api/classes/${id}`));
+  }
+
+  async getClassesBatch(ids) {
+    if (!ids || ids.length === 0) return [];
+    const keys = ids.map(id => `classes:detail:${id}`);
+    const results = await Promise.all(
+      ids.map(id => inflightGet(`classes:detail:${id}`, () => apiClient.get(`/api/classes/${id}`)))
+    );
+    return results;
   }
 
   async createClass(data) {
-    return apiClient.post('/api/classes', data);
+    const result = await apiClient.post('/api/classes', data);
+    // Invalidate relevant caches
+    clearInflight('classes:teacher');
+    clearInflight('classes:teacher:page:*');
+    return result;
   }
 
   async updateClass(id, data) {
-    return apiClient.put(`/api/classes/${id}`, data);
+    const result = await apiClient.put(`/api/classes/${id}`, data);
+    // Invalidate relevant caches
+    clearInflight(`classes:detail:${id}`);
+    clearInflight('classes:teacher');
+    clearInflight('classes:teacher:page:*');
+    return result;
   }
 
   async deleteClass(id) {
-    return apiClient.delete(`/api/classes/${id}`);
+    const result = await apiClient.delete(`/api/classes/${id}`);
+    // Invalidate relevant caches
+    clearInflight(`classes:detail:${id}`);
+    clearInflight('classes:teacher');
+    clearInflight('classes:teacher:page:*');
+    return result;
   }
 
   async duplicateClass(id, newData) {
-    return apiClient.post(`/api/classes/${id}/duplicate`, newData);
+    const result = await apiClient.post(`/api/classes/${id}/duplicate`, newData);
+    // Invalidate relevant caches
+    clearInflight('classes:teacher');
+    clearInflight('classes:teacher:page:*');
+    return result;
   }
 
   async archiveClass(id) {
-    return apiClient.post(`/api/classes/${id}/archive`);
+    const result = await apiClient.post(`/api/classes/${id}/archive`);
+    // Invalidate relevant caches
+    clearInflight(`classes:detail:${id}`);
+    clearInflight('classes:teacher');
+    clearInflight('classes:teacher:page:*');
+    return result;
   }
 
   async unarchiveClass(id) {
-    return apiClient.post(`/api/classes/${id}/unarchive`);
+    const result = await apiClient.post(`/api/classes/${id}/unarchive`);
+    // Invalidate relevant caches
+    clearInflight(`classes:detail:${id}`);
+    clearInflight('classes:teacher');
+    clearInflight('classes:teacher:page:*');
+    return result;
   }
 
-  // Student Management
-  async getClassStudents(classId) {
-    return apiClient.get(`/api/classes/${classId}/students`);
+  async getClassStudents(classId, page = 1, limit = 50) {
+    const key = `classes:${classId}:students:page:${page}:limit:${limit}`;
+    return inflightGet(key, () => apiClient.get(`/api/classes/${classId}/students`, { params: { page, limit } }));
   }
 
   async addStudentToClass(classId, studentId) {
-    return apiClient.post(`/api/classes/${classId}/students`, { studentIds: [studentId] });
+    const result = await apiClient.post(`/api/classes/${classId}/students`, { studentIds: [studentId] });
+    // Invalidate relevant caches
+    clearInflight(`classes:${classId}:students*`);
+    clearInflight(`classes:detail:${classId}`);
+    return result;
   }
 
   async addMultipleStudentsToClass(classId, studentIds) {
-    return apiClient.post(`/api/classes/${classId}/students`, { studentIds });
+    const result = await apiClient.post(`/api/classes/${classId}/students`, { studentIds });
+    // Invalidate relevant caches
+    clearInflight(`classes:${classId}:students*`);
+    clearInflight(`classes:detail:${classId}`);
+    return result;
   }
 
   async removeStudentFromClass(classId, studentId) {
-    return apiClient.delete(`/api/classes/${classId}/students/${studentId}`);
+    const result = await apiClient.delete(`/api/classes/${classId}/students/${studentId}`);
+    // Invalidate relevant caches
+    clearInflight(`classes:${classId}:students*`);
+    clearInflight(`classes:detail:${classId}`);
+    return result;
   }
 
   async bulkRemoveStudents(classId, studentIds) {
-    return apiClient.delete(`/api/classes/${classId}/students`, { data: { studentIds } });
+    const result = await apiClient.delete(`/api/classes/${classId}/students`, { data: { studentIds } });
+    // Invalidate relevant caches
+    clearInflight(`classes:${classId}:students*`);
+    clearInflight(`classes:detail:${classId}`);
+    return result;
   }
 
   async updateStudentRole(classId, studentId, role) {
-    return apiClient.patch(`/api/classes/${classId}/students/${studentId}`, { role });
+    const result = await apiClient.patch(`/api/classes/${classId}/students/${studentId}`, { role });
+    // Invalidate relevant caches
+    clearInflight(`classes:${classId}:students*`);
+    return result;
   }
 
-  // Class Analytics & Reporting
   async getAnalytics(classId) {
-    return apiClient.get(`/api/classes/${classId}/analytics`);
+    return inflightGet(`classes:${classId}:analytics`, () => apiClient.get(`/api/classes/${classId}/analytics`));
   }
 
   async getClassPerformance(classId) {
-    return apiClient.get(`/api/classes/${classId}/performance`);
+    return inflightGet(`classes:${classId}:performance`, () => apiClient.get(`/api/classes/${classId}/performance`));
   }
 
   async getClassProgress(classId) {
-    return apiClient.get(`/api/classes/${classId}/progress`);
+    return inflightGet(`classes:${classId}:progress`, () => apiClient.get(`/api/classes/${classId}/progress`));
   }
 
   async getClassActivity(classId, filters = {}) {
@@ -83,13 +143,12 @@ class ClassroomService {
   }
 
   async exportClassData(classId, format = 'csv') {
-    return apiClient.get(`/api/classes/${classId}/export`, { 
+    return apiClient.get(`/api/classes/${classId}/export`, {
       params: { format },
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 
-  // Class Settings & Configuration
   async getClassSettings(classId) {
     return apiClient.get(`/api/classes/${classId}/settings`);
   }
@@ -107,14 +166,16 @@ class ClassroomService {
   }
 
   // === STUDENT OPERATIONS ===
-  
-  // Class Discovery & Joining
+
   async getJoinedClasses() {
-    return apiClient.get('/api/student/classes');
+    return inflightGet('classes:student:joined', () => apiClient.get('/api/student/classes'));
   }
 
   async joinClass(classCode) {
-    return apiClient.post('/api/student/classes/join', { classCode });
+    const result = await apiClient.post('/api/student/classes/join', { classCode });
+    // Invalidate relevant caches
+    clearInflight('classes:student:joined');
+    return result;
   }
 
   async regenerateCode(classId) {
@@ -122,7 +183,11 @@ class ClassroomService {
   }
 
   async leaveClass(classId) {
-    return apiClient.post(`/api/student/classes/${classId}/leave`);
+    const result = await apiClient.post(`/api/student/classes/${classId}/leave`);
+    // Invalidate relevant caches
+    clearInflight('classes:student:joined');
+    clearInflight(`classes:student:${classId}`);
+    return result;
   }
 
   async searchClasses(query) {
@@ -130,49 +195,50 @@ class ClassroomService {
   }
 
   async getClassInvites() {
-    return apiClient.get('/api/student/classes/invites');
+    return inflightGet('classes:student:invites', () => apiClient.get('/api/student/classes/invites'));
   }
 
   async acceptClassInvite(inviteId) {
-    return apiClient.post(`/api/student/classes/invites/${inviteId}/accept`);
+    const result = await apiClient.post(`/api/student/classes/invites/${inviteId}/accept`);
+    // Invalidate relevant caches
+    clearInflight('classes:student:joined');
+    clearInflight('classes:student:invites');
+    return result;
   }
 
   async rejectClassInvite(inviteId) {
-    return apiClient.post(`/api/student/classes/invites/${inviteId}/reject`);
+    const result = await apiClient.post(`/api/student/classes/invites/${inviteId}/reject`);
+    // Invalidate relevant caches
+    clearInflight('classes:student:invites');
+    return result;
   }
 
-  // Student Class Information
   async getStudentClassDetail(classId) {
-    return apiClient.get(`/api/student/classes/${classId}`);
+    return inflightGet(`classes:student:${classId}`, () => apiClient.get(`/api/student/classes/${classId}`));
   }
 
   async getStudentClassProgress(classId) {
-    return apiClient.get(`/api/student/classes/${classId}/progress`);
+    return inflightGet(`classes:student:${classId}:progress`, () => apiClient.get(`/api/student/classes/${classId}/progress`));
   }
 
   async getStudentClassAssignments(classId) {
-    return apiClient.get(`/api/student/classes/${classId}/assignments`);
+    return inflightGet(`classes:student:${classId}:assignments`, () => apiClient.get(`/api/student/classes/${classId}/assignments`));
   }
 
   async getStudentClassGrades(classId) {
-    return apiClient.get(`/api/student/classes/${classId}/grades`);
+    return inflightGet(`classes:student:${classId}:grades`, () => apiClient.get(`/api/student/classes/${classId}/grades`));
   }
 
-  // === COMMON OPERATIONS ===
-  
-
-
   async searchStudents(query) {
-    return apiClient.get(`/api/student/search?query=${query}`);
+    return apiClient.get(`/api/student/search?query=${encodeURIComponent(query)}`);
   }
 
   async getStudentProfile(studentId) {
     return apiClient.get(`/api/students/${studentId}/profile`);
   }
 
-  // Class Communication
   async getClassAnnouncements(classId) {
-    return apiClient.get(`/api/classes/${classId}/announcements`);
+    return inflightGet(`classes:${classId}:announcements`, () => apiClient.get(`/api/classes/${classId}/announcements`));
   }
 
   async getAnnouncements(classId) {
@@ -199,9 +265,8 @@ class ClassroomService {
     return apiClient.get(`/api/classes/${classId}/messages`);
   }
 
-  // Class Resources
   async getClassResources(classId) {
-    return apiClient.get(`/api/classes/${classId}/resources`);
+    return inflightGet(`classes:${classId}:resources`, () => apiClient.get(`/api/classes/${classId}/resources`));
   }
 
   async getResources(classId) {
@@ -210,7 +275,7 @@ class ClassroomService {
 
   async uploadResource(classId, data) {
     return apiClient.post(`/api/classes/${classId}/resources`, data, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   }
 
@@ -222,7 +287,6 @@ class ClassroomService {
     return apiClient.delete(`/api/classes/resources/${id}`);
   }
 
-  // === BATCH OPERATIONS (Teacher Only) ===
   async bulkAddStudents(classId, studentData) {
     return apiClient.post(`/api/classes/${classId}/students/bulk`, { students: studentData });
   }

@@ -7,10 +7,50 @@ const assignmentRepository = _interopRequireDefault(require('../repositories/ass
 const classRepository = _interopRequireDefault(require('../repositories/classRepository')).default;
 const userRepository = _interopRequireDefault(require('../repositories/userRepository')).default;
 const notificationService = _interopRequireDefault(require('./notificationService')).default;
+const serviceCache = require('../utils/serviceCache');
 const CheckingEngine = require('./checkingEngine').CheckingEngine;
 const { AppError, NotFoundError, AuthorizationError, ValidationError } = require('../utils/errors');
 
+/**
+ * Submission Service - optimized with parallel artifact upserts and improved transaction handling.
+ */
+
 class SubmissionService {
+  async _assertTeacherOwnsSubmission(submissionId, teacherId) {
+    const submission = await submissionRepository.findUnique({
+      where: { id: Number(submissionId) },
+      select: {
+        id: true,
+        studentId: true,
+        assignmentId: true,
+        assignment: {
+          select: {
+            id: true,
+            title: true,
+            createdBy: true,
+            class: { select: { teacherId: true, name: true } },
+          },
+        },
+      },
+    });
+    if (!submission) throw new NotFoundError('Submission');
+    const ownerTeacherId = submission.assignment?.createdBy || submission.assignment?.class?.teacherId;
+    if (ownerTeacherId !== Number(teacherId)) {
+      throw new AuthorizationError('Unauthorized access to submission');
+    }
+    return submission;
+  }
+
+  _invalidateSubmissionCaches(assignmentId, studentId) {
+    const aid = Number(assignmentId);
+    const sid = Number(studentId);
+    serviceCache.invalidate(`assignments:student:${sid}:list`);
+    serviceCache.invalidate(`assignment:student:${sid}:${aid}`);
+    serviceCache.invalidate(`submission:status:${aid}:${sid}`);
+    serviceCache.invalidate(`submission:status:${aid}:${sid}:report`);
+    serviceCache.invalidate(`submissions:student:${sid}`);
+  }
+
   /**
    * Helper to calculate completion flags based on provided data
    */
@@ -30,12 +70,24 @@ class SubmissionService {
       data.systemSequenceDiagram !== '{}' &&
       data.systemSequenceDiagram !== 'null');
 
-    const overallCompleted = isUseCaseDiagramComplete && isUseCaseDescriptionComplete && isSSDComplete;
+    const isClassDiagramComplete = !!(data.classDiagram &&
+      data.classDiagram.trim() !== '' &&
+      data.classDiagram !== '{}' &&
+      data.classDiagram !== 'null');
+
+    const isSequenceDiagramComplete = !!(data.sequenceDiagram &&
+      data.sequenceDiagram.trim() !== '' &&
+      data.sequenceDiagram !== '{}' &&
+      data.sequenceDiagram !== 'null');
+
+    const overallCompleted = isUseCaseDiagramComplete && isUseCaseDescriptionComplete && isSSDComplete && isClassDiagramComplete;
 
     return {
       isUseCaseDiagramComplete,
       isUseCaseDescriptionComplete,
       isSSDComplete,
+      isClassDiagramComplete,
+      isSequenceDiagramComplete,
       overallCompleted,
     };
   }
@@ -51,26 +103,112 @@ class SubmissionService {
       ssds[s.relatedId] = s.data;
     });
 
+    const sequenceDiagrams = {};
+    (submission?.sequenceDiagrams || []).forEach(s => {
+      sequenceDiagrams[s.relatedId] = s.data;
+    });
+
     return {
       useCaseDiagram: submission?.useCaseDiagram?.data || '',
       useCaseDescriptions: descriptions,
       ssdDiagrams: ssds,
+      classDiagram: submission?.classDiagram?.data || '',
+      sequenceDiagrams: sequenceDiagrams,
     };
   }
 
-  async createSubmission(assignmentId, studentId, data) {
+  _toStoredString(value) {
+    if (value == null) return null;
+    return typeof value === 'object' ? JSON.stringify(value) : value;
+  }
+
+  async _upsertArtifactsParallel(tx, submissionId, data) {
+    const sid = Number(submissionId);
+    const ops = [];
+
+    if (data.useCaseDiagram) {
+      const diagramData = this._toStoredString(data.useCaseDiagram);
+      ops.push(tx.useCaseDiagram.upsert({
+        where: { submissionId: sid },
+        update: { data: diagramData },
+        create: { submissionId: sid, data: diagramData },
+      }));
+    }
+
+    if (data.useCaseDescription && typeof data.useCaseDescription === 'object') {
+      const descOps = Object.entries(data.useCaseDescription).map(([relatedId, descriptionData]) => {
+        const dString = this._toStoredString(descriptionData);
+        return tx.UseCaseDescription.upsert({
+          where: { submissionId_relatedId: { submissionId: sid, relatedId } },
+          update: { data: dString },
+          create: { submissionId: sid, relatedId, data: dString },
+        });
+      });
+      ops.push(...descOps);
+    }
+
+    if (data.systemSequenceDiagram && typeof data.systemSequenceDiagram === 'object') {
+      const ssdOps = Object.entries(data.systemSequenceDiagram).map(([relatedId, ssdData]) => {
+        const sString = this._toStoredString(ssdData);
+        return tx.SSDDiagram.upsert({
+          where: { submissionId_relatedId: { submissionId: sid, relatedId } },
+          update: { data: sString },
+          create: { submissionId: sid, relatedId, data: sString },
+        });
+      });
+      ops.push(...ssdOps);
+    }
+
+    if (data.classDiagram) {
+      const diagramData = this._toStoredString(data.classDiagram);
+      ops.push(tx.classDiagram.upsert({
+        where: { submissionId: sid },
+        update: { data: diagramData },
+        create: { submissionId: sid, data: diagramData },
+      }));
+    }
+
+    if (data.sequenceDiagram && typeof data.sequenceDiagram === 'object') {
+      const seqOps = Object.entries(data.sequenceDiagram).map(([relatedId, seqData]) => {
+        const sString = this._toStoredString(seqData);
+        return tx.sequenceDiagram.upsert({
+          where: { submissionId_relatedId: { submissionId: sid, relatedId } },
+          update: { data: sString },
+          create: { submissionId: sid, relatedId, data: sString },
+        });
+      });
+      ops.push(...seqOps);
+    }
+
+    // Execute all operations in parallel for better performance
+    if (ops.length > 0) await Promise.all(ops);
+  }
+
+  _toLeanSubmission(submission) {
+    return {
+      id: submission.id,
+      assignmentId: submission.assignmentId,
+      studentId: submission.studentId,
+      status: submission.status,
+      submittedAt: submission.submittedAt,
+      updatedAt: submission.updatedAt,
+    };
+  }
+
+  async createSubmission(assignmentId, studentId, data, options = {}) {
     if (!assignmentId || isNaN(assignmentId)) throw new Error('Invalid assignment ID');
     if (!studentId || isNaN(studentId)) throw new Error('Invalid student ID');
 
-    const assignment = await assignmentRepository.findUnique({
-      where: { id: Number(assignmentId) },
-      include: { class: { include: { students: { where: { studentId: Number(studentId) } } } } }
+    const prisma = require('../config/prisma');
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: Number(assignmentId),
+        class: { students: { some: { studentId: Number(studentId) } } },
+      },
+      select: { id: true, dueDate: true, title: true, createdBy: true },
     });
-    if (!assignment) throw new Error('Assignment not found');
-
-    // Check enrollment
-    if (!assignment.class.students.length) {
-      throw new AuthorizationError('You are not enrolled in the class for this assignment.');
+    if (!assignment) {
+      throw new AuthorizationError('Assignment not found or you are not enrolled.');
     }
 
     if (assignment.dueDate) {
@@ -80,24 +218,7 @@ class SubmissionService {
       }
     }
 
-    const existing = await submissionRepository.findUnique({
-      where: {
-        assignmentId_studentId: {
-          assignmentId: Number(assignmentId),
-          studentId: Number(studentId)
-        }
-      },
-      include: {
-        useCaseDiagram: true,
-        useCaseDescriptions: true,
-        ssdDiagrams: true
-      }
-    });
-
-    const incomingArtifacts = {};
-    if (data.useCaseDiagram) incomingArtifacts.useCaseDiagram = typeof data.useCaseDiagram === 'object' ? JSON.stringify(data.useCaseDiagram) : data.useCaseDiagram;
-    if (data.useCaseDescription) incomingArtifacts.useCaseDescription = typeof data.useCaseDescription === 'object' ? JSON.stringify(data.useCaseDescription) : data.useCaseDescription;
-    if (data.systemSequenceDiagram) incomingArtifacts.sequenceDiagram = typeof data.systemSequenceDiagram === 'object' ? JSON.stringify(data.systemSequenceDiagram) : data.systemSequenceDiagram;
+    const lean = options.lean !== false && (data.status || 'draft') === 'draft';
 
     const result = await submissionRepository.transaction(async (tx) => {
       // Check existing submission status to prevent multiple submissions
@@ -135,74 +256,104 @@ class SubmissionService {
         }
       });
 
-      // Upsert artifacts
-      if (data.useCaseDiagram) {
-        const diagramData = typeof data.useCaseDiagram === 'object' ? JSON.stringify(data.useCaseDiagram) : data.useCaseDiagram;
-        await tx.useCaseDiagram.upsert({
-          where: { submissionId: submission.id },
-          update: { data: diagramData },
-          create: { submissionId: submission.id, data: diagramData }
-        });
-      }
-
-      if (data.useCaseDescription && typeof data.useCaseDescription === 'object') {
-        for (const [relatedId, descriptionData] of Object.entries(data.useCaseDescription)) {
-          const dString = typeof descriptionData === 'object' ? JSON.stringify(descriptionData) : descriptionData;
-          await tx.UseCaseDescription.upsert({
-            where: { submissionId_relatedId: { submissionId: submission.id, relatedId } },
-            update: { data: dString },
-            create: { submissionId: submission.id, relatedId, data: dString }
-          });
-        }
-      }
-
-      if (data.systemSequenceDiagram && typeof data.systemSequenceDiagram === 'object') {
-        for (const [relatedId, ssdData] of Object.entries(data.systemSequenceDiagram)) {
-          const sString = typeof ssdData === 'object' ? JSON.stringify(ssdData) : ssdData;
-          await tx.SSDDiagram.upsert({
-            where: { submissionId_relatedId: { submissionId: submission.id, relatedId } },
-            update: { data: sString },
-            create: { submissionId: submission.id, relatedId, data: sString }
-          });
-        }
-      }
-
-      const hydrated = await tx.submission.findUnique({
-        where: { id: submission.id },
-        include: { useCaseDiagram: true, useCaseDescriptions: true, ssdDiagrams: true }
-      });
+      // Parallel artifact upsert for better performance
+      await this._upsertArtifactsParallel(tx, submission.id, data);
 
       let notifyPayload = null;
-      if (existing) {
-        const teacherTarget = await tx.assignment.findUnique({
-          where: { id: Number(assignmentId) },
-          select: { title: true, createdBy: true }
-        });
-        const student = await tx.user.findUnique({
-          where: { id: Number(studentId) },
-          select: { firstName: true, email: true }
-        });
-        const studentLabel = student?.firstName || student?.email;
-
-        if (teacherTarget?.createdBy) {
-          notifyPayload = {
-            userId: teacherTarget.createdBy,
-            title: 'Submission Updated',
-            message: `${studentLabel} resubmitted "${teacherTarget.title}".`,
-            type: 'SUBMISSION_UPDATED',
-            relatedId: submission.id.toString()
-          };
-        }
+      if (existing && assignment.createdBy) {
+        notifyPayload = {
+          userId: assignment.createdBy,
+          title: 'Submission Updated',
+          message: `A student updated "${assignment.title}".`,
+          type: 'SUBMISSION_UPDATED',
+          relatedId: submission.id.toString(),
+        };
       }
 
-      return { hydrated, notifyPayload };
-    });
+      return { submission, notifyPayload, lean };
+    }, { timeout: 15000, maxWait: 20000 }); // Increased timeout for large submissions
 
     if (result.notifyPayload) {
-      await notificationService.createNotification(result.notifyPayload);
+      notificationService.createNotification(result.notifyPayload).catch((err) => {
+        console.error('Failed to send submission notification:', err.message);
+      });
     }
 
-    return result.hydrated;
+    this._invalidateSubmissionCaches(assignmentId, studentId);
+
+    return result.lean ? this._toLeanSubmission(result.submission) : result.submission;
+  }
+
+  async getSubmissionStatus(assignmentId, studentId, { includeReport = false } = {}) {
+    const aid = Number(assignmentId);
+    const sid = Number(studentId);
+    const cacheKey = includeReport
+      ? `submission:status:${aid}:${sid}:report`
+      : `submission:status:${aid}:${sid}`;
+
+    return serviceCache.cached(
+      cacheKey,
+      includeReport ? 60 : 20,
+      () => this._loadSubmissionStatus(aid, sid, includeReport),
+      includeReport ? 45_000 : 15_000
+    );
+  }
+
+  async _loadSubmissionStatus(assignmentId, studentId, includeReport = false) {
+    const submission = await submissionRepository.findUnique({
+      where: {
+        assignmentId_studentId: {
+          assignmentId: Number(assignmentId),
+          studentId: Number(studentId),
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        submittedAt: true,
+        tutorialRequested: true,
+        tutorialApproved: true,
+        evaluation: {
+          select: {
+            totalScore: true,
+            remarks: true,
+            ...(includeReport ? { validationReport: true } : {}),
+          },
+        },
+      },
+    });
+
+    if (!submission) return { status: 'pending' };
+
+    const base = {
+      id: submission.id,
+      status: submission.status,
+      submittedAt: submission.submittedAt,
+      score: submission.evaluation?.totalScore ?? 0,
+      remarks: submission.evaluation?.remarks,
+      tutorialRequested: submission.tutorialRequested,
+      tutorialApproved: submission.tutorialApproved,
+    };
+
+    if (!includeReport) return base;
+
+    let report = submission.evaluation?.validationReport;
+    if (typeof report === 'string') {
+      try { report = JSON.parse(report); } catch { report = null; }
+    }
+
+    const allIssues = [];
+    if (report && typeof report === 'object') {
+      if (Array.isArray(report.issues)) {
+        allIssues.push(...report.issues);
+      } else {
+        Object.values(report).forEach((section) => {
+          if (section && Array.isArray(section.issues)) allIssues.push(...section.issues);
+        });
+      }
+    }
+
+    return { ...base, issues: allIssues, fullReport: report };
   }
 
   async getSubmissionDetailWithRole(submissionId, userId, role) {
@@ -219,6 +370,8 @@ class SubmissionService {
         useCaseDiagram: true,
         useCaseDescriptions: true,
         ssdDiagrams: true,
+        classDiagram: true,
+        sequenceDiagrams: true,
         evaluation: true,
         assignment: {
           select: {
@@ -275,7 +428,9 @@ class SubmissionService {
       artifacts: {
         useCaseDiagram: safeParse(submission.useCaseDiagram?.data),
         useCaseDescription: (submission.useCaseDescriptions || []).reduce((acc, d) => ({ ...acc, [d.relatedId]: safeParse(d.data) }), {}),
-        systemSequenceDiagram: (submission.ssdDiagrams || []).reduce((acc, s) => ({ ...acc, [s.relatedId]: safeParse(s.data) }), {})
+        systemSequenceDiagram: (submission.ssdDiagrams || []).reduce((acc, s) => ({ ...acc, [s.relatedId]: safeParse(s.data) }), {}),
+        classDiagram: safeParse(submission.classDiagram?.data),
+        sequenceDiagram: (submission.sequenceDiagrams || []).reduce((acc, s) => ({ ...acc, [s.relatedId]: safeParse(s.data) }), {})
       },
       evaluation: submission.evaluation,
       validationReport: safeParse(submission.evaluation?.validationReport)
@@ -305,7 +460,9 @@ class SubmissionService {
     const model = {
       diagram: detail.artifacts?.useCaseDiagram || null,
       descriptions: detail.artifacts?.useCaseDescription || null,
-      ssds: detail.artifacts?.systemSequenceDiagram || null
+      ssds: detail.artifacts?.systemSequenceDiagram || null,
+      classDiagram: detail.artifacts?.classDiagram || null,
+      sequenceDiagrams: detail.artifacts?.sequenceDiagram || null
     };
 
     // Run the check for the requested scope
@@ -397,7 +554,7 @@ class SubmissionService {
   async saveTeacherRemarks(submissionId, teacherId, { remarks, score }) {
     if (!submissionId || isNaN(submissionId)) throw new Error('Invalid submission ID');
 
-    await this.getSubmissionDetailWithRole(submissionId, teacherId, 'teacher');
+    await this._assertTeacherOwnsSubmission(submissionId, teacherId);
 
     return await submissionRepository.transaction(async (tx) => {
       await tx.evaluation.upsert({
@@ -479,40 +636,53 @@ class SubmissionService {
   }
 
   async getAssignmentSubmissions(assignmentId, teacherId) {
-    const assignment = await assignmentRepository.findUnique({
-      where: { id: Number(assignmentId) },
-      include: {
-        class: {
-          include: {
-            students: {
-              include: {
-                student: { select: { id: true, email: true, firstName: true, lastName: true } }
-              }
-            }
-          }
-        }
+    const aid = Number(assignmentId);
+    const tid = Number(teacherId);
+    const cacheKey = `submissions:assignment:${aid}:teacher:${tid}`;
+
+    return serviceCache.cached(cacheKey, 90, async () => {
+      const prisma = require('../config/prisma');
+      const assignment = await prisma.assignment.findUnique({
+        where: { id: aid },
+        select: {
+          id: true,
+          createdBy: true,
+          class: {
+            select: {
+              teacherId: true,
+              students: {
+                select: {
+                  student: { select: { id: true, email: true, firstName: true, lastName: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!assignment) throw new Error('Assignment not found');
+      if (assignment.createdBy !== tid && assignment.class?.teacherId !== tid) {
+        throw new Error('Unauthorized');
       }
-    });
 
-    if (!assignment) throw new Error('Assignment not found');
-    if (assignment.createdBy !== teacherId && assignment.class?.teacherId !== teacherId) {
-      throw new Error('Unauthorized');
-    }
+      const submissions = await submissionRepository.findMany({
+        where: { assignmentId: aid },
+        select: {
+          id: true,
+          studentId: true,
+          status: true,
+          submittedAt: true,
+          tutorialRequested: true,
+          tutorialApproved: true,
+          evaluation: { select: { totalScore: true, remarks: true } },
+        },
+      });
 
-    const submissions = await submissionRepository.findMany({
-      where: { 
-        assignmentId: Number(assignmentId)
-      },
-      include: {
-        student: { select: { id: true, email: true, firstName: true, lastName: true } },
-        evaluation: true
-      }
-    });
+      if (!assignment.class) return [];
 
-    if (assignment.class) {
-      return assignment.class.students.map(m => {
+      return assignment.class.students.map((m) => {
         const student = m.student;
-        const s = submissions.find(sub => sub.studentId === student.id);
+        const s = submissions.find((sub) => sub.studentId === student.id);
         return {
           submissionId: s ? s.id : null,
           studentId: student.id,
@@ -520,17 +690,16 @@ class SubmissionService {
           studentEmail: student.email,
           status: s ? s.status : 'pending',
           submittedAt: s ? s.submittedAt : null,
-          score: s?.evaluation ? s.evaluation.totalScore : null,
-          remarks: s?.evaluation ? s.evaluation.remarks : null,
+          score: s?.evaluation?.totalScore ?? null,
+          remarks: s?.evaluation?.remarks ?? null,
           tutorialRequested: s ? s.tutorialRequested : false,
-          tutorialApproved: s ? s.tutorialApproved : false
+          tutorialApproved: s ? s.tutorialApproved : false,
         };
       });
-    }
-    return [];
+    });
   }
 
-  async updateUMLWorkflow(submissionId, userId, { diagramData, descriptions, ssdData }) {
+  async updateUMLWorkflow(submissionId, userId, { diagramData, descriptions, ssdData, classDiagramData, sequenceData }) {
     if (!submissionId || isNaN(submissionId)) throw new Error('Invalid submission ID');
 
     const submission = await submissionRepository.findUnique({
@@ -539,48 +708,23 @@ class SubmissionService {
     if (!submission) throw new Error('Submission not found');
     if (submission.studentId !== userId) throw new Error('Unauthorized');
 
+    // Build artifact map — reuse _upsertArtifactsParallel to run all upserts concurrently
     const incomingArtifacts = {};
     if (diagramData) incomingArtifacts.useCaseDiagram = typeof diagramData === 'object' ? JSON.stringify(diagramData) : diagramData;
-    if (descriptions) incomingArtifacts.useCaseDescription = typeof descriptions === 'object' ? JSON.stringify(descriptions) : descriptions;
-    if (ssdData) incomingArtifacts.sequenceDiagram = typeof ssdData === 'object' ? JSON.stringify(ssdData) : ssdData;
+    if (descriptions && typeof descriptions === 'object') incomingArtifacts.useCaseDescription = descriptions;
+    if (ssdData && typeof ssdData === 'object') incomingArtifacts.systemSequenceDiagram = ssdData;
+    if (classDiagramData) incomingArtifacts.classDiagram = typeof classDiagramData === 'object' ? JSON.stringify(classDiagramData) : classDiagramData;
+    if (sequenceData && typeof sequenceData === 'object') incomingArtifacts.sequenceDiagram = sequenceData;
 
     return await submissionRepository.transaction(async (tx) => {
-      if (diagramData) {
-        const dString = typeof diagramData === 'object' ? JSON.stringify(diagramData) : diagramData;
-        await tx.useCaseDiagram.upsert({
-          where: { submissionId: Number(submissionId) },
-          update: { data: dString },
-          create: { submissionId: Number(submissionId), data: dString }
-        });
-      }
-
-      if (descriptions && typeof descriptions === 'object') {
-        for (const [relatedId, data] of Object.entries(descriptions)) {
-          const sData = typeof data === 'object' ? JSON.stringify(data) : data;
-          await tx.UseCaseDescription.upsert({
-            where: { submissionId_relatedId: { submissionId: Number(submissionId), relatedId } },
-            update: { data: sData },
-            create: { submissionId: Number(submissionId), relatedId, data: sData }
-          });
-        }
-      }
-
-      if (ssdData && typeof ssdData === 'object') {
-        for (const [relatedId, data] of Object.entries(ssdData)) {
-          const sData = typeof data === 'object' ? JSON.stringify(data) : data;
-          await tx.SSDDiagram.upsert({
-            where: { submissionId_relatedId: { submissionId: Number(submissionId), relatedId } },
-            update: { data: sData },
-            create: { submissionId: Number(submissionId), relatedId, data: sData }
-          });
-        }
-      }
+      // All artifact upserts run in parallel via Promise.all instead of sequential loops
+      await this._upsertArtifactsParallel(tx, submissionId, incomingArtifacts);
 
       return await tx.submission.update({
         where: { id: Number(submissionId) },
         data: { updatedAt: new Date() }
       });
-    });
+    }, { timeout: 10000, maxWait: 15000 });
   }
 
   async updateSubmission(assignmentId, studentId, data) {
@@ -621,70 +765,85 @@ class SubmissionService {
   // Teacher: Get all submissions across all assignments
   async getAllSubmissionsForTeacher(teacherId, filters = {}) {
     const tid = Number(teacherId);
-    const where = {
-        assignment: { createdBy: tid }
-    };
+    const filterKey = JSON.stringify(filters || {});
+    const cacheKey = `submissions:teacher:${tid}:${filterKey}`;
 
-    if (filters.studentId) where.studentId = Number(filters.studentId);
-    if (filters.status && filters.status !== 'all' && filters.status.toLowerCase() !== 'draft') {
+    return serviceCache.cached(cacheKey, 90, async () => {
+      const where = { assignment: { createdBy: tid } };
+      if (filters.studentId) where.studentId = Number(filters.studentId);
+      if (filters.status && filters.status !== 'all' && filters.status.toLowerCase() !== 'draft') {
         where.status = filters.status.toLowerCase();
-    }
+      }
 
-    const submissions = await submissionRepository.findMany(
-        where,
-        {
-            student: { select: { id: true, firstName: true, lastName: true, email: true } },
-            assignment: { select: { id: true, title: true, dueDate: true } },
-            evaluation: true
-        },
-        { submittedAt: 'desc' }
-    );
+      const submissions = await submissionRepository.findMany(where, {
+        student: { select: { id: true, firstName: true, lastName: true, email: true } },
+        assignment: { select: { id: true, title: true, dueDate: true } },
+        evaluation: { select: { totalScore: true, remarks: true } },
+      }, { submittedAt: 'desc' });
 
-    return submissions.map(s => ({
+      return submissions.map((s) => ({
         ...s,
         studentName: s.student ? `${s.student.firstName || ''} ${s.student.lastName || ''}`.trim() : undefined,
         studentEmail: s.student?.email,
         assignmentTitle: s.assignment?.title,
-        assignmentId: s.assignment?.id || s.assignmentId
-    }));
+        assignmentId: s.assignment?.id || s.assignmentId,
+      }));
+    });
   }
 
-  // Teacher: Get assignment stats
+  // Teacher: Get assignment stats — uses DB-side aggregation instead of fetching all rows to JS
   async getAssignmentStatsForTeacher(teacherId) {
     const tid = Number(teacherId);
-    const assignments = await assignmentRepository.findMany({ createdBy: tid }, { submissions: { include: { evaluation: true } } });
-    
+    const prisma = require('../config/prisma');
+
+    // Parallel: count assignments + aggregate submissions in 2 queries instead of N+1
+    const [totalAssignments, submissionStats] = await Promise.all([
+      prisma.assignment.count({ where: { createdBy: tid } }),
+      prisma.submission.groupBy({
+        by: ['status'],
+        where: { assignment: { createdBy: tid } },
+        _count: { id: true },
+      }),
+    ]);
+
+    // For average score only fetch evaluated submissions
+    const scoreAgg = await prisma.evaluation.aggregate({
+      where: { submission: { assignment: { createdBy: tid } }, totalScore: { not: null } },
+      _avg: { totalScore: true },
+      _count: { totalScore: true },
+    });
+
     let totalSubmissions = 0;
     let pendingReview = 0;
-    let totalScore = 0;
-    let gradedCount = 0;
-
-    assignments.forEach(a => {
-        a.submissions.forEach(s => {
-            totalSubmissions++;
-            if (s.status === 'submitted') pendingReview++;
-            if (s.status === 'graded') {
-                totalScore += s.evaluation?.totalScore || 0;
-                gradedCount++;
-            }
-        });
+    submissionStats.forEach(row => {
+      totalSubmissions += row._count.id;
+      if (row.status === 'submitted') pendingReview += row._count.id;
     });
 
     return {
-        totalAssignments: assignments.length,
-        totalSubmissions,
-        pendingReview,
-        averageScore: gradedCount > 0 ? totalScore / gradedCount : 0
+      totalAssignments,
+      totalSubmissions,
+      pendingReview,
+      averageScore: scoreAgg._avg.totalScore ?? 0,
     };
   }
 
   // Student: Get submission receipt
   async getSubmissionReceipt(id, userId) {
+    // Slimmed select — only the fields needed for the receipt (saves a 3-level deep join)
     const submission = await submissionRepository.findFirst({
         where: { id: Number(id) },
-        include: { 
-            assignment: { include: { class: { include: { teacher: true } } } },
-            student: true
+        select: {
+            id: true,
+            studentId: true,
+            status: true,
+            submittedAt: true,
+            assignment: {
+                select: { title: true, createdBy: true }
+            },
+            student: {
+                select: { firstName: true, lastName: true }
+            }
         }
     });
 
@@ -706,49 +865,81 @@ class SubmissionService {
   // Student: Get analytics
   async getStudentAnalytics(studentId) {
     const sid = Number(studentId);
-    const submissions = await submissionRepository.findMany({ studentId: sid }, { evaluation: true });
-    
-    const completed = submissions.filter(s => s.status === 'graded' || s.status === 'submitted').length;
-    let totalScore = 0;
-    let gradedCount = 0;
-    
-    submissions.forEach(s => {
-      if (s.evaluation?.totalScore !== null && s.evaluation?.totalScore !== undefined) {
-        totalScore += s.evaluation.totalScore;
-        gradedCount++;
-      }
-    });
+    const cacheKey = `submissions:analytics:${sid}`;
 
-    return {
+    return serviceCache.cached(cacheKey, 120, async () => {
+      const submissions = await submissionRepository.findMany(
+        { studentId: sid },
+        { evaluation: { select: { totalScore: true } } },
+        undefined
+      );
+
+      const completed = submissions.filter((s) => s.status === 'graded' || s.status === 'submitted').length;
+      let totalScore = 0;
+      let gradedCount = 0;
+
+      submissions.forEach((s) => {
+        if (s.evaluation?.totalScore != null) {
+          totalScore += s.evaluation.totalScore;
+          gradedCount++;
+        }
+      });
+
+      return {
         totalAssignments: submissions.length,
         completedAssignments: completed,
         averageScore: gradedCount > 0 ? totalScore / gradedCount : 0,
-        submissions: submissions.map(s => ({ id: s.id, status: s.status, score: s.evaluation?.totalScore || null }))
-    };
+        submissions: submissions.map((s) => ({
+          id: s.id,
+          status: s.status,
+          score: s.evaluation?.totalScore ?? null,
+        })),
+      };
+    });
   }
 
   async getMySubmissions(studentId) {
     const studentIdNum = Number(studentId);
-    const submissions = await submissionRepository.findMany({
-      where: { studentId: studentIdNum },
-      include: { 
-        useCaseDiagram: true, 
-        useCaseDescriptions: true, 
-        ssdDiagrams: true, 
-        assignment: true, 
-        evaluation: true 
-      }
+    const cacheKey = `submissions:student:${studentIdNum}`;
+
+    return serviceCache.cached(cacheKey, 120, async () => {
+      const submissions = await submissionRepository.findMany({
+        where: { studentId: studentIdNum },
+        select: {
+          id: true,
+          assignmentId: true,
+          studentId: true,
+          status: true,
+          submittedAt: true,
+          updatedAt: true,
+          tutorialRequested: true,
+          tutorialApproved: true,
+          assignment: {
+            select: {
+              id: true,
+              title: true,
+              dueDate: true,
+              maxScore: true,
+              classId: true,
+            },
+          },
+          evaluation: { select: { totalScore: true, remarks: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      return submissions.map((s) => ({
+        ...s,
+        score: s.evaluation?.totalScore ?? null,
+        remarks: s.evaluation?.remarks ?? null,
+        assignment: s.assignment
+          ? {
+              ...s.assignment,
+              deadline: s.assignment.dueDate ? s.assignment.dueDate.toISOString() : null,
+            }
+          : null,
+      }));
     });
-    
-    return submissions.map(s => ({
-      ...s,
-      score: s.evaluation?.totalScore || null,
-      remarks: s.evaluation?.remarks || null,
-      assignment: s.assignment ? {
-        ...s.assignment,
-        deadline: s.assignment.dueDate ? s.assignment.dueDate.toISOString() : null
-      } : null
-    }));
   }
 
   async requestTutorial(submissionId, studentId) {
