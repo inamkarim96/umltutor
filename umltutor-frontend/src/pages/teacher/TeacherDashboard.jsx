@@ -13,8 +13,11 @@ import {
 } from '../../features/assignments';
 import {
     fetchAllSubmissionsForTeacher,
-    selectSubmissions
+    fetchTutorialRequests,
+    selectSubmissions,
+    selectTutorialRequests,
 } from '../../features/submissions';
+import TutorialRequestsPanel from '../../features/teacher/components/TutorialRequestsPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import {
     BookOpen,
@@ -84,12 +87,14 @@ const TeacherDashboard = () => {
     const classes = useAppSelector(selectClasses) || [];
     const assignments = useAppSelector(selectAllAssignments) || [];
     const submissions = useAppSelector(selectSubmissions) || [];
+    const tutorialRequests = useAppSelector(selectTutorialRequests) || [];
     const isLoading = useAppSelector(selectClassroomLoading);
 
     useEffect(() => {
         dispatch(fetchClasses('TEACHER'));
         dispatch(fetchAllAssignments('TEACHER'));
         dispatch(fetchAllSubmissionsForTeacher());
+        dispatch(fetchTutorialRequests({ status: 'pending', page: 1, limit: 5 }));
     }, [dispatch]);
 
     const assignmentsMap = assignments.reduce((acc, curr) => {
@@ -101,6 +106,10 @@ const TeacherDashboard = () => {
         const status = s?.status?.toLowerCase();
         return status === 'submitted';
     }).length;
+
+    const pendingTutorialRequests = tutorialRequests.filter(
+        (r) => r.tutorialRequestStatus === 'pending'
+    ).length;
 
     const recentSubmissions = submissions
         .filter((s) => {
@@ -430,6 +439,10 @@ const TeacherDashboard = () => {
                         <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
                         Submissions
                     </Link>
+                    <Link to="/teacher/tutorial-requests" className="t-nav-item">
+                        <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" /><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" /></svg>
+                        Tutorial Requests
+                    </Link>
                     <div className="t-nav-label">Management</div>
                     <Link to="/teacher/classes" className="t-nav-item">
                         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
@@ -587,6 +600,24 @@ const TeacherDashboard = () => {
                                 </div>
                             </div>
 
+                            {/* Tutorial Requests */}
+                            <div className="t-panel">
+                                <div className="t-panel-header">
+                                    <div>
+                                        <div className="t-panel-title">Tutorial Requests</div>
+                                        <div className="t-panel-subtitle">
+                                            {pendingTutorialRequests} pending approval
+                                        </div>
+                                    </div>
+                                    <div className="t-panel-action" onClick={() => navigate('/teacher/tutorial-requests')}>
+                                        Manage →
+                                    </div>
+                                </div>
+                                <div className="px-6 pb-6">
+                                    <TutorialRequestsPanel compact showHeader={false} />
+                                </div>
+                            </div>
+
                             {/* Recent Assignments */}
                             <div className="t-panel">
                                 <div className="t-panel-header">
@@ -674,6 +705,10 @@ const TeacherDashboard = () => {
                                     <div className="t-quick-btn" onClick={() => navigate('/teacher/submissions')}>
                                         <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
                                         Review
+                                    </div>
+                                    <div className="t-quick-btn" onClick={() => navigate('/teacher/tutorial-requests')}>
+                                        <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" /><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" /></svg>
+                                        Tutorials
                                     </div>
                                     <div className="t-quick-btn" onClick={() => setIsSettingsOpen(true)}>
                                         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M20 21a8 8 0 10-16 0" /></svg>

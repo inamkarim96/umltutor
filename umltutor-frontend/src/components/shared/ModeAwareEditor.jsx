@@ -31,6 +31,7 @@ import { runSubmissionCheckLogic } from '../../features/submissions/submissionLo
 import { buildSavePayload } from '../../utils/savePayloadUtils';
 
 import ConfirmModal from './ConfirmModal';
+import WorkspaceSkeleton from '../workspace/WorkspaceSkeleton';
 import {
   Info,
   CheckCircle,
@@ -54,16 +55,16 @@ const StepSelectionModal = ({ isOpen, onClose, onSelect, format }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-hover ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-black text-gray-900 italic tracking-tight">Select Export Step</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <X size={20} className="text-gray-400" />
+          <h2 className="text-2xl font-extrabold font-heading text-ink tracking-tight">Select Export Step</h2>
+          <button onClick={onClose} className="p-2 hover:bg-surface-3 rounded-lg transition-colors" aria-label="Close">
+            <X size={20} className="text-muted" />
           </button>
         </div>
 
-        <p className="text-sm text-gray-500 font-medium mb-8 leading-relaxed">
-          Which step would you like to export as <span className="text-indigo-600 font-black uppercase">{format}</span>?
+        <p className="text-sm text-muted font-medium mb-8 leading-relaxed">
+          Which step would you like to export as <span className="text-accent font-extrabold uppercase">{format}</span>?
           The result will include both your work and the complete checking report.
         </p>
 
@@ -79,13 +80,13 @@ const StepSelectionModal = ({ isOpen, onClose, onSelect, format }) => {
               key={step.id}
               data-step-id={step.id}
               onClick={() => onSelect(step.id)}
-              className="w-full p-5 bg-gray-50 border-2 border-transparent hover:border-indigo-500/30 hover:bg-indigo-50/30 rounded-2xl text-left transition-all flex items-center justify-between group"
+              className="w-full p-5 bg-surface-3/50 border-2 border-transparent hover:border-accent/30 hover:bg-accent/5 rounded-lg text-left transition-all flex items-center justify-between group"
             >
               <div>
-                <span className="block text-[10px] font-black uppercase text-indigo-600 mb-0.5 tracking-widest">{step.label}</span>
-                <span className="block font-black text-gray-800 ">{step.desc}</span>
+                <span className="block text-[10px] font-extrabold uppercase text-accent mb-0.5 tracking-widest">{step.label}</span>
+                <span className="block font-extrabold font-heading text-ink">{step.desc}</span>
               </div>
-              <ArrowRight size={20} className="text-gray-300 group-hover:text-indigo-500 transform group-hover:translate-x-1 transition-all" />
+              <ArrowRight size={20} className="text-muted group-hover:text-accent transform group-hover:translate-x-1 transition-all" />
             </button>
           ))}
         </div>
@@ -99,7 +100,7 @@ const StepSelectionModal = ({ isOpen, onClose, onSelect, format }) => {
  * It identifies current mode (Tutorial/Development) from Redux and 
  * manages the switching between Diagram, Description, and SSD editors.
  */
-const ModeAwareEditor = ({ isReadOnly = false }) => {
+const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, onExit }) => {
   const [activeSection, setActiveSection] = useState('usecase');
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -110,6 +111,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   const [previewFile, setPreviewFile] = useState(null); // { url, name, type }
   const [lastSaved, setLastSaved] = useState(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isManualSaving, setIsManualSaving] = useState(false);
+  const [saveRetryCount, setSaveRetryCount] = useState(0);
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -120,12 +123,18 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   const currentSubmission = useAppSelector(selectCurrentSubmission);
   // Strictly enforce tutorial UI if approved by teacher, even if Redux mode hasn't switched yet
   const isTutorialActive = currentMode === 'tutorial';
-  const isSubmitted = ['submitted', 'graded', 'reviewed', 'completed', 'approved'].includes(currentSubmission?.status?.toLowerCase()) || !!currentSubmission?.fullReport;
+  const submittedStatuses = ['submitted', 'graded', 'reviewed', 'completed', 'approved'];
+  const isSubmitted =
+    !!currentSubmission?.submittedAt ||
+    submittedStatuses.includes(currentSubmission?.status?.toLowerCase()) ||
+    !!currentSubmission?.fullReport;
+  const isTutorialEditable = isTutorialActive && isSubmitted && currentSubmission?.tutorialApproved;
+
   let effectivelyReadOnly = isReadOnly;
-  if (isTutorialActive) {
-    effectivelyReadOnly = false; // Tutorial mode is always editable for active tutorials
+  if (isTutorialEditable) {
+    effectivelyReadOnly = false;
   } else if (isStudentWork && isSubmitted) {
-    effectivelyReadOnly = true;  // Strictly enforce lock in development mode after submission
+    effectivelyReadOnly = true;
   }
 
   useEffect(() => {
@@ -155,7 +164,10 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   const isStudentWork = window.location.pathname.includes('/student/assignments/') && window.location.pathname.includes('/work');
   const titleSlug = window.location.pathname.split('/').find((segment, i, arr) => arr[i - 1] === 'assignments');
   const isStudent = user?.role === 'STUDENT';
-  const assignmentId = model?.id || assignments.find(a => a.title?.toLowerCase().replace(/\s+/g, '-') === titleSlug)?.id;
+  const assignmentId =
+    assignmentIdProp ||
+    model?.id ||
+    assignments.find((a) => a.title?.toLowerCase().replace(/\s+/g, '-') === titleSlug)?.id;
 
   // Use both the assignments list and the specific detail from Redux
   const assignmentDetail = useAppSelector(selectAssignmentDetail);
@@ -183,38 +195,64 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
     return null;
   }, [assignments, assignmentDetail, assignmentId, titleSlug]);
 
-  const handleSave = async (isAutoSave = false) => {
-    try {
-      if (isAutoSave) setIsAutoSaving(true);
-      await saveToLocal();
-      if (!isAuthenticated) {
-        if (!isAutoSave) successToast('Session saved temporarily.');
-      } else {
-        if (isStudentWork && assignmentId) {
-          await dispatch(submitAssignmentData({
-            assignmentId,
-            data: buildSavePayload(model, { status: 'draft', section: activeSection }),
-            lean: true,
-          })).unwrap();
-          setLastSaved(new Date());
-          if (!isAutoSave) successToast('Progress saved securely to the database.');
+  const persistDraft = useCallback(
+    async (isAutoSave = false) => {
+      if (isSubmitted) return;
+      try {
+        if (isAutoSave) setIsAutoSaving(true);
+        else setIsManualSaving(true);
+        await saveToLocal();
+        if (!isAuthenticated) {
+          if (!isAutoSave) successToast('Session saved temporarily.');
+          return;
         }
+        if (isStudentWork && assignmentId) {
+          await dispatch(
+            submitAssignmentData({
+              assignmentId,
+              data: buildSavePayload(model, { status: 'draft', section: activeSection }),
+              lean: true,
+            })
+          ).unwrap();
+          setLastSaved(new Date());
+          setSaveRetryCount(0);
+          if (!isAutoSave) successToast('Progress saved to the database.');
+        }
+      } catch (error) {
+        console.error('Save failed:', error);
+        if (!isAutoSave) {
+          errorToast('Failed to save: ' + (error.message || 'Unknown error'));
+          setSaveRetryCount((c) => c + 1);
+        }
+        throw error;
+      } finally {
+        if (isAutoSave) setIsAutoSaving(false);
+        else setIsManualSaving(false);
       }
-    } catch (error) {
-      console.error('Save failed:', error);
-      if (!isAutoSave) errorToast('Failed to save progress: ' + (error.message || 'Unknown error'));
-    } finally {
-      if (isAutoSave) setIsAutoSaving(false);
-    }
-  };
+    },
+    [
+      isSubmitted,
+      saveToLocal,
+      isAuthenticated,
+      isStudentWork,
+      assignmentId,
+      dispatch,
+      model,
+      activeSection,
+      successToast,
+      errorToast,
+    ]
+  );
+
+  const handleSave = () => persistDraft(false);
 
   useEffect(() => {
-    if (effectivelyReadOnly || isSubmitting || isSaving || !model) return;
+    if (isSubmitted || effectivelyReadOnly || isSubmitting || isManualSaving || !model) return;
     const timer = setTimeout(() => {
-      handleSave(true);
+      persistDraft(true).catch(() => {});
     }, 15000);
     return () => clearTimeout(timer);
-  }, [model, effectivelyReadOnly, isSubmitting, activeSection]);
+  }, [model, isSubmitted, effectivelyReadOnly, isSubmitting, isManualSaving, activeSection, persistDraft]);
   const handleRequestTutorial = async () => {
     try {
       if (!currentSubmission?.id) {
@@ -435,18 +473,26 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   };
 
   const handleFinalSubmit = async ({ description }) => {
+    if (isSubmitted) {
+      errorToast('Assignment already submitted. Editing is disabled.');
+      return;
+    }
     try {
-      await dispatch(submitAssignmentData({
-        assignmentId,
-        data: buildSavePayload(model, { status: 'submitted' }),
-        lean: false,
-      })).unwrap();
+      await dispatch(
+        submitAssignmentData({
+          assignmentId,
+          data: buildSavePayload(model, { status: 'submitted', notes: description }),
+          lean: false,
+        })
+      ).unwrap();
 
-      successToast('Assignment submitted successfully!');
+      await dispatch(fetchSubmissionStatus({ assignmentId, includeReport: false }));
+      successToast('Assignment submitted successfully! The workspace is now read-only.');
       setIsSubmitModalOpen(false);
-      navigate('/student/dashboard');
+      dispatch(setMode('development'));
     } catch (error) {
-      errorToast('Submission failed: ' + error);
+      const msg = typeof error === 'string' ? error : error?.message || 'Submission failed';
+      errorToast(msg);
     }
   };
 
@@ -461,18 +507,12 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
   };
 
   const handleConfirmExit = () => {
-    navigate(isStudentWork ? `/student/assignments/${assignmentId}` : '/student/dashboard');
+    if (onExit) onExit();
+    else navigate(isStudentWork ? '/student/dashboard' : '/student/dashboard');
   };
 
   if (!model) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-white ">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-500 font-bold">Initializing Workspace...</p>
-        </div>
-      </div>
-    );
+    return <WorkspaceSkeleton />;
   }
 
   const renderContent = () => {
@@ -563,13 +603,23 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
           </div>
 
           <button
-            onClick={() => handleSave(false)}
-            disabled={!model || isSaving || effectivelyReadOnly}
-            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-surface-3 border border-black/10 disabled:opacity-50 text-ink text-xs font-bold font-body rounded-lg transition-colors shadow-sm"
+            onClick={handleSave}
+            disabled={!model || isManualSaving || isAutoSaving || effectivelyReadOnly || isSubmitted}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-surface-3 border border-black/10 disabled:opacity-50 disabled:cursor-not-allowed text-ink text-xs font-bold font-body rounded-lg transition-all shadow-sm hover:shadow-md"
+            aria-label="Save draft progress"
           >
             <Save size={14} className="text-accent" />
-            {isSaving && !isAutoSaving ? 'Saving...' : 'Save Draft'}
+            {isManualSaving ? 'Saving...' : 'Save'}
           </button>
+          {saveRetryCount > 0 && !isSubmitted && (
+            <button
+              type="button"
+              onClick={handleSave}
+              className="text-[10px] font-bold text-accent hover:underline"
+            >
+              Retry save
+            </button>
+          )}
           
           <div className="relative" ref={exportDropdownRef}>
             <button
@@ -635,30 +685,53 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
 
           {isStudentWork && (
             <button
-              onClick={() => setIsSubmitModalOpen(true)}
-              disabled={effectivelyReadOnly}
-              className="flex items-center justify-center gap-1.5 px-6 py-2 bg-accent hover:bg-accent-light disabled:opacity-50 disabled:bg-gray-400 text-white text-xs font-bold font-body rounded-lg transition-colors shadow-md hover:-translate-y-0.5"
+              onClick={() => {
+                if (isSubmitted) {
+                  errorToast('Assignment already submitted. Editing is disabled.');
+                  return;
+                }
+                setIsSubmitModalOpen(true);
+              }}
+              disabled={isSubmitted || isSubmitting || effectivelyReadOnly}
+              title={isSubmitted ? 'Assignment already submitted' : 'Submit your final work'}
+              className="flex items-center justify-center gap-1.5 px-6 py-2 bg-accent hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 text-white text-xs font-extrabold font-heading rounded-lg transition-all shadow-md hover:-translate-y-0.5"
             >
               <CheckCircle size={14} />
-              Submit Assignment
+              {isSubmitted ? 'Submitted' : isSubmitting ? 'Submitting...' : 'Submit Assignment'}
             </button>
           )}
 
-          {currentSubmission?.tutorialApproved && (
-              <button
-                onClick={() => {
-                  const newMode = currentMode === 'tutorial' ? 'development' : 'tutorial';
-                  dispatch(setMode(newMode));
-                  dispatch(clearModeState(currentMode));
-                }}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-extrabold font-heading uppercase tracking-wider transition-colors shadow-sm ${currentMode === 'tutorial'
-                  ? 'bg-ink text-white hover:bg-gray-800'
+          {isStudentWork && isSubmitted && !currentSubmission?.tutorialApproved && (
+            <button
+              onClick={handleRequestTutorial}
+              disabled={currentSubmission?.tutorialRequested && !currentSubmission?.tutorialRejected}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-extrabold font-heading uppercase tracking-wider transition-all shadow-sm border border-accent/20 bg-accent/10 text-accent hover:bg-accent/15 disabled:opacity-60"
+            >
+              <BookOpen size={14} />
+              {currentSubmission?.tutorialRejected
+                ? 'Request Tutorial'
+                : currentSubmission?.tutorialRequested
+                  ? 'Tutorial Pending'
+                  : 'Request Tutorial'}
+            </button>
+          )}
+
+          {isStudentWork && isSubmitted && currentSubmission?.tutorialApproved && (
+            <button
+              onClick={() => {
+                const newMode = currentMode === 'tutorial' ? 'development' : 'tutorial';
+                dispatch(setMode(newMode));
+                if (newMode === 'tutorial') dispatch(clearModeState('tutorial'));
+              }}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-extrabold font-heading uppercase tracking-wider transition-all shadow-sm ${
+                currentMode === 'tutorial'
+                  ? 'bg-ink text-white hover:bg-ink/90'
                   : 'bg-status-green text-white hover:bg-green-700'
-                  }`}
-              >
-                {currentMode === 'tutorial' ? <Database size={14} /> : <BookOpen size={14} />}
-                {currentMode === 'tutorial' ? 'Dev Mode' : 'Tutorial Mode'}
-              </button>
+              }`}
+            >
+              {currentMode === 'tutorial' ? <Eye size={14} /> : <BookOpen size={14} />}
+              {currentMode === 'tutorial' ? 'Submitted View' : 'Tutorial Mode'}
+            </button>
           )}
 
           {currentMode === 'development' && (!isStudentWork || hasReport || currentSubmission?.tutorialApproved) && (
@@ -676,11 +749,31 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         </div>
       </div>
 
-      {effectivelyReadOnly && (
-         <div className="bg-amber-50 border-b border-amber-200 text-amber-800 px-6 py-2.5 flex items-center justify-center gap-2 text-xs font-extrabold font-heading uppercase tracking-widest z-30 shadow-sm">
-            <Lock size={14} />
-            This assignment has been submitted and is locked for editing.
-         </div>
+      {isSubmitted && currentMode !== 'tutorial' && (
+        <div
+          className="bg-amber-50 border-b border-amber-200 text-amber-800 px-4 md:px-6 py-2.5 flex flex-wrap items-center justify-center gap-2 text-xs font-extrabold font-heading uppercase tracking-widest z-30"
+          role="status"
+        >
+          <Lock size={14} aria-hidden />
+          Assignment already submitted. Editing is disabled.
+          {currentSubmission?.tutorialApproved && (
+            <span className="normal-case font-medium tracking-normal text-amber-700">
+              — Switch to Tutorial Mode for guided review.
+            </span>
+          )}
+        </div>
+      )}
+      {isStudentWork && currentSubmission?.tutorialRejected && !currentSubmission?.tutorialApproved && (
+        <div
+          className="bg-red-50 border-b border-red-100 text-status-red px-4 md:px-6 py-2 text-xs font-medium z-30 text-center"
+          role="status"
+        >
+          Tutorial request declined
+          {currentSubmission.tutorialRejectionReason
+            ? `: ${currentSubmission.tutorialRejectionReason}`
+            : '.'}{' '}
+          You may submit a new request when ready.
+        </div>
       )}
 
       {/* 3. Horizontal Tab Bar */}
@@ -762,7 +855,8 @@ const ModeAwareEditor = ({ isReadOnly = false }) => {
         onClose={() => setIsSubmitModalOpen(false)}
         onSubmit={handleFinalSubmit}
         isSubmitting={isSubmitting}
-        assignmentTitle={assignmentDetails?.title || 'Assignment Submission'}
+        assignmentTitle={assignmentDetails?.title || model?.title || 'Assignment Submission'}
+        assignment={assignmentDetails}
       />
       <ConfirmModal
         isOpen={isExitConfirmOpen}

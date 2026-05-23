@@ -22,6 +22,18 @@ router.get(
   _submissionController.getAllAssignmentSubmissions
 );
 
+/**
+ * @route   GET /api/submissions/teacher/tutorial-requests
+ * @desc    List tutorial mode requests for teacher dashboard
+ * @access  TEACHER
+ */
+router.get(
+  '/teacher/tutorial-requests',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('TEACHER'),
+  _submissionController.getTutorialRequests
+);
+
 // ─── Student Overview Routes ──────────────────────────────────────────────
 /**
  * @route   GET /api/submissions/student/me
@@ -193,6 +205,18 @@ router.post(
   _routeMiddleware.authenticate,
   _routeMiddleware.authorize('TEACHER'),
   _submissionController.approveTutorialMode
+);
+
+/**
+ * @route   POST /api/submissions/:id/reject-tutorial
+ * @desc    Reject tutorial mode request
+ * @access  TEACHER
+ */
+router.post(
+  '/:id/reject-tutorial',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('TEACHER'),
+  _submissionController.rejectTutorialMode
 );
 
 exports.default = router;

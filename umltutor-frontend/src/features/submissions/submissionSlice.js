@@ -124,7 +124,30 @@ export const approveTutorialMode = createAsyncThunk(
       const response = await submissionService.approveTutorialMode(submissionId);
       return response?.data || response;
     } catch (error) {
-      return rejectWithValue(error?.response?.data?.error?.message || error.message || 'Failed to approve tutorial mode');
+      return rejectWithValue(error?.message || error?.response?.data?.error?.message || 'Failed to approve tutorial mode');
+    }
+  }
+);
+
+export const rejectTutorialMode = createAsyncThunk(
+  'submission/rejectTutorialMode',
+  async ({ submissionId, reason }, { rejectWithValue }) => {
+    try {
+      const response = await submissionService.rejectTutorialMode(submissionId, reason);
+      return response?.data || response;
+    } catch (error) {
+      return rejectWithValue(error?.message || 'Failed to reject tutorial request');
+    }
+  }
+);
+
+export const fetchTutorialRequests = createAsyncThunk(
+  'submission/fetchTutorialRequests',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      return await submissionService.getTutorialRequests(params);
+    } catch (error) {
+      return rejectWithValue(error?.message || 'Failed to load tutorial requests');
     }
   }
 );
@@ -134,7 +157,11 @@ export const approveTutorialMode = createAsyncThunk(
 const initialState = {
   submissions: [],
   currentSubmission: null,
-  assignmentSubmissions: {}, // key: assignmentId, value: submissions array
+  assignmentSubmissions: {},
+  tutorialRequests: [],
+  tutorialRequestsPagination: null,
+  tutorialRequestsLoading: false,
+  tutorialActionLoading: false,
   isLoading: false,
   isSubmitting: false,
   error: null,
@@ -166,13 +193,29 @@ const submissionSlice = createSlice({
         state.isSubmitting = false;
         state.success = true;
         const payload = action.payload;
+        const meta = action.meta?.arg;
         if (payload) {
-          state.currentSubmission = {
+          const merged = {
             ...(state.currentSubmission || {}),
             id: payload.id ?? state.currentSubmission?.id,
+            assignmentId: meta?.assignmentId ?? state.currentSubmission?.assignmentId,
             status: payload.status ?? state.currentSubmission?.status,
             submittedAt: payload.submittedAt ?? state.currentSubmission?.submittedAt,
+            tutorialRequested: payload.tutorialRequested ?? state.currentSubmission?.tutorialRequested,
+            tutorialApproved: payload.tutorialApproved ?? state.currentSubmission?.tutorialApproved,
+            tutorialRejected: payload.tutorialRejected ?? state.currentSubmission?.tutorialRejected,
+            tutorialRequestedAt: payload.tutorialRequestedAt ?? state.currentSubmission?.tutorialRequestedAt,
+            tutorialReviewedAt: payload.tutorialReviewedAt ?? state.currentSubmission?.tutorialReviewedAt,
+            tutorialRejectionReason: payload.tutorialRejectionReason ?? state.currentSubmission?.tutorialRejectionReason,
+            tutorialRequestStatus: payload.tutorialRequestStatus ?? state.currentSubmission?.tutorialRequestStatus,
           };
+          state.currentSubmission = merged;
+          const idx = state.submissions.findIndex(
+            (s) => s.id === merged.id || s.assignmentId === merged.assignmentId
+          );
+          if (idx !== -1) {
+            state.submissions[idx] = { ...state.submissions[idx], ...merged };
+          }
         }
       })
       .addCase(submitAssignmentData.rejected, (state, action) => {
@@ -190,9 +233,23 @@ const submissionSlice = createSlice({
         state.submissions = action.payload;
       })
       // Status
+      .addCase(fetchSubmissionStatus.pending, (state) => {
+        state.isLoading = true;
+      })
       .addCase(fetchSubmissionStatus.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.currentSubmission = action.payload;
+        const payload = action.payload;
+        state.currentSubmission = payload
+          ? {
+              ...(state.currentSubmission || {}),
+              ...payload,
+              assignmentId:
+                payload.assignmentId ?? action.meta?.arg?.assignmentId ?? state.currentSubmission?.assignmentId,
+            }
+          : payload;
+      })
+      .addCase(fetchSubmissionStatus.rejected, (state) => {
+        state.isLoading = false;
       })
       // Teacher: Assignment Submissions
       .addCase(fetchAssignmentSubmissions.fulfilled, (state, action) => {
@@ -275,18 +332,40 @@ const submissionSlice = createSlice({
         const updated = action.payload;
         if (!updated) return;
         if (state.currentSubmission?.id === updated.id) {
-          state.currentSubmission = { ...state.currentSubmission, ...updated };
+          state.currentSubmission = { ...state.currentSubmission, ...updated, tutorialRequestStatus: 'pending' };
         }
         const idx = state.submissions.findIndex(s => s.id === updated.id);
         if (idx !== -1) state.submissions[idx] = { ...state.submissions[idx], ...updated };
       })
+      // Tutorial requests list
+      .addCase(fetchTutorialRequests.pending, (state) => {
+        state.tutorialRequestsLoading = true;
+      })
+      .addCase(fetchTutorialRequests.fulfilled, (state, action) => {
+        state.tutorialRequestsLoading = false;
+        state.tutorialRequests = action.payload?.items || [];
+        state.tutorialRequestsPagination = action.payload?.pagination || null;
+      })
+      .addCase(fetchTutorialRequests.rejected, (state) => {
+        state.tutorialRequestsLoading = false;
+      })
+      .addCase(approveTutorialMode.pending, (state) => {
+        state.tutorialActionLoading = true;
+      })
+      .addCase(rejectTutorialMode.pending, (state) => {
+        state.tutorialActionLoading = true;
+      })
       // Tutorial Mode Approve
       .addCase(approveTutorialMode.fulfilled, (state, action) => {
+        state.tutorialActionLoading = false;
         const updated = action.payload;
         if (!updated) return;
         if (state.currentSubmission?.id === updated.id) {
-          state.currentSubmission = { ...state.currentSubmission, ...updated };
+          state.currentSubmission = { ...state.currentSubmission, ...updated, tutorialRequestStatus: 'approved' };
         }
+        state.tutorialRequests = state.tutorialRequests.map((r) =>
+          r.submissionId === updated.id ? { ...r, ...updated, tutorialRequestStatus: 'approved', canApprove: false } : r
+        );
         Object.keys(state.assignmentSubmissions).forEach(aid => {
           const sIdx = state.assignmentSubmissions[aid].findIndex(s => (s.id === updated.id) || (s.submissionId === updated.id));
           if (sIdx !== -1) {
@@ -299,6 +378,23 @@ const submissionSlice = createSlice({
             };
           }
         });
+      })
+      .addCase(approveTutorialMode.rejected, (state) => {
+        state.tutorialActionLoading = false;
+      })
+      .addCase(rejectTutorialMode.fulfilled, (state, action) => {
+        state.tutorialActionLoading = false;
+        const updated = action.payload;
+        if (!updated) return;
+        if (state.currentSubmission?.id === updated.id) {
+          state.currentSubmission = { ...state.currentSubmission, ...updated, tutorialRequestStatus: 'rejected' };
+        }
+        state.tutorialRequests = state.tutorialRequests.map((r) =>
+          r.submissionId === updated.id ? { ...r, ...updated, tutorialRequestStatus: 'rejected', canApprove: false } : r
+        );
+      })
+      .addCase(rejectTutorialMode.rejected, (state) => {
+        state.tutorialActionLoading = false;
       });
   }
 });
@@ -314,5 +410,9 @@ export const selectSubmissionLoading = (state) => state.submission.isLoading;
 export const selectIsSubmitting = (state) => state.submission.isSubmitting;
 export const selectSubmissionError = (state) => state.submission.error;
 export const selectSubmissionSuccess = (state) => state.submission.success;
+export const selectTutorialRequests = (state) => state.submission.tutorialRequests || [];
+export const selectTutorialRequestsPagination = (state) => state.submission.tutorialRequestsPagination;
+export const selectTutorialRequestsLoading = (state) => state.submission.tutorialRequestsLoading;
+export const selectTutorialActionLoading = (state) => state.submission.tutorialActionLoading;
 
 export default submissionSlice.reducer;

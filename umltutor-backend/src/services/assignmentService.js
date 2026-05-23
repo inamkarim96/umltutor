@@ -18,13 +18,58 @@ const prisma = require('../config/prisma');
 
 class AssignmentService {
   _extractArtifactsFromSubmission(submission) {
-    if (submission?.artifacts && !Array.isArray(submission.artifacts)) return submission.artifacts;
+    if (!submission) {
+      return {
+        useCaseDiagram: { nodes: [], edges: [] },
+        useCaseDescription: {},
+        systemSequenceDiagram: {},
+        classDiagram: { nodes: [], edges: [] },
+        sequenceDiagrams: {},
+      };
+    }
+    if (submission.artifacts && !Array.isArray(submission.artifacts)) {
+      return submission.artifacts;
+    }
+    try {
+      return {
+        useCaseDiagram: this._safeParseJson(submission.useCaseDiagram?.data) || { nodes: [], edges: [] },
+        useCaseDescription: (submission.useCaseDescriptions || []).reduce(
+          (acc, d) => ({ ...acc, [d.relatedId]: this._safeParseJson(d.data) }),
+          {}
+        ),
+        systemSequenceDiagram: (submission.ssdDiagrams || []).reduce(
+          (acc, s) => ({ ...acc, [s.relatedId]: this._safeParseJson(s.data) }),
+          {}
+        ),
+        classDiagram: this._safeParseJson(submission.classDiagram?.data) || { nodes: [], edges: [] },
+        sequenceDiagrams: (submission.sequenceDiagrams || []).reduce(
+          (acc, s) => ({ ...acc, [s.relatedId]: this._safeParseJson(s.data) }),
+          {}
+        ),
+      };
+    } catch (err) {
+      console.error('[AssignmentService] Failed to parse submission artifacts:', err.message);
+      return {
+        useCaseDiagram: { nodes: [], edges: [] },
+        useCaseDescription: {},
+        systemSequenceDiagram: {},
+        classDiagram: { nodes: [], edges: [] },
+        sequenceDiagrams: {},
+      };
+    }
+  }
+
+  _leanSubmissionForClient(submission) {
+    if (!submission) return null;
+    const { evaluation, ...rest } = submission;
     return {
-      useCaseDiagram: this._safeParseJson(submission?.useCaseDiagram?.data) || { nodes: [], edges: [] },
-      useCaseDescription: (submission?.useCaseDescriptions || []).reduce((acc, d) => ({ ...acc, [d.relatedId]: this._safeParseJson(d.data) }), {}),
-      systemSequenceDiagram: (submission?.ssdDiagrams || []).reduce((acc, s) => ({ ...acc, [s.relatedId]: this._safeParseJson(s.data) }), {}),
-      classDiagram: this._safeParseJson(submission?.classDiagram?.data) || { nodes: [], edges: [] },
-      sequenceDiagrams: (submission?.sequenceDiagrams || []).reduce((acc, s) => ({ ...acc, [s.relatedId]: this._safeParseJson(s.data) }), {}),
+      ...rest,
+      evaluation: evaluation
+        ? {
+            totalScore: evaluation.totalScore,
+            remarks: evaluation.remarks,
+          }
+        : null,
     };
   }
 
@@ -213,6 +258,14 @@ class AssignmentService {
   async getAssignmentForStudent(assignmentId, studentId) {
     const assignmentIdNum = Number(assignmentId);
     const studentIdNum = Number(studentId);
+
+    if (!Number.isFinite(assignmentIdNum) || assignmentIdNum <= 0) {
+      throw new ValidationError('Invalid assignment ID');
+    }
+    if (!Number.isFinite(studentIdNum) || studentIdNum <= 0) {
+      throw new ValidationError('Invalid student ID');
+    }
+
     const cacheKey = `assignment:student:${studentIdNum}:${assignmentIdNum}`;
 
     return serviceCache.cached(cacheKey, 90, async () => {
@@ -230,26 +283,39 @@ class AssignmentService {
           type: true,
           classId: true,
           textContent: true,
+          assignmentFileUrl: true,
+          assignmentFileName: true,
+          assignmentFileType: true,
           class: { select: { id: true, name: true } },
         },
       });
       if (!assignment) throw new NotFoundError('Assignment');
 
-      const submission = await submissionRepository.findFirst({
-        where: { assignmentId: assignmentIdNum, studentId: studentIdNum },
-        include: {
-          useCaseDiagram: true,
-          useCaseDescriptions: true,
-          ssdDiagrams: true,
-          classDiagram: true,
-          sequenceDiagrams: true,
-          evaluation: { select: { totalScore: true, remarks: true, validationReport: true } },
-        },
-      });
+      let submission = null;
+      try {
+        submission = await submissionRepository.findFirst({
+          where: { assignmentId: assignmentIdNum, studentId: studentIdNum },
+          include: {
+            useCaseDiagram: true,
+            useCaseDescriptions: true,
+            ssdDiagrams: true,
+            classDiagram: true,
+            sequenceDiagrams: true,
+            evaluation: { select: { totalScore: true, remarks: true } },
+          },
+        });
+      } catch (dbErr) {
+        console.error(
+          `[AssignmentService] Submission load failed for assignment=${assignmentIdNum} student=${studentIdNum}:`,
+          dbErr.message
+        );
+        throw new DatabaseError('Failed to load your saved work for this assignment');
+      }
+
       return {
         ...assignment,
         deadline: assignment.dueDate?.toISOString() ?? null,
-        submission,
+        submission: this._leanSubmissionForClient(submission),
         artifacts: this._extractArtifactsFromSubmission(submission),
       };
     }, 45_000);

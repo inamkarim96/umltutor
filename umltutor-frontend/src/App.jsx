@@ -32,6 +32,7 @@ const SubmittedAssignments = lazy(() => import('./pages/student/SubmittedAssignm
 const TeacherAssignmentsDashboard = lazy(() => import('./pages/teacher/AssignmentsDashboard'));
 const AssignmentSubmissions = lazy(() => import('./pages/teacher/AssignmentSubmissions'));
 const AssignmentReview = lazy(() => import('./pages/teacher/AssignmentReview'));
+const TutorialRequestsPage = lazy(() => import('./pages/teacher/TutorialRequestsPage'));
 const AssignmentDetails = lazy(() => import('./pages/AssignmentDetails'));
 const SubmissionDetail = lazy(() => import('./features/submissions/SubmissionDetail'));
 
@@ -76,6 +77,15 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="TEACHER">
                       <TeacherDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/teacher/tutorial-requests"
+                  element={
+                    <ProtectedRoute requiredRole="TEACHER">
+                      <TutorialRequestsPage />
                     </ProtectedRoute>
                   }
                 />

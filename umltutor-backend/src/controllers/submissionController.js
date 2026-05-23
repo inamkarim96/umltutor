@@ -200,7 +200,7 @@ const requestTutorialMode = async (req, res) => {
     const updated = await _submissionService2.default.requestTutorial(Number(submissionId), req.user.id);
     res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, error: { message: error.message } });
+    res.status(error.statusCode || error.status || 500).json({ success: false, error: { message: error.message } });
   }
 }; exports.requestTutorialMode = requestTutorialMode;
 
@@ -210,6 +210,30 @@ const approveTutorialMode = async (req, res) => {
     const updated = await _submissionService2.default.approveTutorial(Number(submissionId), req.user.id);
     res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, error: { message: error.message } });
+    res.status(error.statusCode || error.status || 500).json({ success: false, error: { message: error.message } });
   }
 }; exports.approveTutorialMode = approveTutorialMode;
+
+const rejectTutorialMode = async (req, res) => {
+  try {
+    const submissionId = req.params.id;
+    const reason = req.body?.reason || req.body?.comment || '';
+    const updated = await _submissionService2.default.rejectTutorial(Number(submissionId), req.user.id, reason);
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(error.statusCode || error.status || 500).json({ success: false, error: { message: error.message } });
+  }
+}; exports.rejectTutorialMode = rejectTutorialMode;
+
+const getTutorialRequests = async (req, res) => {
+  try {
+    const result = await _submissionService2.default.getTutorialRequestsForTeacher(req.user.id, {
+      status: req.query.status || 'all',
+      page: req.query.page,
+      limit: req.query.limit,
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.statusCode || error.status || 500).json({ success: false, error: { message: error.message } });
+  }
+}; exports.getTutorialRequests = getTutorialRequests;

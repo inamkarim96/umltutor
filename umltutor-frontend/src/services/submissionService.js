@@ -179,7 +179,26 @@ class SubmissionService {
   }
 
   async approveTutorialMode(submissionId) {
-    return apiClient.post(`/api/submissions/${submissionId}/approve-tutorial`);
+    const result = await apiClient.post(`/api/submissions/${submissionId}/approve-tutorial`);
+    clearInflight('submissions:teacher:');
+    clearInflight('tutorial:requests:');
+    return result;
+  }
+
+  async rejectTutorialMode(submissionId, reason) {
+    const result = await apiClient.post(`/api/submissions/${submissionId}/reject-tutorial`, { reason });
+    clearInflight('submissions:teacher:');
+    clearInflight('tutorial:requests:');
+    return result;
+  }
+
+  async getTutorialRequests({ status = 'all', page = 1, limit = 20 } = {}) {
+    const key = `tutorial:requests:${status}:${page}:${limit}`;
+    return inflightGet(key, () =>
+      apiClient.get('/api/submissions/teacher/tutorial-requests', {
+        params: { status, page, limit },
+      })
+    );
   }
 }
 

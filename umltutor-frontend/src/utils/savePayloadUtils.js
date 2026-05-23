@@ -2,8 +2,12 @@
  * Build minimal submission payloads so draft saves only send the active section.
  */
 
-export function buildSavePayload(model, { status = 'draft', section } = {}) {
+export function buildSavePayload(model, { status = 'draft', section, notes } = {}) {
   const payload = { status };
+
+  if (notes && String(notes).trim()) {
+    payload.content = String(notes).trim();
+  }
 
   if (!model) return payload;
 
@@ -53,5 +57,10 @@ export function toSubmissionStatus(payload) {
     remarks: payload.remarks,
     tutorialRequested: payload.tutorialRequested,
     tutorialApproved: payload.tutorialApproved,
+    tutorialRejected: payload.tutorialRejected,
+    tutorialRequestedAt: payload.tutorialRequestedAt,
+    tutorialReviewedAt: payload.tutorialReviewedAt,
+    tutorialRejectionReason: payload.tutorialRejectionReason,
+    tutorialRequestStatus: payload.tutorialRequestStatus,
   };
 }

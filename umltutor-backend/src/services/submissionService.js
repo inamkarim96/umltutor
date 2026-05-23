@@ -10,6 +10,12 @@ const notificationService = _interopRequireDefault(require('./notificationServic
 const serviceCache = require('../utils/serviceCache');
 const CheckingEngine = require('./checkingEngine').CheckingEngine;
 const { AppError, NotFoundError, AuthorizationError, ValidationError } = require('../utils/errors');
+const {
+  computeSubmissionCompletion,
+  resolveTutorialRequestStatus,
+  isSubmissionSubmitted,
+  validateTutorialApproval,
+} = require('../utils/tutorialRequestUtils');
 
 /**
  * Submission Service - optimized with parallel artifact upserts and improved transaction handling.
@@ -313,6 +319,10 @@ class SubmissionService {
         submittedAt: true,
         tutorialRequested: true,
         tutorialApproved: true,
+        tutorialRejected: true,
+        tutorialRequestedAt: true,
+        tutorialReviewedAt: true,
+        tutorialRejectionReason: true,
         evaluation: {
           select: {
             totalScore: true,
@@ -333,6 +343,11 @@ class SubmissionService {
       remarks: submission.evaluation?.remarks,
       tutorialRequested: submission.tutorialRequested,
       tutorialApproved: submission.tutorialApproved,
+      tutorialRejected: submission.tutorialRejected,
+      tutorialRequestedAt: submission.tutorialRequestedAt,
+      tutorialReviewedAt: submission.tutorialReviewedAt,
+      tutorialRejectionReason: submission.tutorialRejectionReason,
+      tutorialRequestStatus: resolveTutorialRequestStatus(submission),
     };
 
     if (!includeReport) return base;
@@ -942,28 +957,110 @@ class SubmissionService {
     });
   }
 
+  _formatTutorialRequestRow(submission) {
+    const completion = computeSubmissionCompletion(submission);
+    const approvalCheck = validateTutorialApproval(submission);
+    const student = submission.student;
+    const assignment = submission.assignment;
+
+    return {
+      submissionId: submission.id,
+      studentId: submission.studentId,
+      studentName: student
+        ? `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.email
+        : 'Unknown',
+      studentEmail: student?.email,
+      assignmentId: submission.assignmentId,
+      assignmentTitle: assignment?.title,
+      submissionStatus: submission.status,
+      submittedAt: submission.submittedAt,
+      tutorialRequestStatus: resolveTutorialRequestStatus(submission),
+      tutorialRequested: submission.tutorialRequested,
+      tutorialApproved: submission.tutorialApproved,
+      tutorialRejected: submission.tutorialRejected,
+      tutorialRequestedAt: submission.tutorialRequestedAt,
+      tutorialReviewedAt: submission.tutorialReviewedAt,
+      tutorialRejectionReason: submission.tutorialRejectionReason,
+      completionPercent: completion.percent,
+      completionSections: completion.sections,
+      canApprove: approvalCheck.canApprove,
+      approvalBlockReason: approvalCheck.message,
+      diagramPreview: submission.useCaseDiagram
+        ? { hasDiagram: true, nodeCount: (() => {
+            try {
+              const d = typeof submission.useCaseDiagram.data === 'string'
+                ? JSON.parse(submission.useCaseDiagram.data)
+                : submission.useCaseDiagram.data;
+              return Array.isArray(d?.nodes) ? d.nodes.length : 0;
+            } catch { return 0; }
+          })() }
+        : { hasDiagram: false, nodeCount: 0 },
+    };
+  }
+
   async requestTutorial(submissionId, studentId) {
-    // Verify ownership
     const submission = await submissionRepository.findUnique({
-      where: { id: Number(submissionId) }
+      where: { id: Number(submissionId) },
+      include: { assignment: { select: { title: true, createdBy: true } } },
     });
-    
+
     if (!submission) throw new NotFoundError('Submission');
     if (submission.studentId !== Number(studentId)) {
       throw new AuthorizationError('You can only request tutorials for your own submissions.');
     }
+    if (!isSubmissionSubmitted(submission)) {
+      throw new ValidationError('Submission required before requesting Tutorial Mode.');
+    }
+    if (submission.tutorialApproved) {
+      throw new ValidationError('Tutorial Mode is already approved for this assignment.');
+    }
+    if (submission.tutorialRequested && !submission.tutorialRejected) {
+      throw new ValidationError('A tutorial request is already pending teacher approval.');
+    }
 
-    return await submissionRepository.update(
+    const updated = await submissionRepository.update(
       { id: submission.id },
-      { tutorialRequested: true }
+      {
+        tutorialRequested: true,
+        tutorialRejected: false,
+        tutorialRejectionReason: null,
+        tutorialRequestedAt: new Date(),
+        tutorialReviewedAt: null,
+      }
     );
+
+    serviceCache.invalidatePrefix(`submissions:teacher:`);
+    serviceCache.invalidatePrefix(`tutorial:requests:`);
+
+    const teacherIdNotify = submission.assignment?.createdBy;
+    if (teacherIdNotify && submission.assignment?.title) {
+      notificationService.createNotification({
+        userId: teacherIdNotify,
+        title: 'Tutorial Mode Requested',
+        message: `A student requested Tutorial Mode for "${submission.assignment.title}".`,
+        type: 'TUTORIAL_REQUESTED',
+        relatedId: String(submission.id),
+      }).catch(() => {});
+    }
+
+    return {
+      ...updated,
+      tutorialRequestStatus: resolveTutorialRequestStatus(updated),
+    };
   }
 
   async approveTutorial(submissionId, teacherId) {
-    // Verify teacher owns the assignment
     const submission = await submissionRepository.findUnique({
       where: { id: Number(submissionId) },
-      include: { assignment: true }
+      include: {
+        assignment: true,
+        student: { select: { id: true, firstName: true, lastName: true, email: true } },
+        useCaseDiagram: true,
+        useCaseDescriptions: true,
+        ssdDiagrams: true,
+        classDiagram: true,
+        sequenceDiagrams: true,
+      },
     });
 
     if (!submission) throw new NotFoundError('Submission');
@@ -971,10 +1068,150 @@ class SubmissionService {
       throw new AuthorizationError('You can only approve tutorials for assignments you created.');
     }
 
-    return await submissionRepository.update(
+    const approvalCheck = validateTutorialApproval(submission);
+    if (!approvalCheck.canApprove) {
+      throw new ValidationError(approvalCheck.message || 'Cannot approve tutorial for this submission.');
+    }
+
+    const updated = await submissionRepository.update(
       { id: submission.id },
-      { tutorialApproved: true, status: 'draft' }
+      {
+        tutorialApproved: true,
+        tutorialRejected: false,
+        tutorialRejectionReason: null,
+        tutorialReviewedAt: new Date(),
+      }
     );
+
+    serviceCache.invalidatePrefix(`submissions:teacher:`);
+    serviceCache.invalidatePrefix(`tutorial:requests:`);
+    serviceCache.invalidate(`submission:status:${submission.assignmentId}:${submission.studentId}`);
+
+    notificationService.createNotification({
+      userId: submission.studentId,
+      title: 'Tutorial Mode Approved',
+      message: `Your Tutorial Mode request for "${submission.assignment.title}" was approved.`,
+      type: 'TUTORIAL_APPROVED',
+      relatedId: String(submission.id),
+    }).catch(() => {});
+
+    return {
+      ...updated,
+      tutorialRequestStatus: resolveTutorialRequestStatus(updated),
+    };
+  }
+
+  async rejectTutorial(submissionId, teacherId, reason = '') {
+    const submission = await submissionRepository.findUnique({
+      where: { id: Number(submissionId) },
+      include: {
+        assignment: true,
+        student: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    if (!submission) throw new NotFoundError('Submission');
+    if (submission.assignment.createdBy !== Number(teacherId)) {
+      throw new AuthorizationError('You can only reject tutorials for assignments you created.');
+    }
+    if (!submission.tutorialRequested && !submission.tutorialApproved) {
+      throw new ValidationError('No tutorial request exists for this submission.');
+    }
+
+    const trimmedReason = String(reason || '').trim();
+
+    const updated = await submissionRepository.update(
+      { id: submission.id },
+      {
+        tutorialApproved: false,
+        tutorialRejected: true,
+        tutorialRequested: false,
+        tutorialRejectionReason: trimmedReason || 'Request declined by teacher.',
+        tutorialReviewedAt: new Date(),
+      }
+    );
+
+    serviceCache.invalidatePrefix(`submissions:teacher:`);
+    serviceCache.invalidatePrefix(`tutorial:requests:`);
+    serviceCache.invalidate(`submission:status:${submission.assignmentId}:${submission.studentId}`);
+
+    notificationService.createNotification({
+      userId: submission.studentId,
+      title: 'Tutorial Mode Declined',
+      message: trimmedReason
+        ? `Your Tutorial Mode request was declined: ${trimmedReason}`
+        : `Your Tutorial Mode request for "${submission.assignment.title}" was declined.`,
+      type: 'TUTORIAL_REJECTED',
+      relatedId: String(submission.id),
+    }).catch(() => {});
+
+    return {
+      ...updated,
+      tutorialRequestStatus: resolveTutorialRequestStatus(updated),
+    };
+  }
+
+  async getTutorialRequestsForTeacher(teacherId, { status = 'all', page = 1, limit = 20 } = {}) {
+    const tid = Number(teacherId);
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, Number(limit) || 20));
+    const cacheKey = `tutorial:requests:${tid}:${status}:${pageNum}:${limitNum}`;
+
+    return serviceCache.cached(cacheKey, 60, async () => {
+      const prisma = require('../config/prisma');
+
+      const where = {
+        assignment: { createdBy: tid },
+        OR: [
+          { tutorialRequested: true },
+          { tutorialApproved: true },
+          { tutorialRejected: true },
+        ],
+      };
+
+      if (status === 'pending') {
+        where.tutorialRequested = true;
+        where.tutorialApproved = false;
+        where.tutorialRejected = false;
+        delete where.OR;
+      } else if (status === 'approved') {
+        where.tutorialApproved = true;
+        delete where.OR;
+      } else if (status === 'rejected') {
+        where.tutorialRejected = true;
+        where.tutorialApproved = false;
+        delete where.OR;
+      }
+
+      const [total, rows] = await Promise.all([
+        prisma.submission.count({ where }),
+        prisma.submission.findMany({
+          where,
+          include: {
+            student: { select: { id: true, firstName: true, lastName: true, email: true } },
+            assignment: { select: { id: true, title: true, dueDate: true } },
+            useCaseDiagram: { select: { data: true } },
+            useCaseDescriptions: { select: { id: true } },
+            ssdDiagrams: { select: { id: true } },
+            classDiagram: { select: { data: true } },
+            sequenceDiagrams: { select: { id: true } },
+          },
+          orderBy: [{ tutorialRequestedAt: 'desc' }, { submittedAt: 'desc' }],
+          skip: (pageNum - 1) * limitNum,
+          take: limitNum,
+        }),
+      ]);
+
+      return {
+        items: rows.map((s) => this._formatTutorialRequestRow(s)),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum) || 1,
+        },
+      };
+    }, 30_000);
   }
 }
 

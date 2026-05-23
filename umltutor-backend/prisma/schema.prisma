@@ -98,8 +98,12 @@ model Submission {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  tutorialRequested Boolean @default(false)
-  tutorialApproved  Boolean @default(false)
+  tutorialRequested       Boolean   @default(false)
+  tutorialApproved        Boolean   @default(false)
+  tutorialRejected        Boolean   @default(false)
+  tutorialRequestedAt     DateTime?
+  tutorialReviewedAt      DateTime?
+  tutorialRejectionReason String?
 
   assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   student       User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -115,6 +119,7 @@ model Submission {
   @@index([assignmentId])
   @@index([studentId])
   @@index([status])
+  @@index([tutorialRequested, tutorialApproved, tutorialRejected])
 }
 
 model UseCaseDiagram {

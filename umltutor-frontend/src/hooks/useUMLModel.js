@@ -31,13 +31,15 @@ export const useUMLModel = (assignmentId) => {
     const loadingRef = useRef(null);
     const lastFailedIdRef = useRef(null);
 
-    const loadModel = useCallback(async () => {
+    const loadModel = useCallback(async (force = false) => {
         if (!assignmentId || (assignmentId !== 'guest-default' && isNaN(Number(assignmentId)))) {
             return;
         }
 
-        // Prevent parallel calls or retrying a recently failed ID
-        if (loadingRef.current === assignmentId || lastFailedIdRef.current === assignmentId) return;
+        if (force) lastFailedIdRef.current = null;
+
+        // Prevent parallel calls or retrying a recently failed ID (unless forced)
+        if (loadingRef.current === assignmentId || (!force && lastFailedIdRef.current === assignmentId)) return;
         
         try {
             loadingRef.current = assignmentId;
@@ -57,18 +59,24 @@ export const useUMLModel = (assignmentId) => {
 
             dispatch(setModel({ mode, model: adaptedModel }));
         } catch (err) {
-            console.error(`[useUMLModel] Error loading ID ${assignmentId}:`, err);
-            
-            if (err.status === 404 || assignmentId === 'guest-default' || err.response?.status === 404) {
+            const status = err.status ?? err.response?.status;
+            console.error(`[useUMLModel] Error loading ID ${assignmentId}:`, status, err.message || err);
+
+            if (status === 404 || assignmentId === 'guest-default') {
                 const newModel = createEmptyModel(assignmentId, `New ${mode === 'tutorial' ? 'Tutorial' : 'Project'}`);
                 dispatch(setModel({ mode, model: newModel }));
                 setError(null);
-            } else {
-                // For other errors (like 429 or 500), mark as failed to prevent infinite retry loop
+            } else if (status === 403) {
                 lastFailedIdRef.current = assignmentId;
-                const msg = err.response?.status === 429 
-                    ? 'Too many requests. Please wait a moment.' 
-                    : (err.message || 'Failed to initialize model');
+                setError('You do not have access to this assignment. Make sure you joined the class.');
+            } else {
+                lastFailedIdRef.current = assignmentId;
+                const msg =
+                    status === 429
+                        ? 'Too many requests. Please wait a moment and refresh.'
+                        : status >= 500
+                          ? `Server error (${status}): ${err.message || 'Could not load assignment data'}. Try again or contact support.`
+                          : err.message || 'Failed to initialize workspace';
                 setError(msg);
             }
         } finally {
@@ -99,7 +107,7 @@ export const useUMLModel = (assignmentId) => {
         model,
         isLoading,
         error,
-        refresh: loadModel
+        refresh: () => loadModel(true)
     };
 };
 

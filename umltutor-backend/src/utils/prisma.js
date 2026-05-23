@@ -1,14 +1,10 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true});// Import PrismaClient from the generated client
-var _client = require('@prisma/client');
+"use strict";
 
-// Create a singleton instance of PrismaClient
-const prisma = new (0, _client.PrismaClient)({
-  log: ['error'],
-});
+/**
+ * Single Prisma singleton — re-export from config to avoid duplicate clients
+ * (duplicate clients exhaust DB connections on serverless and can cause 500s).
+ */
+const prisma = require('../config/prisma');
 
-// Handle graceful shutdown
-process.on('beforeExit', async () => {
-  await prisma.$disconnect();
-});
-
-exports. default = prisma;
+module.exports = { default: prisma };
+module.exports.default = prisma;

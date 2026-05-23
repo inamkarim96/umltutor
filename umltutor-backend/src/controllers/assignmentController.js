@@ -144,9 +144,16 @@ const getStudentAssignments = async (req, res, next) => {
 
 const getStudentAssignment = async (req, res, next) => {
     try {
+        if (!req.user?.id) {
+            return res.status(401).json({
+                success: false,
+                error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR' },
+            });
+        }
         const result = await assignmentService.getAssignmentForStudent(req.params.id, req.user.id);
         res.json({ success: true, data: result });
     } catch (error) {
+        console.error(`[getStudentAssignment] id=${req.params.id} user=${req.user?.id}:`, error.message);
         next(error);
     }
 }; exports.getStudentAssignment = getStudentAssignment;
