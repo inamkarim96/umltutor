@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 const assignmentRepository = _interopRequireDefault(require('../repositories/assignmentRepository')).default;
-const { NotFoundError, AuthorizationError, ValidationError, AppError } = require('../utils/errors');
+const { NotFoundError, AuthorizationError, ValidationError, AppError, DatabaseError } = require('../utils/errors');
 const classRepository = _interopRequireDefault(require('../repositories/classRepository')).default;
 const userRepository = _interopRequireDefault(require('../repositories/userRepository')).default;
 const submissionRepository = _interopRequireDefault(require('../repositories/submissionRepository')).default;
