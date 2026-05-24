@@ -215,6 +215,7 @@ const approveTutorialMode = async (req, res) => {
     const updated = await _submissionService2.default.approveTutorial(Number(submissionId), req.user.id);
     res.json({ success: true, data: updated });
   } catch (error) {
+    console.error(`[approveTutorialMode] id=${req.params.id} teacher=${req.user?.id}:`, error.message);
     res.status(error.statusCode || error.status || 500).json({ success: false, error: { message: error.message } });
   }
 }; exports.approveTutorialMode = approveTutorialMode;

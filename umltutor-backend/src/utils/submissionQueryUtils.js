@@ -422,6 +422,69 @@ async function findTutorialRequestsForTeacher(teacherId, { status = "all", pageN
   };
 }
 
+/**
+ * Update tutorial-related Submission columns with fallbacks for older DB schemas.
+ */
+async function updateSubmissionTutorialFields(submissionId, data) {
+  const id = Number(submissionId);
+  if (!id || Number.isNaN(id)) {
+    throw new Error("Invalid submission id for tutorial update");
+  }
+
+  const {
+    tutorialApproved,
+    tutorialRejected,
+    tutorialRequested,
+    tutorialRejectionReason,
+    tutorialReviewedAt,
+    tutorialRequestedAt,
+  } = data;
+
+  const attempts = [
+    data,
+    {
+      tutorialApproved,
+      tutorialRejected,
+      tutorialRequested,
+      tutorialRejectionReason,
+      tutorialReviewedAt,
+      tutorialRequestedAt,
+    },
+    { tutorialApproved, tutorialRejected, tutorialRequested },
+    { tutorialApproved, tutorialRequested },
+    { tutorialApproved },
+  ]
+    .map((payload) =>
+      Object.fromEntries(
+        Object.entries(payload).filter(([, value]) => value !== undefined)
+      )
+    )
+    .filter((payload) => Object.keys(payload).length > 0);
+
+  const seen = new Set();
+  const uniqueAttempts = attempts.filter((payload) => {
+    const key = JSON.stringify(payload);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  let lastError = null;
+  for (const payload of uniqueAttempts) {
+    try {
+      return await prisma.submission.update({ where: { id }, data: payload });
+    } catch (err) {
+      lastError = err;
+      if (!isMissingSubmissionColumnError(err) && !isMissingTableOrColumnError(err)) {
+        throw err;
+      }
+      console.warn("[Submission] Tutorial field update retry:", err.message);
+    }
+  }
+
+  throw lastError || new Error("Unable to update tutorial fields on submission");
+}
+
 module.exports = {
   isMissingSubmissionColumnError,
   withTutorialFieldDefaults,
@@ -430,4 +493,5 @@ module.exports = {
   loadSubmissionArtifactsStaged,
   findSubmissionDetailById,
   findTutorialRequestsForTeacher,
+  updateSubmissionTutorialFields,
 };

@@ -20,6 +20,7 @@ const {
   findSubmissionStatus,
   findSubmissionDetailById,
   findTutorialRequestsForTeacher,
+  updateSubmissionTutorialFields,
 } = require('../utils/submissionQueryUtils');
 
 /**
@@ -1005,16 +1006,13 @@ class SubmissionService {
       throw new ValidationError('A tutorial request is already pending teacher approval.');
     }
 
-    const updated = await submissionRepository.update(
-      { id: submission.id },
-      {
-        tutorialRequested: true,
-        tutorialRejected: false,
-        tutorialRejectionReason: null,
-        tutorialRequestedAt: new Date(),
-        tutorialReviewedAt: null,
-      }
-    );
+    const updated = await updateSubmissionTutorialFields(submission.id, {
+      tutorialRequested: true,
+      tutorialRejected: false,
+      tutorialRejectionReason: null,
+      tutorialRequestedAt: new Date(),
+      tutorialReviewedAt: null,
+    });
 
     serviceCache.invalidatePrefix(`submissions:teacher:`);
     serviceCache.invalidatePrefix(`tutorial:requests:`);
@@ -1037,20 +1035,10 @@ class SubmissionService {
   }
 
   async approveTutorial(submissionId, teacherId) {
-    const submission = await submissionRepository.findUnique({
-      where: { id: Number(submissionId) },
-      include: {
-        assignment: true,
-        student: { select: { id: true, firstName: true, lastName: true, email: true } },
-        useCaseDiagram: true,
-        useCaseDescriptions: true,
-        ssdDiagrams: true,
-        classDiagram: true,
-        sequenceDiagrams: true,
-      },
-    });
+    const submission = await findSubmissionDetailById(submissionId);
 
     if (!submission) throw new NotFoundError('Submission');
+    if (!submission.assignment) throw new NotFoundError('Assignment');
     if (submission.assignment.createdBy !== Number(teacherId)) {
       throw new AuthorizationError('You can only approve tutorials for assignments you created.');
     }
@@ -1060,15 +1048,12 @@ class SubmissionService {
       throw new ValidationError(approvalCheck.message || 'Cannot approve tutorial for this submission.');
     }
 
-    const updated = await submissionRepository.update(
-      { id: submission.id },
-      {
-        tutorialApproved: true,
-        tutorialRejected: false,
-        tutorialRejectionReason: null,
-        tutorialReviewedAt: new Date(),
-      }
-    );
+    const updated = await updateSubmissionTutorialFields(submission.id, {
+      tutorialApproved: true,
+      tutorialRejected: false,
+      tutorialRejectionReason: null,
+      tutorialReviewedAt: new Date(),
+    });
 
     serviceCache.invalidatePrefix(`submissions:teacher:`);
     serviceCache.invalidatePrefix(`tutorial:requests:`);
@@ -1107,16 +1092,13 @@ class SubmissionService {
 
     const trimmedReason = String(reason || '').trim();
 
-    const updated = await submissionRepository.update(
-      { id: submission.id },
-      {
-        tutorialApproved: false,
-        tutorialRejected: true,
-        tutorialRequested: false,
-        tutorialRejectionReason: trimmedReason || 'Request declined by teacher.',
-        tutorialReviewedAt: new Date(),
-      }
-    );
+    const updated = await updateSubmissionTutorialFields(submission.id, {
+      tutorialApproved: false,
+      tutorialRejected: true,
+      tutorialRequested: false,
+      tutorialRejectionReason: trimmedReason || 'Request declined by teacher.',
+      tutorialReviewedAt: new Date(),
+    });
 
     serviceCache.invalidatePrefix(`submissions:teacher:`);
     serviceCache.invalidatePrefix(`tutorial:requests:`);
