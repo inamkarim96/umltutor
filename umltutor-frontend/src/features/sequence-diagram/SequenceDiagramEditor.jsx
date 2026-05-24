@@ -208,6 +208,7 @@ export const SequenceDiagramEditor = ({
     reportOverride = null,
     onRunChecker = null,
     onLocalReport = null,
+    embedded = false,
 }) => {
     const mode = useAppSelector(selectCurrentMode);
     const isTutorialMode = useAppSelector(selectIsTutorialMode);
@@ -283,14 +284,16 @@ export const SequenceDiagramEditor = ({
 
     return (
         <div className="flex flex-col h-full overflow-visible">
+            {!embedded && (
             <header className="mb-6 px-4 flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-extrabold font-heading text-ink tracking-tight">Step 5: Sequence Diagrams</h2>
                     <p className="text-sm text-muted font-medium">Model detailed interactions per use case, consistent with descriptions, SSD, and class diagram.</p>
                 </div>
             </header>
+            )}
 
-            <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-16">
+            <div className={`flex-1 overflow-y-auto custom-scrollbar space-y-16 ${embedded ? 'px-2' : 'pr-4'}`}>
                 {blocksToRender.map((id, index) => {
                     const useCaseNode = useCaseNodes.find((n) => n.id === id);
                     const useCaseName = useCaseNode?.data?.label || model?.descriptions?.[id]?.useCaseName || 'Unnamed Use Case';

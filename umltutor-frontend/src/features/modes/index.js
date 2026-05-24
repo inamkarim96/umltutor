@@ -8,11 +8,18 @@ export {
     markUsedInDescription,
     lockSystemName,
     setTutorialStep,
+    setTutorialCompletedSteps,
+    markTutorialStepComplete,
+    setTutorialValidationResult,
+    hydrateTutorialProgress,
+    resetTutorialProgress,
     selectCurrentMode,
     selectIsCheckingActive,
     selectIsTutorialMode,
     selectConstraintsEnabled,
-    selectTutorialStep
+    selectTutorialStep,
+    selectTutorialCompletedSteps,
+    selectTutorialValidationByStep,
 } from './modeSlice';
 
 export default modeReducer;

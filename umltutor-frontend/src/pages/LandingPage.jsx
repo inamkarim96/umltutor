@@ -796,7 +796,7 @@ const LandingPage = () => {
           </div>
           <div className="hero-stat-divider"></div>
           <div className="hero-stat">
-            <div className="hero-stat-num">AI</div>
+            <div className="hero-stat-num"></div>
             <div className="hero-stat-label">Semantic Analysis</div>
           </div>
           <div className="hero-stat-divider"></div>

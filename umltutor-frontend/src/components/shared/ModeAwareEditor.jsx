@@ -10,18 +10,33 @@ import {
   setCheckingActive,
   selectIsTutorialMode,
   selectTutorialStep,
-  setTutorialStep
+  setTutorialStep,
+  selectTutorialCompletedSteps,
+  selectTutorialValidationByStep,
+  markTutorialStepComplete,
+  setTutorialValidationResult,
+  hydrateTutorialProgress,
 } from '../../features/modes';
+import TutorialWorkspaceShell from '../tutorial/TutorialWorkspaceShell';
+import {
+  TUTORIAL_STEPS,
+  validateTutorialSection,
+  normalizeTutorialStepId,
+  getNextStepId,
+  getPreviousStepId,
+  isStepUnlocked,
+  loadTutorialProgressFromStorage,
+  saveTutorialProgressToStorage,
+  getStepById,
+} from '../../features/tutorial/tutorialWorkflow';
 import { selectIsAuthenticated } from '../../features/auth';
 import { useManualSave } from '../../hooks/useManualSave';
 import { UseCaseDiagramEditor } from '../../features/diagram';
 import { UseCaseDescriptionEditor } from '../../features/description';
-import { SSDDiagramEditor, validateAllSSDsTutorial } from '../../features/ssd';
+import { SSDDiagramEditor } from '../../features/ssd';
 import { ClassDiagramEditor } from '../../features/class-diagram';
 import { SequenceDiagramEditor } from '../../features/sequence-diagram';
 import { CheckingModePanel } from '../../features/checking';
-import { validateUseCaseDiagramTutorial } from '../../features/diagram';
-import { validateAllDescriptionsTutorial } from '../../features/description';
 import { useErrorToast, useSuccessToast } from '../ui/Toast';
 import { SubmitAssignmentModal } from '../../features/classroom';
 import { selectAllAssignments, selectAssignmentDetail } from '../../features/assignments';
@@ -113,6 +128,8 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [isManualSaving, setIsManualSaving] = useState(false);
   const [saveRetryCount, setSaveRetryCount] = useState(0);
+  const [isTutorialValidating, setIsTutorialValidating] = useState(false);
+  const [showTutorialComplete, setShowTutorialComplete] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -142,6 +159,11 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   }, [currentSubmission?.status, isSubmitted, currentMode]);
 
   const tutorialStep = useAppSelector(selectTutorialStep);
+  const tutorialCompletedSteps = useAppSelector(selectTutorialCompletedSteps);
+  const tutorialValidationByStep = useAppSelector(selectTutorialValidationByStep);
+  const normalizedTutorialStep = normalizeTutorialStepId(tutorialStep);
+  const showTutorialUI =
+    (isTutorialActive || isTutorialEditable) && !isReadOnly && !(isStudentWork && isSubmitted && !isTutorialEditable);
   const isSubmitting = useAppSelector(selectIsSubmitting);
   const checkingState = useAppSelector(state => state.checking);
 
@@ -210,7 +232,18 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           await dispatch(
             submitAssignmentData({
               assignmentId,
-              data: buildSavePayload(model, { status: 'draft', section: activeSection }),
+              data: buildSavePayload(model, {
+                status: 'draft',
+                section: activeSection,
+                ...(showTutorialUI
+                  ? {
+                      tutorialProgress: {
+                        currentStep: activeSection,
+                        completedSteps: tutorialCompletedSteps,
+                      },
+                    }
+                  : {}),
+              }),
               lean: true,
             })
           ).unwrap();
@@ -241,6 +274,8 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
       activeSection,
       successToast,
       errorToast,
+      showTutorialUI,
+      tutorialCompletedSteps,
     ]
   );
 
@@ -304,144 +339,143 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
     }
   }, [isStudentWork, assignmentId, currentSubmission?.status, currentSubmission?.fullReport, dispatch]);
 
-  // Auto-Progression for Tutorial Mode
+  const tutorialHydratedRef = useRef(null);
+
+  // Restore tutorial progress from local storage (until backend persistence is added)
   useEffect(() => {
-    if (isTutorialActive && model && !isReadOnly && !isGraded) {
-      // 1. Check Step 1 (Use Case Diagram)
-      const step1 = validateUseCaseDiagramTutorial(
-        model.diagram?.nodes || [],
-        model.diagram?.edges || [],
-        systemName
+    if (!showTutorialUI || !assignmentId) return;
+    if (tutorialHydratedRef.current === assignmentId) return;
+    tutorialHydratedRef.current = assignmentId;
+    const stored = loadTutorialProgressFromStorage(assignmentId);
+    if (stored) {
+      dispatch(
+        hydrateTutorialProgress({
+          currentStep: normalizeTutorialStepId(stored.currentStep),
+          completedSteps: stored.completedSteps || [],
+        })
       );
-
-      if (step1.isValid) {
-        // Step 1 is done, check Step 2 (Descriptions)
-        const useCaseNodes = model.diagram?.nodes?.filter(n => n.type === 'usecase' || n.type === 'useCase') || [];
-        const step2 = validateAllDescriptionsTutorial(
-          useCaseNodes,
-          model.descriptions || {},
-          model.diagram?.nodes || [],
-          model.diagram?.edges || []
-        );
-
-        if (step2.isValid) {
-          // Both Step 1 and 2 are done
-          if (tutorialStep !== 'SEQUENCE') {
-            dispatch(setTutorialStep('SEQUENCE'));
-          }
-        } else {
-          // Step 1 done, but Step 2 not done
-          if (tutorialStep !== 'DESCRIPTION') {
-            dispatch(setTutorialStep('DESCRIPTION'));
-          }
-        }
-      } else {
-        // Step 1 not done
-        if (tutorialStep !== 'USE_CASE') {
-          dispatch(setTutorialStep('USE_CASE'));
-        }
+      if (stored.validationByStep) {
+        Object.entries(stored.validationByStep).forEach(([stepId, result]) => {
+          dispatch(setTutorialValidationResult({ stepId, result }));
+        });
+      }
+      if (stored.currentStep) {
+        setActiveSection(normalizeTutorialStepId(stored.currentStep));
       }
     }
+  }, [showTutorialUI, assignmentId, dispatch]);
 
-  }, [isTutorialActive, model?.diagram, model?.descriptions, systemName, isReadOnly, isGraded, dispatch]);
+  useEffect(() => {
+    if (!showTutorialUI) return;
+    const step = normalizeTutorialStepId(tutorialStep);
+    if (activeSection !== step) {
+      setActiveSection(step);
+    }
+  }, [showTutorialUI, tutorialStep]);
 
-  const sections = [
-    {
-      id: 'usecase',
-      label: '1. Use Case Diagram',
-      icon: Share2,
-      isLocked: false,
-      isActive: true
+  const persistTutorialProgress = useCallback(
+    (overrides = {}) => {
+      if (!assignmentId) return;
+      saveTutorialProgressToStorage(assignmentId, {
+        currentStep: normalizeTutorialStepId(overrides.currentStep ?? activeSection),
+        completedSteps: overrides.completedSteps ?? tutorialCompletedSteps,
+        validationByStep: overrides.validationByStep ?? tutorialValidationByStep,
+      });
     },
-    {
-      id: 'description',
-      label: '2. Use Case Descriptions',
-      icon: FileText,
-      // Enforce flow only in Tutorial mode
-      isLocked: isTutorialMode && tutorialStep === 'USE_CASE',
-      isActive: !isTutorialMode || tutorialStep === 'DESCRIPTION' || tutorialStep === 'SEQUENCE'
-    },
-    {
-      id: 'ssd',
-      label: '3. System Sequence Diagrams',
-      icon: Database,
-      // Enforce flow only in Tutorial mode
-      isLocked: isTutorialMode && (tutorialStep === 'USE_CASE' || tutorialStep === 'DESCRIPTION'),
-      isActive: !isTutorialMode || tutorialStep === 'SEQUENCE'
-    },
-    {
-      id: 'class-diagram',
-      label: '4. Class Diagram',
-      icon: Database,
-      // For now, unlocked in development mode, can be locked in tutorial if needed
-      isLocked: isTutorialMode && (tutorialStep === 'USE_CASE' || tutorialStep === 'DESCRIPTION' || tutorialStep === 'SEQUENCE'),
-      isActive: true
-    },
-    {
-      id: 'sequence-diagram',
-      label: '5. Sequence Diagram',
-      icon: Share2,
-      isLocked: false,
-      isActive: true
-    },
-  ];
+    [assignmentId, activeSection, tutorialCompletedSteps, tutorialValidationByStep]
+  );
+
+  const sections = TUTORIAL_STEPS.map((step) => ({
+    id: step.id,
+    label: `${step.order}. ${step.label}`,
+    icon: step.id === 'usecase' || step.id === 'sequence-diagram' ? Share2 : step.id === 'description' ? FileText : Database,
+    isLocked: showTutorialUI && !isStepUnlocked(step.id, tutorialCompletedSteps),
+    isActive: !showTutorialUI || step.id === normalizedTutorialStep || tutorialCompletedSteps.includes(step.id),
+  }));
+
+  const currentStepValidation = tutorialValidationByStep[activeSection];
+  const canProceedTutorial = !!currentStepValidation?.isValid;
+  const isLastTutorialStep = activeSection === TUTORIAL_STEPS[TUTORIAL_STEPS.length - 1].id;
+
+  const runTutorialValidation = useCallback(async () => {
+    if (!model) return null;
+    setIsTutorialValidating(true);
+    await new Promise((r) => setTimeout(r, 350));
+    const result = validateTutorialSection(activeSection, model, systemName);
+    dispatch(setTutorialValidationResult({ stepId: activeSection, result }));
+    persistTutorialProgress();
+    setIsTutorialValidating(false);
+    return result;
+  }, [model, activeSection, systemName, dispatch, persistTutorialProgress]);
 
   const handleSectionTabChange = (sectionId) => {
-    const section = sections.find(s => s.id === sectionId);
+    if (showTutorialUI && !isStepUnlocked(sectionId, tutorialCompletedSteps)) {
+      errorToast('Complete and validate previous steps first.');
+      return;
+    }
+    const section = sections.find((s) => s.id === sectionId);
     if (section?.isLocked) {
       errorToast('Please complete the previous step first.');
       return;
     }
     setActiveSection(sectionId);
+    if (showTutorialUI) {
+      dispatch(setTutorialStep(sectionId));
+      persistTutorialProgress({ currentStep: sectionId });
+    }
+  };
+
+  const handleTutorialProceed = async () => {
+    const validation = currentStepValidation?.isValid
+      ? currentStepValidation
+      : await runTutorialValidation();
+
+    if (!validation?.isValid) {
+      errorToast(validation?.message || 'Fix validation issues before proceeding.');
+      return;
+    }
+
+    dispatch(markTutorialStepComplete(activeSection));
+    const nextCompleted = tutorialCompletedSteps.includes(activeSection)
+      ? tutorialCompletedSteps
+      : [...tutorialCompletedSteps, activeSection];
+
+    try {
+      setIsManualSaving(true);
+      await persistDraft(false);
+    } catch {
+      errorToast('Could not save progress. Please try Save Progress.');
+    } finally {
+      setIsManualSaving(false);
+    }
+
+    if (isLastTutorialStep) {
+      persistTutorialProgress({ completedSteps: nextCompleted, currentStep: activeSection });
+      setShowTutorialComplete(true);
+      successToast('Tutorial completed! Great work.');
+      return;
+    }
+
+    const nextId = getNextStepId(activeSection);
+    if (nextId) {
+      dispatch(setTutorialStep(nextId));
+      setActiveSection(nextId);
+      persistTutorialProgress({ completedSteps: nextCompleted, currentStep: nextId });
+      successToast(`Step validated! Opening ${getStepById(nextId).label}.`);
+    }
   };
 
   const handleProcess = async () => {
+    if (showTutorialUI) {
+      await handleTutorialProceed();
+      return;
+    }
     if (activeSection === 'usecase') {
-      if (isTutorialMode) {
-        const validation = validateUseCaseDiagramTutorial(
-          model.diagram?.nodes || [],
-          model.diagram?.edges || [],
-          systemName
-        );
-
-        if (!validation.isValid) {
-          errorToast(validation.message);
-          return;
-        }
-        successToast('Diagram validated! Moving to Use Case Descriptions.');
-        dispatch(setTutorialStep('DESCRIPTION'));
-      }
       setActiveSection('description');
     } else if (activeSection === 'description') {
-      if (isTutorialMode) {
-        const useCaseNodes = model.diagram?.nodes?.filter(n => n.type === 'usecase' || n.type === 'useCase') || [];
-        const validation = validateAllDescriptionsTutorial(
-          useCaseNodes,
-          model.descriptions || {},
-          model.diagram?.nodes || [],
-          model.diagram?.edges || []
-        );
-
-        if (!validation.isValid) {
-          errorToast(validation.message);
-          return;
-        }
-        successToast('Descriptions completed! Moving to System Sequence Diagram.');
-        dispatch(setTutorialStep('SEQUENCE'));
-      }
       setActiveSection('ssd');
     } else if (activeSection === 'ssd') {
-      if (isTutorialMode) {
-        const validation = validateAllSSDsTutorial(model);
-        if (!validation.isValid) {
-          errorToast(validation.message);
-          return;
-        }
-        successToast('All steps completed! Your UML model is ready for review.');
-      } else if (isStudentWork) {
-        // Check if already submitted
-        const currentSub = Object.values(assignments).find(s => s.assignmentId === assignmentId && s.id !== assignmentId);
-        // Allow resubmission before the deadline. Lock only after dueDate (handled by backend too).
+      if (isStudentWork) {
         const dueDate = assignmentDetails?.dueDate ? new Date(assignmentDetails.dueDate) : null;
         const isPastDeadline = dueDate ? new Date() > dueDate : false;
         if (isPastDeadline) {
@@ -449,22 +483,14 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           return;
         }
         setIsSubmitModalOpen(true);
-      } else {
-        successToast('SSD completed! Moving to Class Diagram.');
+        return;
       }
+      successToast('Moving to Class Diagram.');
       setActiveSection('class-diagram');
     } else if (activeSection === 'class-diagram') {
-      if (isTutorialMode) {
-        // Class Diagram tutorial validation would go here
-        successToast('Class Diagram validated! Moving to Sequence Diagram.');
-      } else {
-        successToast('Class Diagram completed! Moving to Sequence Diagram.');
-      }
       setActiveSection('sequence-diagram');
     } else if (activeSection === 'sequence-diagram') {
-      if (isTutorialMode) {
-        successToast('Sequence Diagram validated!');
-      } else if (isStudentWork) {
+      if (isStudentWork) {
         setIsSubmitModalOpen(true);
       } else {
         successToast('All steps completed in Development Mode.');
@@ -497,12 +523,38 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   };
 
   const handleBack = () => {
+    if (showTutorialUI) {
+      const prev = getPreviousStepId(activeSection);
+      if (prev) {
+        setActiveSection(prev);
+        dispatch(setTutorialStep(prev));
+        persistTutorialProgress({ currentStep: prev });
+      }
+      return;
+    }
     if (activeSection === 'description') {
       setActiveSection('usecase');
     } else if (activeSection === 'ssd') {
       setActiveSection('description');
+    } else if (activeSection === 'class-diagram') {
+      setActiveSection('ssd');
+    } else if (activeSection === 'sequence-diagram') {
+      setActiveSection('class-diagram');
     } else if (activeSection === 'usecase') {
       setIsExitConfirmOpen(true);
+    }
+  };
+
+  const handleTutorialSave = async () => {
+    try {
+      setIsManualSaving(true);
+      await persistDraft(false);
+      persistTutorialProgress();
+      successToast('Tutorial progress saved.');
+    } catch {
+      errorToast('Save failed. Check your connection and retry.');
+    } finally {
+      setIsManualSaving(false);
     }
   };
 
@@ -561,6 +613,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
               assignmentId={model.id}
               initialData={model.classDiagram}
               isReadOnly={effectivelyReadOnly}
+              embedded={showTutorialUI}
             />
           );
         }
@@ -572,6 +625,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                 assignmentId={model.id}
                 initialData={model.classDiagram}
                 isReadOnly={effectivelyReadOnly}
+                embedded={showTutorialUI}
               />
             </div>
             <div className="w-80 border-l border-gray-100 bg-gray-50/30 flex flex-col h-full">
@@ -590,8 +644,9 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
             key={effectivelyReadOnly ? 'read-only' : 'editable'}
             assignmentId={model.id}
             isReadOnly={effectivelyReadOnly}
-            isCheckingActive={isCheckingActive}
+            isCheckingActive={isCheckingActive && !showTutorialUI}
             modelOverride={model}
+            embedded={showTutorialUI}
             reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
             onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
           />
@@ -806,7 +861,8 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
         </div>
       )}
 
-      {/* 3. Horizontal Tab Bar */}
+      {/* 3. Horizontal Tab Bar (development / read-only; tutorial uses sidebar) */}
+      {!showTutorialUI && (
       <div className="bg-white border-b border-black/5 px-6 pt-3 flex gap-4 overflow-x-auto custom-scrollbar sticky z-30" style={{ top: '73px' }}>
          {sections.map(section => (
             <button
@@ -824,6 +880,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
             </button>
          ))}
       </div>
+      )}
 
       {/* 4. Instructions & Resources */}
       {isStudentWork && model && (
@@ -874,11 +931,61 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
       )}
 
       {/* 5. Main Active Content */}
-      <div className="flex-1 w-full max-w-[1600px] mx-auto px-6 py-8 pb-32">
-         <div className="bg-white rounded-2xl shadow-card border border-black/5 p-2 h-[600px] md:h-[750px] flex flex-col">
+      {showTutorialUI ? (
+        <TutorialWorkspaceShell
+          activeSection={activeSection}
+          completedSteps={tutorialCompletedSteps}
+          validationByStep={tutorialValidationByStep}
+          currentValidation={currentStepValidation}
+          isValidating={isTutorialValidating}
+          canProceed={canProceedTutorial}
+          isLastStep={isLastTutorialStep}
+          isSaving={isManualSaving || isAutoSaving}
+          proceedTooltip="Run Check and pass validation to unlock the next editor."
+          onStepSelect={handleSectionTabChange}
+          onValidate={runTutorialValidation}
+          onPrevious={handleBack}
+          onProceed={handleTutorialProceed}
+          onSave={handleTutorialSave}
+          onExit={() => setIsExitConfirmOpen(true)}
+          showPrevious={!!getPreviousStepId(activeSection)}
+          headerExtras={
+            <span className="text-[10px] font-bold text-muted uppercase tracking-widest hidden sm:inline">
+              Guided step-by-step learning
+            </span>
+          }
+        >
+          <div className="flex-1 min-h-0 p-2 flex flex-col">{renderContent()}</div>
+        </TutorialWorkspaceShell>
+      ) : (
+        <div className="flex-1 w-full max-w-[1600px] mx-auto px-6 py-8 pb-32">
+          <div className="bg-white rounded-2xl shadow-card border border-black/5 p-2 h-[600px] md:h-[750px] flex flex-col">
             {renderContent()}
-         </div>
-      </div>
+          </div>
+        </div>
+      )}
+
+      {showTutorialComplete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-hover animate-in zoom-in-95">
+            <div className="text-5xl mb-4" aria-hidden>🎉</div>
+            <h3 className="text-2xl font-black font-heading text-ink mb-2">Tutorial Complete!</h3>
+            <p className="text-sm text-muted font-medium mb-6">
+              You have validated all five UML steps. Your progress has been saved.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowTutorialComplete(false);
+                dispatch(setMode('development'));
+              }}
+              className="w-full py-3 bg-accent text-white font-extrabold font-heading rounded-xl hover:bg-indigo-700 transition-colors"
+            >
+              Continue in Development Mode
+            </button>
+          </div>
+        </div>
+      )}
 
       <SubmitAssignmentModal
         isOpen={isSubmitModalOpen}

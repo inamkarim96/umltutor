@@ -2,8 +2,12 @@
  * Build minimal submission payloads so draft saves only send the active section.
  */
 
-export function buildSavePayload(model, { status = 'draft', section, notes } = {}) {
+export function buildSavePayload(model, { status = 'draft', section, notes, tutorialProgress } = {}) {
   const payload = { status };
+
+  if (tutorialProgress) {
+    payload.tutorialProgress = tutorialProgress;
+  }
 
   if (notes && String(notes).trim()) {
     payload.content = String(notes).trim();

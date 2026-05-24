@@ -123,25 +123,32 @@ const WorkspacePage = ({ mode }) => {
         <div className="min-h-screen flex flex-col bg-surface font-body overflow-x-hidden">
             {/* Mode banner */}
             <div
-                className={`px-4 py-2 text-[11px] font-extrabold font-heading uppercase tracking-[0.2em] text-center flex items-center justify-center gap-3 shadow-sm relative z-50 border-b transition-colors duration-300 ${
+                className={`px-4 py-3 text-center shadow-sm relative z-50 border-b transition-colors duration-300 ${
                     currentMode === 'tutorial'
-                        ? 'bg-status-green text-white border-green-700'
+                        ? 'bg-gradient-to-r from-emerald-600 via-status-green to-teal-600 text-white border-green-800'
                         : 'bg-ink text-white border-black/20'
                 }`}
                 role="status"
                 aria-live="polite"
             >
-                <span className="flex items-center gap-2">
-                    <span
-                        className={`w-2 h-2 rounded-full bg-white ${currentMode === 'tutorial' ? 'animate-pulse' : 'opacity-70'}`}
-                        aria-hidden
-                    />
-                    {currentMode === 'tutorial'
-                        ? 'Guided Tutorial Session'
-                        : isReadOnly
-                          ? 'Submitted Assignment — View Only'
-                          : 'Development Workspace'}
-                </span>
+                <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                    <span className="flex items-center gap-2 text-[11px] font-extrabold font-heading uppercase tracking-[0.2em]">
+                        <span
+                            className={`w-2 h-2 rounded-full bg-white ${currentMode === 'tutorial' ? 'animate-pulse' : 'opacity-70'}`}
+                            aria-hidden
+                        />
+                        {currentMode === 'tutorial'
+                            ? 'Guided Tutorial Mode'
+                            : isReadOnly
+                              ? 'Submitted Assignment — View Only'
+                              : 'Development Workspace'}
+                    </span>
+                    {currentMode === 'tutorial' && (
+                        <span className="text-[10px] font-medium normal-case tracking-normal opacity-90 max-w-lg">
+                            Complete each step, run validation, then proceed to the next editor.
+                        </span>
+                    )}
+                </div>
             </div>
 
             {error && (

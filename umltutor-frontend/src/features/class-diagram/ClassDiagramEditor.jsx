@@ -32,7 +32,7 @@ const edgeTypes = {
     relationship: ClassRelationshipEdge,
 };
 
-const ClassDiagramEditor = ({ assignmentId, initialData, isReadOnly = false }) => {
+const ClassDiagramEditor = ({ assignmentId, initialData, isReadOnly = false, embedded = false }) => {
     const [nodes, setNodes] = useNodesState([]);
     const [edges, setEdges] = useEdgesState([]);
     const [activeRelationship, setActiveRelationship] = useState('association');
@@ -119,6 +119,7 @@ const ClassDiagramEditor = ({ assignmentId, initialData, isReadOnly = false }) =
     return (
         <div className="flex flex-col h-full bg-slate-50 relative">
             <UMLMarkers />
+            {!embedded && (
             <div className="px-6 py-4 bg-white border-b border-black/5 flex items-center justify-between shrink-0">
                 <div>
                     <h2 className="text-xl font-extrabold font-heading text-ink tracking-tight">Class Diagram</h2>
@@ -128,6 +129,7 @@ const ClassDiagramEditor = ({ assignmentId, initialData, isReadOnly = false }) =
                     {isReadOnly ? 'Read-only View' : 'Double-click to edit • Drag handles to connect'}
                 </div>
             </div>
+            )}
 
             <div className="relative flex-1 bg-white overflow-hidden">
                 {!isReadOnly && (
