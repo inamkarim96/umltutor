@@ -214,7 +214,7 @@ const SubmissionDetail = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-surface-3 p-10">
+      <div className="min-h-screen bg-transparent p-10">
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => navigate(-1)}
@@ -233,7 +233,7 @@ const SubmissionDetail = () => {
 
   if (!submission) {
     return (
-      <div className="min-h-screen bg-surface-3 p-10">
+      <div className="min-h-screen bg-transparent p-10">
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => navigate(-1)}
@@ -250,7 +250,7 @@ const SubmissionDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-surface p-6 md:p-10">
+    <div className="min-h-screen bg-transparent p-6 md:p-10">
       <div className="max-w-[98%] 2xl:max-w-[1800px] w-full mx-auto space-y-8">
         <button
           onClick={() => navigate(-1)}

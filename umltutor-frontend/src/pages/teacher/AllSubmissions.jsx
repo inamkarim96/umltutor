@@ -52,7 +52,7 @@ const AllSubmissions = () => {
     });
 
     return (
-        <div className="min-h-screen bg-surface p-10">
+        <div className="min-h-screen bg-transparent p-10">
             <div>
                 <div className="flex flex-wrap justify-between items-end gap-6 mb-12">
                     <div>

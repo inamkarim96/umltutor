@@ -59,7 +59,7 @@ const StudentClassDetail = () => {
 
     if (!currentClass) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-surface p-4">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-transparent p-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mb-4"></div>
                 <p className="text-muted font-medium">Loading class details...</p>
             </div>
@@ -73,7 +73,7 @@ const StudentClassDetail = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-surface pb-12">
+        <div className="min-h-screen bg-transparent pb-12">
             <div className="px-4 sm:px-6 lg:px-8 pt-8">
                 <button
                     onClick={() => navigate('/student/dashboard')}

@@ -120,7 +120,7 @@ const WorkspacePage = ({ mode }) => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-surface font-body overflow-x-hidden">
+        <div className="min-h-screen flex flex-col bg-transparent font-body overflow-x-hidden">
             {/* Mode banner */}
             <div
                 className={`px-4 py-3 text-center shadow-sm relative z-50 border-b transition-colors duration-300 ${

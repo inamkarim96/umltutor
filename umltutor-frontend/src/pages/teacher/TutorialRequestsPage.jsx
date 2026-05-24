@@ -7,7 +7,7 @@ const TutorialRequestsPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-surface-2 font-body">
+    <div className="min-h-screen bg-transparent font-body">
       <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-black/5 px-4 md:px-8 py-4">
         <div className="max-w-5xl mx-auto flex items-center gap-4">
           <button

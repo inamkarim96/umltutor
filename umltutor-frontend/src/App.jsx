@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
+import AnimatedPageBackground from './components/shared/AnimatedPageBackground';
 
 
 import { AuthProvider } from './contexts/AuthContext';
@@ -38,7 +39,7 @@ const SubmissionDetail = lazy(() => import('./features/submissions/SubmissionDet
 
 // Loading fallback
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen bg-surface-3">
+  <div className="flex items-center justify-center min-h-screen bg-transparent">
     <div className="text-center">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
       <p className="mt-4 text-muted">Loading...</p>
@@ -46,15 +47,16 @@ const PageLoader = () => (
   </div>
 );
 
-function App() {
+function AppRoutes() {
+  const { pathname } = useLocation();
+  const bgVariant = pathname.includes('/work') ? 'workspace' : 'default';
+
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <AuthProvider>
-          <ToastProvider>
-            <GlobalEventHandler />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+    <div className="app-root">
+      <AnimatedPageBackground variant={bgVariant} />
+      <div className="app-root-content">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -284,8 +286,21 @@ function App() {
 
                 {/* 404 Fallback */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+          </Routes>
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ToastProvider>
+            <GlobalEventHandler />
+            <AppRoutes />
           </ToastProvider>
         </AuthProvider>
       </BrowserRouter>

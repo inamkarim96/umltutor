@@ -670,7 +670,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-surface font-body overflow-x-hidden relative w-full">
+    <div className="flex flex-col min-h-screen bg-white/90 backdrop-blur-sm font-body overflow-x-hidden relative w-full">
       {/* 1. Sticky Top Header */}
       <div className="sticky top-0 z-40 bg-white border-b border-black/5 shadow-sm px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -859,7 +859,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           Assignment already submitted. Editing is disabled.
           {currentSubmission?.tutorialApproved && (
             <span className="normal-case font-medium tracking-normal text-amber-700">
-              — Switch to Tutorial Mode for guided review.
+              Switch to Tutorial Mode for guided review.
             </span>
           )}
         </div>

@@ -76,7 +76,7 @@ const AssignmentSubmissions = () => {
 
     if (!assignment) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-surface-3">
+            <div className="min-h-screen flex items-center justify-center bg-transparent">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
                     <p className="text-muted font-bold font-body uppercase tracking-widest text-[10px]">Loading Submissions...</p>
@@ -86,7 +86,7 @@ const AssignmentSubmissions = () => {
     }
 
     return (
-        <div className="min-h-screen bg-surface pb-20">
+        <div className="min-h-screen bg-transparent pb-20">
             {/* Top Navigation Bar */}
             <div className="bg-white border-b border-black/5 sticky top-0 z-30 px-8 py-4 flex justify-between items-center shadow-card">
                 <div className="flex items-center gap-6">

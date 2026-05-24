@@ -157,7 +157,7 @@ const AssignmentDetails = () => {
 
     if (!assignment) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-surface-3">
+            <div className="min-h-screen flex items-center justify-center bg-transparent">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
                     <p className="text-muted font-bold font-body uppercase tracking-widest text-xs">Loading Assignment Details...</p>
@@ -170,7 +170,7 @@ const AssignmentDetails = () => {
 
     return (
         <>
-            <div className="min-h-screen bg-surface p-4 md:p-8">
+            <div className="min-h-screen bg-transparent p-4 md:p-8">
                 <div className="w-full">
                     {/* Back Button */}
                     <button

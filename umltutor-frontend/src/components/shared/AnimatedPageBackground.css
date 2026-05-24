@@ -1,0 +1,280 @@
+/* Shared animated page background (landing, dashboards, workspace, auth) */
+
+.animated-page-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.animated-bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    125deg,
+    #ffffff 0%,
+    #f7f7fc 35%,
+    rgba(239, 239, 249, 0.9) 55%,
+    #ffffff 100%
+  );
+  background-size: 300% 300%;
+  animation: animatedGradientShift 20s ease infinite;
+}
+
+@keyframes animatedGradientShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animated-bg-orbs {
+  position: absolute;
+  inset: 0;
+}
+
+.animated-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  animation: animatedOrbFloat 22s ease-in-out infinite;
+}
+
+.animated-bg-orb-1 {
+  width: min(55vw, 520px);
+  height: min(55vw, 520px);
+  background: radial-gradient(circle, rgba(80, 70, 229, 0.35) 0%, transparent 70%);
+  top: -12%;
+  left: -8%;
+}
+
+.animated-bg-orb-2 {
+  width: min(45vw, 420px);
+  height: min(45vw, 420px);
+  background: radial-gradient(circle, rgba(123, 111, 255, 0.28) 0%, transparent 70%);
+  top: 35%;
+  right: -12%;
+  animation-delay: -8s;
+  animation-duration: 26s;
+}
+
+.animated-bg-orb-3 {
+  width: min(40vw, 360px);
+  height: min(40vw, 360px);
+  background: radial-gradient(circle, rgba(80, 70, 229, 0.2) 0%, transparent 70%);
+  bottom: 5%;
+  left: 25%;
+  animation-delay: -14s;
+  animation-duration: 24s;
+}
+
+@keyframes animatedOrbFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -50px) scale(1.08);
+  }
+  66% {
+    transform: translate(-30px, 35px) scale(0.92);
+  }
+}
+
+.animated-bg-grid {
+  position: absolute;
+  inset: -48px;
+  background-image:
+    linear-gradient(rgba(80, 70, 229, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 70, 229, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: animatedGridDrift 45s linear infinite;
+  mask-image: radial-gradient(ellipse 85% 70% at 50% 25%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 25%, #000 20%, transparent 75%);
+}
+
+@keyframes animatedGridDrift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 56px 56px;
+  }
+}
+
+.animated-bg-shapes {
+  position: absolute;
+  inset: 0;
+}
+
+.animated-uml-shape {
+  position: absolute;
+  border: 1.5px dashed rgba(80, 70, 229, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 32px rgba(80, 70, 229, 0.06);
+  animation: animatedShapeFloat 28s ease-in-out infinite;
+}
+
+.animated-uml-shape::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(80, 70, 229, 0.25), rgba(123, 111, 255, 0.15));
+}
+
+.animated-uml-shape-1 {
+  width: 72px;
+  height: 48px;
+  top: 18%;
+  left: 8%;
+}
+.animated-uml-shape-2 {
+  width: 56px;
+  height: 56px;
+  top: 62%;
+  left: 6%;
+  border-radius: 50%;
+  animation-delay: -6s;
+  animation-duration: 32s;
+}
+.animated-uml-shape-3 {
+  width: 88px;
+  height: 56px;
+  top: 28%;
+  right: 10%;
+  animation-delay: -12s;
+}
+.animated-uml-shape-4 {
+  width: 64px;
+  height: 40px;
+  bottom: 22%;
+  right: 14%;
+  animation-delay: -18s;
+  animation-duration: 24s;
+}
+.animated-uml-shape-5 {
+  width: 48px;
+  height: 48px;
+  top: 12%;
+  right: 28%;
+  border-radius: 6px;
+  animation-delay: -4s;
+}
+.animated-uml-shape-6 {
+  width: 2px;
+  height: 80px;
+  top: 45%;
+  left: 18%;
+  border: none;
+  border-radius: 0;
+  background: linear-gradient(to bottom, transparent, rgba(80, 70, 229, 0.2), transparent);
+  animation: animatedLinePulse 4s ease-in-out infinite;
+}
+
+.animated-uml-shape-6::before {
+  display: none;
+}
+
+@keyframes animatedShapeFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.7;
+  }
+  25% {
+    transform: translate(12px, -18px) rotate(2deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-8px, 10px) rotate(-1deg);
+    opacity: 0.85;
+  }
+  75% {
+    transform: translate(6px, 14px) rotate(1deg);
+    opacity: 0.95;
+  }
+}
+
+@keyframes animatedLinePulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scaleY(0.85);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scaleY(1.1);
+  }
+}
+
+.animated-bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* Variants */
+.animated-page-bg--subtle .animated-bg-canvas {
+  opacity: 0.35;
+}
+
+.animated-page-bg--subtle .animated-bg-orb {
+  opacity: 0.35;
+}
+
+.animated-page-bg--workspace .animated-bg-canvas {
+  opacity: 0.28;
+}
+
+.animated-page-bg--workspace .animated-bg-orb {
+  opacity: 0.25;
+}
+
+.animated-page-bg--workspace .animated-bg-grid {
+  opacity: 0.6;
+}
+
+.animated-page-bg--workspace .animated-uml-shape {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated-bg-gradient,
+  .animated-bg-orb,
+  .animated-bg-grid,
+  .animated-uml-shape {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .animated-uml-shape-1,
+  .animated-uml-shape-3,
+  .animated-uml-shape-5 {
+    display: none;
+  }
+}
+
+/* App shell — content sits above the fixed background */
+.app-root {
+  position: relative;
+  min-height: 100vh;
+}
+
+.app-root-content {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+}

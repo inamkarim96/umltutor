@@ -102,7 +102,7 @@ const AssignmentsDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-surface-3 p-8">
+        <div className="min-h-screen bg-transparent p-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-extrabold font-heading text-ink tracking-tight">Assignments Management</h1>

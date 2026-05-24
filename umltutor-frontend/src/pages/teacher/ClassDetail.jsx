@@ -163,7 +163,7 @@ const ClassDetail = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-surface-3 flex flex-col items-center justify-center">
+            <div className="min-h-screen bg-transparent flex flex-col items-center justify-center">
                 <div className="animate-spin w-10 h-10 border-4 border-accent border-t-transparent rounded-full mb-4"></div>
                 <p className="text-gray-400 font-extrabold font-heading italic uppercase tracking-widest text-xs">Synchronizing classroom data...</p>
             </div>
@@ -172,7 +172,7 @@ const ClassDetail = () => {
 
     if (!targetClass) {
         return (
-            <div className="min-h-screen bg-surface-3 flex flex-col items-center justify-center p-8 text-center">
+            <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-8 text-center">
                 <div className="w-20 h-20 bg-status-red/10 text-status-red rounded-full flex items-center justify-center mb-6">
                     <X size={32} />
                 </div>
@@ -189,7 +189,7 @@ const ClassDetail = () => {
     }
 
     return (
-        <div className="min-h-screen bg-surface p-4 md:p-8">
+        <div className="min-h-screen bg-transparent p-4 md:p-8">
             <div>
                 <button
                     onClick={() => navigate('/teacher/dashboard')}
@@ -294,7 +294,7 @@ const ClassDetail = () => {
                     ))}
                 </div>
             </div>
-            <div className="min-h-screen bg-surface p-8 md:p-12">
+            <div className="min-h-screen bg-transparent p-8 md:p-12">
                 {/* Tab Content */}
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {activeTab === 'posts' && (

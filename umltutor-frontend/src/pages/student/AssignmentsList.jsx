@@ -43,7 +43,7 @@ const StudentAssignmentsList = () => {
     const activeClass = filterClassId ? myClasses.find(c => c.id === filterClassId) : null;
 
     return (
-        <div className="min-h-screen bg-surface p-8 md:p-12">
+        <div className="min-h-screen bg-transparent p-8 md:p-12">
             <div>
                 {/* Header Section */}
                 <div className="mb-12">

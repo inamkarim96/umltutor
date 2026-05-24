@@ -99,7 +99,7 @@ export class ErrorBoundary extends Component {
 
       // Default error UI
       return (
-        <div className="min-h-screen bg-surface-3 flex items-center justify-center px-4">
+        <div className="min-h-screen bg-transparent flex items-center justify-center px-4">
           <div className="max-w-md w-full bg-white rounded-lg shadow-hover p-6">
             <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
               <svg

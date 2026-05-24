@@ -154,7 +154,7 @@ const TeacherDashboard = () => {
                   --font-display:'Syne',sans-serif;
                   --font-body:'DM Sans',sans-serif;
                   display:flex;height:100vh;overflow:hidden;
-                  background:var(--surface-2);
+                  background:transparent;
                   font-family:var(--font-body);
                   color:var(--ink);
                 }

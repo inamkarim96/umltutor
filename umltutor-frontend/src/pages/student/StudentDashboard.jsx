@@ -180,7 +180,7 @@ const StudentDashboard = () => {
                   --font-body:'DM Sans',sans-serif;
                   
                   display:flex;height:100vh;overflow:hidden;
-                  background:var(--surface-2);
+                  background:transparent;
                   font-family:var(--font-body);
                   color:var(--ink);
                 }
@@ -751,7 +751,7 @@ const StudentDashboard = () => {
                                 <div className="panel-header">
                                     <div>
                                         <div className="panel-title">Assignment Progress</div>
-                                        <div className="panel-subtitle">{activeAssignment ? activeAssignment.title : 'No active work'} — current work</div>
+                                        <div className="panel-subtitle">{activeAssignment ? activeAssignment.title : 'No active work'} - current work</div>
                                     </div>
                                 </div>
                                 <div className="progress-list">

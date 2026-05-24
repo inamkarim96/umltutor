@@ -123,7 +123,7 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-surface px-4 py-12">
+        <div className="min-h-screen flex items-center justify-center bg-transparent px-4 py-12">
             <div className="max-w-md w-full bg-white p-12 rounded-lg border border-black/5 shadow-card hover:shadow-hover transition-all duration-300 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                 

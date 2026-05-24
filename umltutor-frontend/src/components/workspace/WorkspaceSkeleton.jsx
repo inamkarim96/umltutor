@@ -4,7 +4,7 @@ import React from 'react';
  * Loading skeleton for the assignment workspace — matches app design tokens.
  */
 const WorkspaceSkeleton = () => (
-  <div className="min-h-screen bg-surface font-body animate-pulse" aria-busy="true" aria-label="Loading workspace">
+  <div className="min-h-screen bg-white/80 backdrop-blur-sm font-body animate-pulse" aria-busy="true" aria-label="Loading workspace">
     {/* Mode banner */}
     <div className="h-9 bg-ink/10" />
 

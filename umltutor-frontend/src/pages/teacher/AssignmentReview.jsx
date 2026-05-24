@@ -114,7 +114,7 @@ const AssignmentReview = () => {
     };
 
     return (
-        <div className="min-h-screen bg-surface-3 flex flex-col">
+        <div className="min-h-screen bg-transparent flex flex-col">
             {/* Top Bar */}
             <div className="bg-white border-b border-black/5 px-8 py-4 flex justify-between items-center">
                 <div className="flex items-center gap-4">

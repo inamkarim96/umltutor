@@ -25,7 +25,7 @@ const PendingAssignments = () => {
     });
 
     return (
-        <div className="min-h-screen bg-surface p-8 md:p-12">
+        <div className="min-h-screen bg-transparent p-8 md:p-12">
             <div>
                 {/* Header */}
                 <div className="mb-12">

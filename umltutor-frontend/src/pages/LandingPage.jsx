@@ -5,68 +5,7 @@ const LandingPage = () => {
 
   // 1. Cursor Animation removed per user request
 
-  // 2. Canvas Background
-  useEffect(() => {
-    const canvas = document.getElementById('bg-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let W, H, particles = [];
-
-    function resize() {
-      W = canvas.width = window.innerWidth;
-      H = canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    class Particle {
-      constructor() { this.reset(); }
-      reset() {
-        this.x = Math.random() * W; this.y = Math.random() * H;
-        this.vx = (Math.random() - .5) * .3; this.vy = (Math.random() - .5) * .3;
-        this.r = Math.random() * 2 + 1; this.life = 0; this.maxLife = 200 + Math.random() * 200;
-        this.color = Math.random() > .5 ? 'rgba(80,70,229,' : 'rgba(120,110,255,';
-      }
-      update() {
-        this.x += this.vx; this.y += this.vy; this.life++;
-        if (this.x < 0 || this.x > W || this.y < 0 || this.y > H || this.life > this.maxLife) this.reset();
-      }
-      draw() {
-        const alpha = Math.sin((this.life / this.maxLife) * Math.PI) * .4;
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-        ctx.fillStyle = this.color + alpha + ')'; ctx.fill();
-      }
-    }
-    for (let i = 0; i < 80; i++) particles.push(new Particle());
-
-    function drawConnections() {
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 120) {
-            ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = 'rgba(80,70,229,' + (0.05 * (1 - d / 120)) + ')'; ctx.lineWidth = 1; ctx.stroke();
-          }
-        }
-      }
-    }
-    let req;
-    function animBg() {
-      ctx.clearRect(0, 0, W, H);
-      particles.forEach(p => { p.update(); p.draw() });
-      drawConnections();
-      req = requestAnimationFrame(animBg);
-    }
-    animBg();
-
-    return () => {
-      window.removeEventListener('resize', resize);
-      cancelAnimationFrame(req);
-    };
-  }, []);
-
-  // 3. Navbar scroll effect
+  // 2. Navbar scroll effect
   useEffect(() => {
     const nav = document.getElementById('navbar');
     const handleScroll = () => {
@@ -129,13 +68,10 @@ const LandingPage = () => {
           --font-body:'DM Sans',sans-serif;
           font-family:var(--font-body);
           color:var(--ink);
-          background:var(--surface);
+          background:transparent;
           overflow-x:hidden;
+          position:relative;
         }
-        /* ── Custom cursor removed ── */
-
-        /* ── Canvas background ── */
-        #bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.45}
 
         /* ── Nav ── */
         nav{
@@ -196,7 +132,7 @@ const LandingPage = () => {
 
         /* ── Hero ── */
         .hero{
-          position:relative;z-index:1;
+          position:relative;z-index:2;
           min-height:100vh;
           display:flex;flex-direction:column;
           align-items:center;justify-content:center;
@@ -738,10 +674,13 @@ const LandingPage = () => {
           .workflow-timeline::before{display:none}
           .footer-inner{grid-template-columns:1fr}
         }
-      `}</style>
 
-      {/* Animated background canvas */}
-      <canvas id="bg-canvas"></canvas>
+        .landing-page-container > section,
+        .landing-page-container > footer,
+        .landing-page-container > nav{
+          position:relative;z-index:2;
+        }
+      `}</style>
 
       {/* Navigation */}
       <nav id="navbar">
@@ -765,10 +704,7 @@ const LandingPage = () => {
 
       {/* Hero */}
       <section className="hero">
-        <div className="hero-eyebrow">
-          <span className="hero-eyebrow-dot"></span>
-          Intelligent UML Learning Platform
-        </div>
+        
 
         <h1 className="hero-title">
           The Smart Way to<br />
@@ -776,7 +712,7 @@ const LandingPage = () => {
         </h1>
 
         <p className="hero-sub">
-          Build professional diagrams with deep semantic analysis, consistency checks, and guided modeling — all in one structured workflow.
+          Build professional diagrams with deep semantic analysis, consistency checks, and guided modeling all in one structured workflow.
         </p>
 
         <div className="hero-actions">
@@ -796,7 +732,7 @@ const LandingPage = () => {
           </div>
           <div className="hero-stat-divider"></div>
           <div className="hero-stat">
-            <div className="hero-stat-num"></div>
+            <div className="hero-stat-num">SA</div>
             <div className="hero-stat-label">Semantic Analysis</div>
           </div>
           <div className="hero-stat-divider"></div>
@@ -818,7 +754,7 @@ const LandingPage = () => {
               <span className="preview-dot r"></span>
               <span className="preview-dot y"></span>
               <span className="preview-dot g"></span>
-              <span className="preview-title">Use Case Diagram — Library System</span>
+              <span className="preview-title">Use Case Diagram Library System</span>
             </div>
             <div className="preview-body">
               <svg className="preview-svg" viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
@@ -874,7 +810,7 @@ const LandingPage = () => {
           <div className="reveal">
             <span className="section-label">Process</span>
             <h2 className="section-title">How It Works</h2>
-            <p className="section-sub">A guided, structured workflow from assignment to submission — every step clearly defined.</p>
+            <p className="section-sub">A guided, structured workflow from assignment to submission, every step clearly defined.</p>
           </div>
           <div className="steps-grid reveal reveal-delay-1">
             <div className="step-card">
@@ -927,7 +863,7 @@ const LandingPage = () => {
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" /></svg>
               </div>
               <div className="feature-title">Structured Assignment Workflow</div>
-              <div className="feature-desc">Every assignment guides students through a carefully designed multi-step process: from Use Case Diagrams to detailed Sequence Diagrams. No guessing what to do next — the platform tells you exactly where you are and what's needed.</div>
+              <div className="feature-desc">Every assignment guides students through a carefully designed multi-step process: from Use Case Diagrams to detailed Sequence Diagrams. No guessing what to do next, the platform tells you exactly where you are and what's needed.</div>
               <div className="feature-tags">
                 <span className="feature-tag">Step-by-step</span>
                 <span className="feature-tag">Progress tracking</span>
@@ -988,7 +924,7 @@ const LandingPage = () => {
           <div className="reveal">
             <span className="section-label">Key Modules</span>
             <h2 className="section-title">Core UML Modeling Tools</h2>
-            <p className="section-sub">Focused tools designed for the complete UML modeling workflow — each module builds on the last.</p>
+            <p className="section-sub">Focused tools designed for the complete UML modeling workflow each module builds on the last.</p>
           </div>
           <div className="modules-grid">
             <div className="module-card reveal reveal-delay-1">
@@ -1056,7 +992,7 @@ const LandingPage = () => {
             <div className="reveal">
               <span className="section-label">Student Journey</span>
               <h2 className="section-title">Your Path to UML Mastery</h2>
-              <p className="section-sub">From opening an assignment to submitting a complete, validated UML model — the whole journey in one platform.</p>
+              <p className="section-sub">From opening an assignment to submitting a complete, validated UML model, the whole journey in one platform.</p>
               <div style={{ marginTop: '32px' }}>
                 <Link to="/signup" className="btn-primary" style={{ display: 'inline-flex' }}>
                   Start Your Journey
@@ -1116,7 +1052,7 @@ const LandingPage = () => {
           <div className="reveal" style={{ maxWidth: '600px', marginBottom: '16px' }}>
             <span className="section-label">About UMLTutor</span>
             <h2 className="section-title">Built for the Classroom</h2>
-            <p className="section-sub">UMLTutor bridges the gap between theoretical UML knowledge and practical application — giving students a hands-on environment to create, manage, and refine UML models within a structured assignment workflow.</p>
+            <p className="section-sub">UMLTutor bridges the gap between theoretical UML knowledge and practical application, giving students a hands-on environment to create, manage, and refine UML models within a structured assignment workflow.</p>
           </div>
           <div className="team-grid reveal reveal-delay-1">
             <div className="team-card">
