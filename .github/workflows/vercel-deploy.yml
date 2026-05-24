@@ -1,12 +1,12 @@
-# Deploy backend + frontend to separate Vercel projects (monorepo).
+# Deploy umltutor-backend + umltutor-frontend to separate Vercel projects.
 #
-# GitHub → Settings → Secrets and variables → Actions → New repository secret:
-#   VERCEL_TOKEN                 (Vercel → Account Settings → Tokens)
-#   VERCEL_ORG_ID                (Vercel → Team/User Settings → General → ID)
-#   VERCEL_BACKEND_PROJECT_ID    (umltutor-backend → Settings → General → Project ID)
-#   VERCEL_FRONTEND_PROJECT_ID   (umltutor-frontend → Settings → General → Project ID)
+# Backend: runs on EVERY push to main (API must stay in sync with schema).
+# Frontend: runs when umltutor-frontend/ changes, or manual "Run workflow".
 #
-# Backend project must have DATABASE_URL in Vercel Environment Variables (Production).
+# Secrets (GitHub → Settings → Secrets → Actions):
+#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_BACKEND_PROJECT_ID, VERCEL_FRONTEND_PROJECT_ID
+#
+# Vercel backend project must have DATABASE_URL (Production).
 
 name: Vercel Monorepo Deploy
 
@@ -19,7 +19,6 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
@@ -27,17 +26,14 @@ jobs:
         id: filter
         with:
           filters: |
-            backend:
-              - 'umltutor-backend/**'
-              - 'package-lock.json'
             frontend:
               - 'umltutor-frontend/**'
               - 'package-lock.json'
 
+  # Always deploy API on main — fixes "backend stuck 10h ago" when only CI/config changed
   deploy-backend:
     name: Deploy umltutor-backend
-    needs: changes
-    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -66,7 +62,7 @@ jobs:
       - name: Pull Vercel settings (incl. DATABASE_URL)
         run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
 
-      - name: Build (runs prisma migrate via vercel-build.js)
+      - name: Build (Prisma migrate + API)
         run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Deploy to production
@@ -75,7 +71,9 @@ jobs:
   deploy-frontend:
     name: Deploy umltutor-frontend
     needs: changes
-    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
