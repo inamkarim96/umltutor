@@ -59,12 +59,16 @@ const CheckingModePanel = ({
         if (activeSection === 'usecase') sectionData = rep.useCaseDiagram || rep;
         else if (activeSection === 'description') sectionData = rep.useCaseDescription || rep;
         else if (activeSection === 'ssd') sectionData = rep.systemSequence || rep;
+        else if (activeSection === 'class-diagram') sectionData = rep.classDiagram || rep;
+        else if (activeSection === 'sequence-diagram') sectionData = rep.sequenceDiagram || rep;
 
         // Map activeSection to potential location labels
         const sectionLocationMap = {
             'usecase': ['diagram', 'usecasediagram', 'model'],
             'description': ['description', 'usecasedescription', 'step2'],
-            'ssd': ['ssd', 'systemsequence', 'systemsequencediagram', 'step3']
+            'ssd': ['ssd', 'systemsequence', 'systemsequencediagram', 'step3'],
+            'class-diagram': ['class-diagram', 'classdiagram', 'step4'],
+            'sequence-diagram': ['sequence-diagram', 'sequencediagram', 'step5']
         };
         const targetLocations = sectionLocationMap[activeSection] || [activeSection];
 
@@ -826,6 +830,133 @@ const CheckingModePanel = ({
                             context: { useCaseId }
                         });
                     }
+                }
+            });
+        } else if (activeSection === 'class-diagram') {
+            const classDiagram = model.classDiagram || { nodes: [], edges: [] };
+            const nodes = classDiagram.nodes || [];
+
+            if (nodes.length === 0) {
+                issues.push({
+                    id: 'class-diagram-empty',
+                    code: 'CLASS_DIAGRAM_EMPTY',
+                    severity: 'error',
+                    location: 'class-diagram',
+                    message: 'Class Diagram is empty.',
+                });
+                report.score = 0;
+            } else {
+                const classes = nodes.filter((n) => n.type === 'class' || n.type === 'interface');
+                if (classes.length === 0) {
+                    issues.push({
+                        id: 'no-classes',
+                        code: 'NO_CLASSES',
+                        severity: 'error',
+                        location: 'class-diagram',
+                        message: 'Add at least one class or interface.',
+                    });
+                    report.score -= 30;
+                } else {
+                    passes.push(`${classes.length} class(es)/interface(s) found`);
+                }
+                classes.forEach((cls) => {
+                    const label = (cls.data?.label || '').trim();
+                    if (!label || ['newclass', 'newinterface'].includes(label.toLowerCase())) {
+                        issues.push({
+                            id: `class-placeholder-${cls.id}`,
+                            code: 'CLASS_NAME_PLACEHOLDER',
+                            severity: 'error',
+                            location: 'class-diagram',
+                            message: 'Rename placeholder class names to domain entities.',
+                        });
+                        report.score -= 10;
+                    }
+                });
+            }
+        } else if (activeSection === 'sequence-diagram') {
+            const sequences = model.sequenceDiagrams || {};
+            const entries = targetUseCaseId
+                ? [[targetUseCaseId, sequences[targetUseCaseId]]]
+                : Object.entries(sequences);
+
+            if (entries.length === 0 && !targetUseCaseId) {
+                issues.push({
+                    id: 'no-sequences',
+                    code: 'NO_SEQUENCE_DIAGRAMS',
+                    severity: 'error',
+                    location: 'sequence-diagram',
+                    message: 'No Sequence Diagrams found.',
+                });
+                report.score -= 20;
+            }
+
+            entries.forEach(([ucId, raw]) => {
+                if (!raw) {
+                    issues.push({
+                        id: `seq-missing-${ucId}`,
+                        code: 'SEQUENCE_DIAGRAM_MISSING',
+                        severity: 'error',
+                        location: 'sequence-diagram',
+                        message: 'Sequence Diagram not found for this use case.',
+                        context: { useCaseId: ucId },
+                    });
+                    return;
+                }
+                const nodes = raw.nodes || [];
+                const edges = raw.edges || [];
+                if (nodes.length < 2) {
+                    issues.push({
+                        id: `seq-incomplete-${ucId}`,
+                        code: 'SEQUENCE_INCOMPLETE',
+                        severity: 'error',
+                        location: 'sequence-diagram',
+                        message: 'Sequence Diagram needs at least two lifelines.',
+                        context: { useCaseId: ucId },
+                    });
+                    report.score -= 15;
+                }
+                if (edges.length === 0) {
+                    issues.push({
+                        id: `seq-no-messages-${ucId}`,
+                        code: 'SEQUENCE_NO_MESSAGES',
+                        severity: 'error',
+                        location: 'sequence-diagram',
+                        message: 'Sequence Diagram has no messages.',
+                        context: { useCaseId: ucId },
+                    });
+                    report.score -= 15;
+                } else {
+                    passes.push(`Sequence diagram has ${edges.length} message(s)`);
+                }
+
+                const desc = model.descriptions?.[ucId];
+                if (desc?.mainFlow?.length && edges.length > 0) {
+                    const diagramActors = model.diagram?.nodes
+                        ?.filter((n) => n.type === 'actor')
+                        ?.map((n) => n.data?.label)
+                        .filter(Boolean) || [];
+                    const seqMessages = edges.map((e, idx) => ({
+                        text: e.data?.label || '',
+                        order: idx + 1,
+                        senderLabel: nodes.find((n) => n.id === e.source)?.data?.label || '',
+                        senderType: nodes.find((n) => n.id === e.source)?.data?.isActor ? 'actor' : 'object',
+                    }));
+                    const consistencyIssues = checkConsistency(
+                        desc.mainFlow,
+                        seqMessages,
+                        diagramActors,
+                        desc.primaryActor
+                    );
+                    consistencyIssues.forEach((issue, idx) => {
+                        issues.push({
+                            id: `seq-consistent-${ucId}-${idx}`,
+                            code: issue.category,
+                            severity: issue.severity || issue.type,
+                            location: 'sequence-diagram',
+                            message: issue.message,
+                            context: { useCaseId: ucId, ...issue },
+                        });
+                    });
                 }
             });
         }

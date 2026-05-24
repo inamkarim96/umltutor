@@ -554,18 +554,48 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           modelOverride={model}
         />;
       case 'class-diagram':
-        return <ClassDiagramEditor
-          key={effectivelyReadOnly ? 'read-only' : 'editable'}
-          assignmentId={model.id}
-          initialData={model.classDiagram}
-          isReadOnly={effectivelyReadOnly}
-        />;
+        if (!isCheckingActive) {
+          return (
+            <ClassDiagramEditor
+              key={effectivelyReadOnly ? 'read-only' : 'editable'}
+              assignmentId={model.id}
+              initialData={model.classDiagram}
+              isReadOnly={effectivelyReadOnly}
+            />
+          );
+        }
+        return (
+          <div className="flex h-full gap-0">
+            <div className="flex-1 min-w-0 h-full overflow-hidden">
+              <ClassDiagramEditor
+                key={effectivelyReadOnly ? 'read-only' : 'editable'}
+                assignmentId={model.id}
+                initialData={model.classDiagram}
+                isReadOnly={effectivelyReadOnly}
+              />
+            </div>
+            <div className="w-80 border-l border-gray-100 bg-gray-50/30 flex flex-col h-full">
+              <CheckingModePanel
+                activeSection="class-diagram"
+                reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+                modelOverride={model}
+                onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
+              />
+            </div>
+          </div>
+        );
       case 'sequence-diagram':
-        return <SequenceDiagramEditor
-          key={effectivelyReadOnly ? 'read-only' : 'editable'}
-          assignmentId={model.id}
-          isReadOnly={effectivelyReadOnly}
-        />;
+        return (
+          <SequenceDiagramEditor
+            key={effectivelyReadOnly ? 'read-only' : 'editable'}
+            assignmentId={model.id}
+            isReadOnly={effectivelyReadOnly}
+            isCheckingActive={isCheckingActive}
+            modelOverride={model}
+            reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+            onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
+          />
+        );
       default:
         return null;
     }

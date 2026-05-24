@@ -1,8 +1,9 @@
 "use strict";
 
+const prisma = require("../config/prisma");
+
 /**
- * Production DBs that have not run migration 20260524120000 lack tutorial extension
- * columns. Prisma fails if those fields are selected. Retry with a legacy select.
+ * Load student submission + UML artifacts resiliently across DB schema versions.
  */
 
 function isMissingSubmissionColumnError(err) {
@@ -10,6 +11,7 @@ function isMissingSubmissionColumnError(err) {
   return (
     msg.includes("does not exist") ||
     msg.includes("Unknown column") ||
+    msg.includes("column") && msg.includes("Submission") ||
     (err?.code === "P2022" && /Submission/i.test(msg))
   );
 }
@@ -18,6 +20,8 @@ function withTutorialFieldDefaults(submission) {
   if (!submission) return submission;
   return {
     ...submission,
+    tutorialRequested: submission.tutorialRequested ?? false,
+    tutorialApproved: submission.tutorialApproved ?? false,
     tutorialRejected: submission.tutorialRejected ?? false,
     tutorialRequestedAt: submission.tutorialRequestedAt ?? null,
     tutorialReviewedAt: submission.tutorialReviewedAt ?? null,
@@ -53,8 +57,8 @@ function statusSelect(includeExtension, includeReport) {
   };
 }
 
-function studentWorkSelect(includeExtension) {
-  return {
+function studentWorkSelect(tutorialFields, includeExtension) {
+  const base = {
     id: true,
     assignmentId: true,
     studentId: true,
@@ -62,9 +66,6 @@ function studentWorkSelect(includeExtension) {
     submittedAt: true,
     createdAt: true,
     updatedAt: true,
-    tutorialRequested: true,
-    tutorialApproved: true,
-    ...tutorialExtensionSelect(includeExtension),
     useCaseDiagram: true,
     useCaseDescriptions: true,
     ssdDiagrams: true,
@@ -72,36 +73,166 @@ function studentWorkSelect(includeExtension) {
     sequenceDiagrams: true,
     evaluation: { select: { totalScore: true, remarks: true } },
   };
+  if (!tutorialFields) return base;
+  return {
+    ...base,
+    tutorialRequested: true,
+    tutorialApproved: true,
+    ...tutorialExtensionSelect(includeExtension),
+  };
 }
 
-async function queryWithLegacyFallback(runQuery) {
+function artifactsOnlySelect() {
+  return studentWorkSelect(false, false);
+}
+
+async function tryFindSubmission(repo, where, select) {
+  return repo.findFirst({ where, select });
+}
+
+/**
+ * Load diagram relations in separate queries (never fails on missing Submission columns).
+ */
+async function loadSubmissionArtifactsStaged(where) {
+  const base = await prisma.submission.findFirst({
+    where,
+    select: {
+      id: true,
+      assignmentId: true,
+      studentId: true,
+      status: true,
+      submittedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!base) return null;
+
+  const submissionId = base.id;
+
+  const [useCaseDiagram, useCaseDescriptions, ssdDiagrams, classDiagram, sequenceDiagrams, evaluation] =
+    await Promise.all([
+      prisma.useCaseDiagram.findUnique({ where: { submissionId } }).catch(() => null),
+      prisma.useCaseDescription.findMany({ where: { submissionId } }).catch(() => []),
+      prisma.sSDDiagram.findMany({ where: { submissionId } }).catch(() => []),
+      prisma.classDiagram.findUnique({ where: { submissionId } }).catch(() => null),
+      prisma.sequenceDiagram.findMany({ where: { submissionId } }).catch(() => []),
+      prisma.evaluation
+        .findUnique({
+          where: { submissionId },
+          select: { totalScore: true, remarks: true },
+        })
+        .catch(() => null),
+    ]);
+
+  let tutorialFields = {};
   try {
-    return withTutorialFieldDefaults(await runQuery(true));
+    const tutorialRow = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: {
+        tutorialRequested: true,
+        tutorialApproved: true,
+        tutorialRejected: true,
+        tutorialRequestedAt: true,
+        tutorialReviewedAt: true,
+        tutorialRejectionReason: true,
+      },
+    });
+    if (tutorialRow) tutorialFields = tutorialRow;
+  } catch {
+    /* optional columns missing — defaults applied below */
+  }
+
+  return withTutorialFieldDefaults({
+    ...base,
+    ...tutorialFields,
+    useCaseDiagram,
+    useCaseDescriptions,
+    ssdDiagrams,
+    classDiagram,
+    sequenceDiagrams,
+    evaluation,
+  });
+}
+
+async function findSubmissionWithArtifacts(submissionRepository, where) {
+  const attempts = [
+    () => tryFindSubmission(submissionRepository, where, studentWorkSelect(true, true)),
+    () => tryFindSubmission(submissionRepository, where, studentWorkSelect(true, false)),
+    () => tryFindSubmission(submissionRepository, where, artifactsOnlySelect()),
+  ];
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    try {
+      const row = await attempt();
+      if (row) return withTutorialFieldDefaults(row);
+    } catch (err) {
+      lastError = err;
+      if (isMissingSubmissionColumnError(err)) {
+        console.warn("[Submission] Select retry:", err.message);
+      }
+    }
+  }
+
+  try {
+    const staged = await loadSubmissionArtifactsStaged(where);
+    if (staged) {
+      console.info(
+        `[Submission] Loaded artifacts via staged queries for assignment=${where.assignmentId} student=${where.studentId}`
+      );
+      return staged;
+    }
+    return null;
   } catch (err) {
-    if (!isMissingSubmissionColumnError(err)) throw err;
-    console.warn(
-      "[Submission] DB missing tutorial extension columns — using legacy query. Run: npx prisma migrate deploy"
-    );
-    return withTutorialFieldDefaults(await runQuery(false));
+    console.error("[Submission] Staged artifact load failed:", err.message);
+    if (lastError) throw lastError;
+    throw err;
   }
 }
 
 async function findSubmissionStatus(submissionRepository, where, { includeReport = false } = {}) {
-  return queryWithLegacyFallback((includeExtension) =>
-    submissionRepository.findUnique({
-      where,
-      select: statusSelect(includeExtension, includeReport),
-    })
-  );
-}
+  const attempts = [
+    () =>
+      submissionRepository.findUnique({
+        where,
+        select: statusSelect(true, includeReport),
+      }),
+    () =>
+      submissionRepository.findUnique({
+        where,
+        select: statusSelect(false, includeReport),
+      }),
+    () =>
+      submissionRepository.findUnique({
+        where,
+        select: {
+          id: true,
+          status: true,
+          submittedAt: true,
+          evaluation: {
+            select: {
+              totalScore: true,
+              remarks: true,
+              ...(includeReport ? { validationReport: true } : {}),
+            },
+          },
+        },
+      }),
+  ];
 
-async function findSubmissionWithArtifacts(submissionRepository, where) {
-  return queryWithLegacyFallback((includeExtension) =>
-    submissionRepository.findFirst({
-      where,
-      select: studentWorkSelect(includeExtension),
-    })
-  );
+  for (const attempt of attempts) {
+    try {
+      const row = await attempt();
+      if (row) return withTutorialFieldDefaults(row);
+    } catch (err) {
+      if (isMissingSubmissionColumnError(err)) continue;
+      throw err;
+    }
+  }
+
+  return { status: "pending" };
 }
 
 module.exports = {
@@ -109,4 +240,5 @@ module.exports = {
   withTutorialFieldDefaults,
   findSubmissionStatus,
   findSubmissionWithArtifacts,
+  loadSubmissionArtifactsStaged,
 };

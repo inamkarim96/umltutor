@@ -59,9 +59,34 @@ class CheckingEngine {
             this.validateSSDs(model.ssds, issues, diagramAnalysis, model.descriptions, targetId);
         }
 
-        // 4. Global Mapping Consistency (Step 3 vs Step 2)
-        // This is the "Inspection Step" to ensure 3.1 maps to 2.1, etc.
-        this.validateGlobalMapping(model, issues, diagramAnalysis);
+        // 4. Class Diagram Validation (Step 4)
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagram(
+                model.classDiagram,
+                issues,
+                diagramAnalysis,
+                model.descriptions,
+                model.ssds
+            );
+        }
+
+        // 5. Sequence Diagram Validation (Step 5)
+        if (!section || section === 'sequence-diagram') {
+            this.validateSequenceDiagrams(
+                model.sequenceDiagrams,
+                issues,
+                diagramAnalysis,
+                model.descriptions,
+                model.ssds,
+                model.classDiagram,
+                targetId
+            );
+        }
+
+        // Global mapping consistency across steps 2–5
+        if (!section) {
+            this.validateGlobalMapping(model, issues, diagramAnalysis);
+        }
 
         // Calculate summary efficiently
         const summary = this.countIssues(issues);
@@ -1032,6 +1057,498 @@ class CheckingEngine {
                 location: 'ssd'
             });
         }
+
+        const classDiagram = model.classDiagram;
+        const sequenceDiagrams = model.sequenceDiagrams || {};
+        const seqKeys = Object.keys(sequenceDiagrams);
+        const hasClassDiagram = !!(classDiagram?.nodes?.length);
+
+        sortedUCs.forEach((uc, index) => {
+            const num = index + 1;
+            const hasDesc = !!descriptions[uc.id];
+            const hasSSD = !!ssds[uc.id];
+            const hasSeq = !!sequenceDiagrams[uc.id];
+            const ucName = uc.data?.label || 'Use Case';
+
+            if (hasDesc && hasSSD && !hasClassDiagram) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'info',
+                    code: 'CLASS_DIAGRAM_MISSING',
+                    message: `Step 2.${num} and 3.${num} exist for "${ucName}", but Step 4 (Class Diagram) has not been started.`,
+                    relatedId: uc.id,
+                    location: 'class-diagram'
+                });
+            }
+
+            if (hasDesc && !hasSeq) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'info',
+                    code: 'SEQUENCE_DIAGRAM_MISSING',
+                    message: `Step 2.${num} description exists for "${ucName}", but Step 5.${num} Sequence Diagram has not been started.`,
+                    relatedId: uc.id,
+                    location: 'sequence-diagram'
+                });
+            } else if (hasSeq && !hasDesc) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'warning',
+                    code: 'SEQUENCE_WITHOUT_DESCRIPTION',
+                    message: `Sequence Diagram 5.${num} exists but Description 2.${num} is missing.`,
+                    relatedId: uc.id,
+                    location: 'sequence-diagram'
+                });
+            }
+
+            if (hasSSD && hasSeq && hasDesc) {
+                const ssdSemantic = this.processSSDData(ssds[uc.id]).semanticData;
+                const seqSemantic = this.processSequenceData(sequenceDiagrams[uc.id]).semanticData;
+                if (ssdSemantic?.messages?.length && seqSemantic?.messages?.length) {
+                    const ssdCount = ssdSemantic.messages.filter(m => !m.isReturn).length;
+                    const seqCount = seqSemantic.messages.filter(m => !m.isReturn).length;
+                    if (seqCount < ssdCount) {
+                        issues.push({
+                            type: 'consistency',
+                            severity: 'warning',
+                            code: 'SEQ_FEWER_THAN_SSD',
+                            message: `Sequence Diagram 5.${num} has fewer interactions (${seqCount}) than SSD 3.${num} (${ssdCount}). Detail the design-level SSD in the sequence diagram.`,
+                            relatedId: uc.id,
+                            location: 'sequence-diagram'
+                        });
+                    }
+                }
+            }
+        });
+
+        if (hasClassDiagram && seqKeys.length === 0 && descKeys.length > 0) {
+            issues.push({
+                type: 'consistency',
+                severity: 'info',
+                code: 'SEQUENCE_DIAGRAMS_INCOMPLETE',
+                message: 'Class Diagram (Step 4) exists but no Sequence Diagrams (Step 5) were found.',
+                location: 'sequence-diagram'
+            });
+        }
+    }
+
+    static extractClassDiagramModel(classDiagram) {
+        const classes = [];
+        const methods = [];
+        if (!classDiagram?.nodes) return { classes, methods };
+
+        classDiagram.nodes.forEach((node) => {
+            if (node.type !== 'class' && node.type !== 'interface') return;
+            const label = (node.data?.label || '').trim();
+            if (!label) return;
+            classes.push({ id: node.id, label, type: node.type });
+            (node.data?.methods || []).forEach((raw) => {
+                const methodName = String(raw)
+                    .replace(/^[\+\-\#~]\s*/, '')
+                    .split('(')[0]
+                    .trim();
+                if (methodName) methods.push({ className: label, methodName: methodName.toLowerCase() });
+            });
+        });
+        return { classes, methods };
+    }
+
+    static parseLifelineClassName(label) {
+        const raw = (label || '').trim();
+        const instanceMatch = raw.match(/^instance\s*:\s*(.+)$/i);
+        if (instanceMatch) return instanceMatch[1].trim();
+        if (raw.toLowerCase().startsWith(':')) return raw.slice(1).trim();
+        return raw;
+    }
+
+    static normalizeToken(text) {
+        return (text || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    static fuzzyIncludes(haystack, needle) {
+        const h = this.normalizeToken(haystack);
+        const n = this.normalizeToken(needle);
+        if (!h || !n) return false;
+        return h.includes(n) || n.includes(h);
+    }
+
+    static validateClassDiagram(classDiagram, issues, analysis, descriptions, ssds) {
+        const { useCases, useCaseLabels } = analysis;
+        const { classes, methods } = this.extractClassDiagramModel(classDiagram);
+
+        if (!classDiagram?.nodes?.length) {
+            issues.push({
+                type: 'class-diagram',
+                severity: 'error',
+                code: 'CLASS_DIAGRAM_EMPTY',
+                message: 'Class Diagram is empty.',
+                location: 'class-diagram',
+                context: { suggestion: 'Add classes that represent domain entities from your use cases.' }
+            });
+            return;
+        }
+
+        if (classes.length === 0) {
+            issues.push({
+                type: 'class-diagram',
+                severity: 'error',
+                code: 'NO_CLASSES',
+                message: 'No classes or interfaces defined in the Class Diagram.',
+                location: 'class-diagram'
+            });
+        }
+
+        const placeholderNames = new Set(['newclass', 'newinterface', 'class', 'interface', 'untitled']);
+        classes.forEach((cls) => {
+            const lower = cls.label.toLowerCase();
+            if (placeholderNames.has(lower)) {
+                issues.push({
+                    type: 'class-diagram',
+                    severity: 'error',
+                    code: 'CLASS_NAME_PLACEHOLDER',
+                    message: `Class "${cls.label}" uses a placeholder name.`,
+                    location: 'class-diagram',
+                    context: { suggestion: 'Rename to a domain entity (e.g., Order, Student, Payment).' }
+                });
+            }
+        });
+
+        if (methods.length === 0) {
+            issues.push({
+                type: 'class-diagram',
+                severity: 'warning',
+                code: 'NO_METHODS',
+                message: 'No operations/methods defined on any class.',
+                location: 'class-diagram',
+                context: { suggestion: 'Add public operations that correspond to SSD messages and scenario steps.' }
+            });
+        }
+
+        const ssdMessages = [];
+        Object.values(ssds || {}).forEach((raw) => {
+            const { semanticData } = this.processSSDData(raw);
+            (semanticData?.messages || []).forEach((m) => {
+                if (m.name && !m.isReturn) ssdMessages.push(m.name);
+            });
+        });
+
+        ssdMessages.forEach((msgName) => {
+            const msgNorm = this.normalizeToken(msgName.split('(')[0]);
+            const matched = methods.some((m) => {
+                const methodNorm = this.normalizeToken(m.methodName);
+                return methodNorm.includes(msgNorm) || msgNorm.includes(methodNorm);
+            });
+            if (!matched && msgNorm.length > 2) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'warning',
+                    code: 'CLASS_METHOD_MISSING_FOR_SSD',
+                    message: `SSD message "${msgName}" has no matching operation in the Class Diagram.`,
+                    location: 'class-diagram',
+                    context: { suggestion: `Add a method like ${this.suggestFromSentence(msgName).nearestFunction}() to a relevant class.` }
+                });
+            }
+        });
+
+        useCases.forEach((uc) => {
+            const desc = (descriptions || {})[uc.id];
+            if (!desc?.mainFlow?.length) return;
+            const ucName = this.getNodeLabel(uc.id, useCaseLabels, uc.id);
+            const nouns = new Set();
+            desc.mainFlow.forEach((step) => {
+                const words = (step.action || '').split(/\s+/);
+                words.forEach((w) => {
+                    const clean = w.replace(/[^a-zA-Z]/g, '');
+                    if (clean.length > 3 && !STOP_WORDS.has(clean.toLowerCase()) && clean.toLowerCase() !== 'system') {
+                        nouns.add(clean);
+                    }
+                });
+            });
+            nouns.forEach((noun) => {
+                const hasClass = classes.some((c) => this.fuzzyIncludes(c.label, noun));
+                if (!hasClass) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'info',
+                        code: 'CLASS_ENTITY_SUGGESTION',
+                        message: `Consider a class for "${noun}" (from "${ucName}" scenario).`,
+                        relatedId: uc.id,
+                        location: 'class-diagram'
+                    });
+                }
+            });
+        });
+    }
+
+    static processSequenceData(seqData) {
+        if (!seqData) return { semanticData: null, diagramData: null };
+
+        let rawData = seqData;
+        if (typeof seqData === 'string') {
+            try { rawData = JSON.parse(seqData); } catch (e) {
+                return { semanticData: null, diagramData: null };
+            }
+        }
+
+        let semanticData = rawData.semanticData;
+        let diagramData = rawData.diagramData || null;
+
+        if (!semanticData && (rawData.nodes || rawData.edges)) {
+            diagramData = { nodes: rawData.nodes, edges: rawData.edges };
+        }
+
+        if (!semanticData && diagramData) {
+            semanticData = this.convertSequenceToSemantic(diagramData);
+        }
+
+        return { semanticData, diagramData };
+    }
+
+    static convertSequenceToSemantic(diagramData) {
+        try {
+            const lifelines = (diagramData.nodes || []).map((node) => ({
+                id: node.id,
+                label: node.data?.label || 'Unknown',
+                type: node.data?.isActor || node.type === 'actor' ? 'actor' : 'object'
+            }));
+
+            const messages = (diagramData.edges || []).map((edge, index) => {
+                const msgType = edge.data?.type || 'sync';
+                const isReturn = msgType === 'reply' || !!edge.data?.isReturn;
+                return {
+                    id: edge.id,
+                    order: index + 1,
+                    fromLifelineId: edge.source,
+                    toLifelineId: edge.target,
+                    name: edge.data?.label || edge.label || '',
+                    type: msgType === 'reply' ? 'return' : (msgType === 'async' ? 'asynchronous' : 'synchronous'),
+                    isReturn
+                };
+            });
+
+            return { lifelines, messages };
+        } catch (error) {
+            console.error('Error converting sequence diagram:', error);
+            return { lifelines: [], messages: [] };
+        }
+    }
+
+    static validateSequenceDiagrams(sequenceDiagrams, issues, analysis, descriptions, ssds, classDiagram, targetId = null) {
+        if (!sequenceDiagrams) return;
+
+        const { useCases, useCaseLabels } = analysis;
+        const classModel = this.extractClassDiagramModel(classDiagram);
+
+        useCases.forEach((uc) => {
+            const ucId = uc.id;
+            if (targetId && ucId !== targetId) return;
+
+            const ucName = this.getNodeLabel(ucId, useCaseLabels, ucId);
+            const desc = (descriptions || {})[ucId];
+            const rawSeq = sequenceDiagrams[ucId];
+
+            if (!rawSeq) {
+                if (desc) {
+                    issues.push({
+                        type: 'sequence-diagram',
+                        severity: 'error',
+                        code: 'SEQUENCE_DIAGRAM_MISSING',
+                        message: `Sequence Diagram for "${ucName}" is missing.`,
+                        relatedId: ucId,
+                        location: 'sequence-diagram'
+                    });
+                }
+                return;
+            }
+
+            const { semanticData } = this.processSequenceData(rawSeq);
+            if (!semanticData?.lifelines?.length) {
+                issues.push({
+                    type: 'sequence-diagram',
+                    severity: 'error',
+                    code: 'SEQUENCE_DIAGRAM_EMPTY',
+                    message: `Sequence Diagram for "${ucName}" is empty.`,
+                    relatedId: ucId,
+                    location: 'sequence-diagram'
+                });
+                return;
+            }
+
+            if (semanticData.lifelines.length < 2) {
+                issues.push({
+                    type: 'sequence-diagram',
+                    severity: 'error',
+                    code: 'SEQUENCE_INCOMPLETE',
+                    message: `Sequence Diagram for "${ucName}" needs at least two lifelines.`,
+                    relatedId: ucId,
+                    location: 'sequence-diagram'
+                });
+            }
+
+            if (!semanticData.messages?.length) {
+                issues.push({
+                    type: 'sequence-diagram',
+                    severity: 'error',
+                    code: 'SEQUENCE_NO_MESSAGES',
+                    message: `Sequence Diagram for "${ucName}" has no messages.`,
+                    relatedId: ucId,
+                    location: 'sequence-diagram'
+                });
+            }
+
+            const lifelineMap = new Map(semanticData.lifelines.map((l) => [l.id, l]));
+            semanticData.lifelines.forEach((ll) => {
+                if (ll.type === 'actor') return;
+                const className = this.parseLifelineClassName(ll.label);
+                const matched = classModel.classes.some((c) => this.fuzzyIncludes(c.label, className));
+                if (!matched && className && className.toLowerCase() !== 'unknown') {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'SEQUENCE_LIFELINE_NOT_IN_CLASS_DIAGRAM',
+                        message: `Lifeline "${ll.label}" does not match any class in the Class Diagram.`,
+                        relatedId: ucId,
+                        location: 'sequence-diagram',
+                        context: { suggestion: `Use Instance:ClassName notation or add "${className}" to Step 4.` }
+                    });
+                }
+            });
+
+            semanticData.messages.forEach((msg) => {
+                const msgName = (msg.name || '').trim();
+                if (!msgName) return;
+                const baseMethod = msgName.split('(')[0];
+                const inClass = classModel.methods.some((m) => this.fuzzyIncludes(m.methodName, baseMethod));
+                if (!inClass && classModel.methods.length > 0) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'SEQUENCE_MESSAGE_NOT_IN_CLASS',
+                        message: `Message "${msgName}" is not declared on any class in the Class Diagram.`,
+                        relatedId: ucId,
+                        location: 'sequence-diagram'
+                    });
+                }
+            });
+
+            const ssdRaw = (ssds || {})[ucId];
+            if (ssdRaw) {
+                const { semanticData: ssdSemantic } = this.processSSDData(ssdRaw);
+                if (ssdSemantic?.messages?.length && semanticData.messages?.length) {
+                    ssdSemantic.messages.filter((m) => !m.isReturn).forEach((ssdMsg) => {
+                        const ssdNorm = this.normalizeToken(ssdMsg.name);
+                        const found = semanticData.messages.some((m) => this.fuzzyIncludes(m.name, ssdNorm));
+                        if (!found && ssdNorm.length > 2) {
+                            issues.push({
+                                type: 'consistency',
+                                severity: 'error',
+                                code: 'SEQUENCE_MISSING_SSD_MESSAGE',
+                                message: `SSD message "${ssdMsg.name}" is not reflected in Sequence Diagram for "${ucName}".`,
+                                relatedId: ucId,
+                                location: 'sequence-diagram',
+                                context: { suggestion: `Add "${ssdMsg.name}" to the sequence diagram (Step 5).` }
+                            });
+                        }
+                    });
+                }
+            }
+
+            if (desc && semanticData.messages) {
+                this.validateSequenceInteractionFlow(semanticData, desc, ucId, ucName, issues, analysis);
+            }
+        });
+    }
+
+    static validateSequenceInteractionFlow(seq, desc, ucId, ucName, issues, analysis) {
+        const messages = [...(seq.messages || [])].sort((a, b) => a.order - b.order);
+        const steps = desc.mainFlow || [];
+        const lifelines = seq.lifelines || [];
+        const lifelineMap = new Map(lifelines.map((l) => [l.id, l]));
+
+        const sortedUCs = [...(analysis.useCases || [])].sort((a, b) => {
+            const posA = a.position || { x: 0, y: 0 };
+            const posB = b.position || { x: 0, y: 0 };
+            return (posA.y - posB.y) || (posA.x - posB.x);
+        });
+        const ucIndex = sortedUCs.findIndex((uc) => uc.id === ucId);
+        const displayNum = ucIndex !== -1 ? (ucIndex + 1) : (ucId.split('-').pop());
+        const mappingRef = `Description 2.${displayNum}`;
+
+        const matchedMessages = new Set();
+        let expectedMessageIdx = 0;
+
+        steps.forEach((step, stepIdx) => {
+            const stepNo = stepIdx + 1;
+            const stepTextOrig = step.action || '';
+            const stepText = stepTextOrig.toLowerCase();
+            if (!stepText || stepText.startsWith('if') || stepText.startsWith('else')) return;
+
+            const stepTextNoSpaces = stepText.replace(/[^a-z0-9]/g, '');
+            let matchedMsgIdx = -1;
+
+            for (let offset = 0; offset < messages.length; offset++) {
+                const i = (expectedMessageIdx + offset) % messages.length;
+                if (matchedMessages.has(i)) continue;
+                const msg = messages[i];
+                const msgNorm = (msg.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (!msgNorm) continue;
+                if (stepTextNoSpaces.includes(msgNorm) || msgNorm.includes(stepTextNoSpaces)) {
+                    matchedMsgIdx = i;
+                    break;
+                }
+            }
+
+            if (matchedMsgIdx !== -1) {
+                matchedMessages.add(matchedMsgIdx);
+                expectedMessageIdx = Math.max(expectedMessageIdx, matchedMsgIdx + 1);
+                const msg = messages[matchedMsgIdx];
+                const sender = lifelineMap.get(msg.fromLifelineId);
+
+                if (desc.primaryActor && sender?.type === 'actor') {
+                    const senderLabelLower = (sender.label || '').trim().toLowerCase();
+                    const descActorLower = (desc.primaryActor || '').trim().toLowerCase();
+                    if (senderLabelLower !== descActorLower && !senderLabelLower.includes(descActorLower)) {
+                        issues.push({
+                            type: 'consistency',
+                            severity: 'error',
+                            code: 'SEQ_CONSISTENCY_ACTOR_MISMATCH',
+                            message: `Sequence 5.${displayNum}: first actor lifeline "${sender.label}" does not match ${mappingRef} primary actor "${desc.primaryActor}".`,
+                            relatedId: ucId,
+                            location: 'sequence-diagram'
+                        });
+                    }
+                }
+            } else {
+                const sg = this.suggestFromSentence(stepTextOrig);
+                issues.push({
+                    type: 'consistency',
+                    severity: 'error',
+                    code: 'SEQ_CONSISTENCY_MISSING_MESSAGE',
+                    message: `Missing sequence message for Step ${stepNo} in "${ucName}".`,
+                    relatedId: ucId,
+                    location: 'sequence-diagram',
+                    context: {
+                        stepNumber: `${stepNo}`,
+                        problem: `Step ${stepNo} has no mapped message in Sequence Diagram 5.${displayNum}.`,
+                        suggestion: `Add "${sg.nearestFunctionWithParam}" to the sequence diagram.`,
+                        suggestions: sg
+                    }
+                });
+            }
+        });
+
+        messages.forEach((msg, msgIdx) => {
+            if (!matchedMessages.has(msgIdx) && (msg.name || '').trim()) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'error',
+                    code: 'SEQ_CONSISTENCY_EXTRA_MESSAGE',
+                    message: `Extra sequence message "${msg.name}" in "${ucName}" is not mapped to the Main Success Scenario.`,
+                    relatedId: ucId,
+                    location: 'sequence-diagram'
+                });
+            }
+        });
     }
 
     /**

@@ -490,7 +490,9 @@ class SubmissionService {
         // If we have both section and targetId (e.g. description 2.1)
         if (section && targetId) {
           const isSameSection = (i.type === section || i.location === section || 
-            (section === 'ssd' && i.type === 'consistency') ||
+            (section === 'ssd' && i.type === 'consistency' && i.location === 'ssd') ||
+            (section === 'sequence-diagram' && (i.location === 'sequence-diagram' || (i.type === 'consistency' && i.location === 'sequence-diagram'))) ||
+            (section === 'class-diagram' && (i.location === 'class-diagram' || i.type === 'class-diagram')) ||
             (section === 'usecase' && (i.location === 'diagram' || i.location === 'usecase' || i.type === 'diagram')));
           const isSameTarget = (i.relatedId === targetId || i.context?.useCaseId === targetId);
           return !(isSameSection && isSameTarget);
@@ -498,7 +500,9 @@ class SubmissionService {
         // If we only have section (e.g. all SSDs)
         if (section && !targetId) {
           return !(i.type === section || i.location === section || 
-                   (section === 'ssd' && i.type === 'consistency') ||
+                   (section === 'ssd' && i.type === 'consistency' && i.location === 'ssd') ||
+                   (section === 'sequence-diagram' && (i.location === 'sequence-diagram' || (i.type === 'consistency' && i.location === 'sequence-diagram'))) ||
+                   (section === 'class-diagram' && (i.location === 'class-diagram' || i.type === 'class-diagram')) ||
                    (section === 'usecase' && (i.location === 'diagram' || i.location === 'usecase' || i.type === 'diagram')));
         }
         // If we only have targetId (e.g. searching for a specific use case across all models)

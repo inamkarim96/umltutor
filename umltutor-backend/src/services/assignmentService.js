@@ -79,6 +79,16 @@ class AssignmentService {
     try { return JSON.parse(value); } catch { return value; }
   }
 
+  _submissionHasArtifactData(submission) {
+    const artifacts = this._extractArtifactsFromSubmission(submission);
+    const uc = artifacts.useCaseDiagram?.nodes?.length > 0;
+    const cd = artifacts.classDiagram?.nodes?.length > 0;
+    const desc = Object.keys(artifacts.useCaseDescription || {}).length > 0;
+    const ssd = Object.keys(artifacts.systemSequenceDiagram || {}).length > 0;
+    const seq = Object.keys(artifacts.sequenceDiagrams || {}).length > 0;
+    return uc || cd || desc || ssd || seq;
+  }
+
   async createAssignmentDefinition(data) {
     const existing = await assignmentRepository.findFirst({ where: { classId: Number(data.classId), title: data.title } });
     if (existing) {
@@ -307,11 +317,21 @@ class AssignmentService {
           assignmentId: assignmentIdNum,
           studentId: studentIdNum,
         });
+        if (!submission) {
+          submissionLoadWarning = 'No previous saved work found. You can start drawing below.';
+        } else {
+          const hasArtifacts = this._submissionHasArtifactData(submission);
+          if (!hasArtifacts) {
+            submissionLoadWarning =
+              'No diagram data was saved yet. Your assignment is submitted but diagrams are empty.';
+          }
+        }
       } catch (dbErr) {
         console.error(
           `[AssignmentService] GET assignment=${assignmentIdNum} student=${studentIdNum} — submission load failed:`,
           dbErr.message,
-          dbErr.code || ''
+          dbErr.code || '',
+          dbErr.stack
         );
         submissionLoadWarning =
           'Saved work could not be loaded. You can continue with a blank workspace or retry later.';
@@ -325,7 +345,7 @@ class AssignmentService {
         ...(submissionLoadWarning ? { submissionLoadWarning } : {}),
       };
 
-      if (submissionLoadWarning) {
+      if (submissionLoadWarning && !this._submissionHasArtifactData(submission)) {
         serviceCache.invalidate(cacheKey);
       }
 

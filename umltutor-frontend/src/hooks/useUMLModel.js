@@ -48,8 +48,17 @@ export const useUMLModel = (assignmentId) => {
 
             dispatch(setModel({ mode, model: adaptedModel }));
 
-            if (adaptedModel.loadWarning) {
+            const hasDiagramData =
+                (adaptedModel.diagram?.nodes?.length ?? 0) > 0 ||
+                (adaptedModel.classDiagram?.nodes?.length ?? 0) > 0 ||
+                Object.keys(adaptedModel.descriptions || {}).length > 0 ||
+                Object.keys(adaptedModel.ssds || {}).length > 0 ||
+                Object.keys(adaptedModel.sequenceDiagrams || {}).length > 0;
+
+            if (adaptedModel.loadWarning && !hasDiagramData) {
                 setError(adaptedModel.loadWarning);
+            } else {
+                setError(null);
             }
         } catch (err) {
             const status = err.status ?? err.response?.status;
