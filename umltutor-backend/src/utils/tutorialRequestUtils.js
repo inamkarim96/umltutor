@@ -65,6 +65,7 @@ function isSubmissionSubmitted(submission) {
 
 /**
  * Whether a teacher may approve tutorial access.
+ * Requires a submitted assignment only (no minimum UML section completion).
  */
 function validateTutorialApproval(submission) {
   if (!submission) {
@@ -73,17 +74,10 @@ function validateTutorialApproval(submission) {
   if (!isSubmissionSubmitted(submission)) {
     return {
       canApprove: false,
-      message: "Tutorial Mode cannot be approved because the assignment is not submitted.",
+      message: "Tutorial Mode cannot be approved until the student has submitted the assignment.",
     };
   }
   const completion = computeSubmissionCompletion(submission);
-  if (!completion.isComplete) {
-    return {
-      canApprove: false,
-      message: `Tutorial Mode cannot be approved because assignment is incomplete (${completion.percent}% complete).`,
-      completion,
-    };
-  }
   return { canApprove: true, message: null, completion };
 }
 
