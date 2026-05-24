@@ -16,6 +16,7 @@ const {
   isSubmissionSubmitted,
   validateTutorialApproval,
 } = require('../utils/tutorialRequestUtils');
+const { findSubmissionStatus } = require('../utils/submissionQueryUtils');
 
 /**
  * Submission Service - optimized with parallel artifact upserts and improved transaction handling.
@@ -306,32 +307,16 @@ class SubmissionService {
   }
 
   async _loadSubmissionStatus(assignmentId, studentId, includeReport = false) {
-    const submission = await submissionRepository.findUnique({
-      where: {
+    const submission = await findSubmissionStatus(
+      submissionRepository,
+      {
         assignmentId_studentId: {
           assignmentId: Number(assignmentId),
           studentId: Number(studentId),
         },
       },
-      select: {
-        id: true,
-        status: true,
-        submittedAt: true,
-        tutorialRequested: true,
-        tutorialApproved: true,
-        tutorialRejected: true,
-        tutorialRequestedAt: true,
-        tutorialReviewedAt: true,
-        tutorialRejectionReason: true,
-        evaluation: {
-          select: {
-            totalScore: true,
-            remarks: true,
-            ...(includeReport ? { validationReport: true } : {}),
-          },
-        },
-      },
-    });
+      { includeReport }
+    );
 
     if (!submission) return { status: 'pending' };
 

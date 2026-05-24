@@ -9,6 +9,7 @@ const userRepository = _interopRequireDefault(require('../repositories/userRepos
 const submissionRepository = _interopRequireDefault(require('../repositories/submissionRepository')).default;
 const notificationService = _interopRequireDefault(require('./notificationService')).default;
 const serviceCache = require('../utils/serviceCache');
+const { findSubmissionWithArtifacts } = require('../utils/submissionQueryUtils');
 // Hoist prisma to module scope — avoids repeated dynamic require on every cache-miss
 const prisma = require('../config/prisma');
 
@@ -293,16 +294,9 @@ class AssignmentService {
 
       let submission = null;
       try {
-        submission = await submissionRepository.findFirst({
-          where: { assignmentId: assignmentIdNum, studentId: studentIdNum },
-          include: {
-            useCaseDiagram: true,
-            useCaseDescriptions: true,
-            ssdDiagrams: true,
-            classDiagram: true,
-            sequenceDiagrams: true,
-            evaluation: { select: { totalScore: true, remarks: true } },
-          },
+        submission = await findSubmissionWithArtifacts(submissionRepository, {
+          assignmentId: assignmentIdNum,
+          studentId: studentIdNum,
         });
       } catch (dbErr) {
         console.error(
