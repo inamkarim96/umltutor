@@ -1,15 +1,19 @@
-# Deploy backend and frontend as separate Vercel projects from this monorepo.
-# Required GitHub secrets (Settings → Secrets → Actions):
-#   VERCEL_TOKEN          — Vercel account token
-#   VERCEL_ORG_ID         — Team/user id from Vercel → Settings
-#   VERCEL_BACKEND_PROJECT_ID  — umltutor-backend project id
-#   VERCEL_FRONTEND_PROJECT_ID — umltutor-frontend project id
+# Deploy backend + frontend to separate Vercel projects (monorepo).
+#
+# GitHub → Settings → Secrets and variables → Actions → New repository secret:
+#   VERCEL_TOKEN                 (Vercel → Account Settings → Tokens)
+#   VERCEL_ORG_ID                (Vercel → Team/User Settings → General → ID)
+#   VERCEL_BACKEND_PROJECT_ID    (umltutor-backend → Settings → General → Project ID)
+#   VERCEL_FRONTEND_PROJECT_ID   (umltutor-frontend → Settings → General → Project ID)
+#
+# Backend project must have DATABASE_URL in Vercel Environment Variables (Production).
 
 name: Vercel Monorepo Deploy
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   changes:
@@ -33,33 +37,75 @@ jobs:
   deploy-backend:
     name: Deploy umltutor-backend
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: umltutor-backend
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy backend (Prisma migrate + API)
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
-          working-directory: umltutor-backend
-          vercel-args: '--prod'
+      - name: Verify GitHub secrets
+        env:
+          HAS_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
+          HAS_ORG: ${{ secrets.VERCEL_ORG_ID != '' }}
+          HAS_PROJECT: ${{ secrets.VERCEL_BACKEND_PROJECT_ID != '' }}
+        run: |
+          missing=0
+          [ "$HAS_TOKEN" = "true" ]    || { echo "::error::Missing secret: VERCEL_TOKEN"; missing=1; }
+          [ "$HAS_ORG" = "true" ]      || { echo "::error::Missing secret: VERCEL_ORG_ID"; missing=1; }
+          [ "$HAS_PROJECT" = "true" ]  || { echo "::error::Missing secret: VERCEL_BACKEND_PROJECT_ID"; missing=1; }
+          exit $missing
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@41
+
+      - name: Pull Vercel settings (incl. DATABASE_URL)
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Build (runs prisma migrate via vercel-build.js)
+        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Deploy to production
+        run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
 
   deploy-frontend:
     name: Deploy umltutor-frontend
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: umltutor-frontend
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy frontend
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
-          working-directory: umltutor-frontend
-          vercel-args: '--prod'
+      - name: Verify GitHub secrets
+        env:
+          HAS_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
+          HAS_ORG: ${{ secrets.VERCEL_ORG_ID != '' }}
+          HAS_PROJECT: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID != '' }}
+        run: |
+          missing=0
+          [ "$HAS_TOKEN" = "true" ]    || { echo "::error::Missing secret: VERCEL_TOKEN"; missing=1; }
+          [ "$HAS_ORG" = "true" ]      || { echo "::error::Missing secret: VERCEL_ORG_ID"; missing=1; }
+          [ "$HAS_PROJECT" = "true" ]  || { echo "::error::Missing secret: VERCEL_FRONTEND_PROJECT_ID"; missing=1; }
+          exit $missing
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@41
+
+      - name: Pull Vercel settings
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Build
+        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Deploy to production
+        run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
