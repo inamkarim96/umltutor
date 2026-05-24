@@ -1,7 +1,8 @@
 {
   "version": 2,
-  "installCommand": "npm install",
+  "installCommand": "cd .. && npm ci",
   "buildCommand": "npm run vercel-build",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- umltutor-backend/ package-lock.json",
   "rewrites": [
     {
       "source": "/(.*)",
