@@ -49,7 +49,12 @@ class AssignmentService {
   }
 
   async getStudentAssignment(id) {
-    return inflightGet(`assignments:student:${id}`, () => apiClient.get(`/api/student/assignments/${id}`));
+    return inflightGet(`assignments:student:${id}`, () =>
+      apiClient.get(`/api/student/assignments/${id}`, {
+        // Workspace handles errors; avoid duplicate global toast on load failures
+        skipErrorToast: true,
+      })
+    );
   }
 
   async getAssignment(id) {

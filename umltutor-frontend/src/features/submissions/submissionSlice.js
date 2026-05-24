@@ -248,8 +248,15 @@ const submissionSlice = createSlice({
             }
           : payload;
       })
-      .addCase(fetchSubmissionStatus.rejected, (state) => {
+      .addCase(fetchSubmissionStatus.rejected, (state, action) => {
         state.isLoading = false;
+        const assignmentId =
+          typeof action.meta?.arg === 'object' ? action.meta.arg.assignmentId : action.meta?.arg;
+        state.currentSubmission = {
+          ...(state.currentSubmission || {}),
+          status: 'pending',
+          ...(assignmentId != null ? { assignmentId } : {}),
+        };
       })
       // Teacher: Assignment Submissions
       .addCase(fetchAssignmentSubmissions.fulfilled, (state, action) => {

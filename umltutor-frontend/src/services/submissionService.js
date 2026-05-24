@@ -160,7 +160,10 @@ class SubmissionService {
     const key = `submissions:status:${assignmentId}:${includeReport ? 'full' : 'lite'}`;
     const params = includeReport ? { includeReport: 'true' } : {};
     return inflightGet(key, () =>
-      apiClient.get(`/api/submissions/${assignmentId}/status`, { params })
+      apiClient.get(`/api/submissions/${assignmentId}/status`, {
+        params,
+        skipErrorToast: true,
+      })
     );
   }
 

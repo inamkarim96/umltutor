@@ -3,9 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 const assignmentRepository = _interopRequireDefault(require('../repositories/assignmentRepository')).default;
-const { NotFoundError, AuthorizationError, ValidationError, AppError, DatabaseError } = require('../utils/errors');
+const { NotFoundError, ValidationError } = require('../utils/errors');
 const classRepository = _interopRequireDefault(require('../repositories/classRepository')).default;
-const userRepository = _interopRequireDefault(require('../repositories/userRepository')).default;
 const submissionRepository = _interopRequireDefault(require('../repositories/submissionRepository')).default;
 const notificationService = _interopRequireDefault(require('./notificationService')).default;
 const serviceCache = require('../utils/serviceCache');
@@ -270,29 +269,39 @@ class AssignmentService {
     const cacheKey = `assignment:student:${studentIdNum}:${assignmentIdNum}`;
 
     return serviceCache.cached(cacheKey, 90, async () => {
-      const assignment = await prisma.assignment.findFirst({
-        where: {
-          id: assignmentIdNum,
-          class: { students: { some: { studentId: studentIdNum } } },
-        },
-        select: {
-          id: true,
-          title: true,
-          dueDate: true,
-          releaseDate: true,
-          maxScore: true,
-          type: true,
-          classId: true,
-          textContent: true,
-          assignmentFileUrl: true,
-          assignmentFileName: true,
-          assignmentFileType: true,
-          class: { select: { id: true, name: true } },
-        },
-      });
+      let assignment;
+      try {
+        assignment = await prisma.assignment.findFirst({
+          where: {
+            id: assignmentIdNum,
+            class: { students: { some: { studentId: studentIdNum } } },
+          },
+          select: {
+            id: true,
+            title: true,
+            dueDate: true,
+            releaseDate: true,
+            maxScore: true,
+            type: true,
+            classId: true,
+            textContent: true,
+            assignmentFileUrl: true,
+            assignmentFileName: true,
+            assignmentFileType: true,
+            class: { select: { id: true, name: true } },
+          },
+        });
+      } catch (err) {
+        console.error(
+          `[AssignmentService] Assignment query failed id=${assignmentIdNum} student=${studentIdNum}:`,
+          err.message
+        );
+        throw err;
+      }
       if (!assignment) throw new NotFoundError('Assignment');
 
       let submission = null;
+      let submissionLoadWarning = null;
       try {
         submission = await findSubmissionWithArtifacts(submissionRepository, {
           assignmentId: assignmentIdNum,
@@ -300,18 +309,27 @@ class AssignmentService {
         });
       } catch (dbErr) {
         console.error(
-          `[AssignmentService] Submission load failed for assignment=${assignmentIdNum} student=${studentIdNum}:`,
-          dbErr.message
+          `[AssignmentService] GET assignment=${assignmentIdNum} student=${studentIdNum} — submission load failed:`,
+          dbErr.message,
+          dbErr.code || ''
         );
-        throw new DatabaseError('Failed to load your saved work for this assignment');
+        submissionLoadWarning =
+          'Saved work could not be loaded. You can continue with a blank workspace or retry later.';
       }
 
-      return {
+      const payload = {
         ...assignment,
         deadline: assignment.dueDate?.toISOString() ?? null,
         submission: this._leanSubmissionForClient(submission),
         artifacts: this._extractArtifactsFromSubmission(submission),
+        ...(submissionLoadWarning ? { submissionLoadWarning } : {}),
       };
+
+      if (submissionLoadWarning) {
+        serviceCache.invalidate(cacheKey);
+      }
+
+      return payload;
     }, 45_000);
   }
 }

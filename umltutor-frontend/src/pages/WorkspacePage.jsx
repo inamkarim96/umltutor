@@ -146,7 +146,7 @@ const WorkspacePage = ({ mode }) => {
 
             {error && (
                 <div
-                    className="bg-status-red text-white text-xs py-3 px-4 text-center font-bold font-body shadow-sm z-40 relative flex flex-wrap items-center justify-center gap-3"
+                    className="bg-amber-600 text-white text-xs py-3 px-4 text-center font-bold font-body shadow-sm z-40 relative flex flex-wrap items-center justify-center gap-3"
                     role="alert"
                 >
                     <span>{error}</span>
@@ -155,7 +155,14 @@ const WorkspacePage = ({ mode }) => {
                         onClick={() => refreshModel()}
                         className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-md text-[10px] uppercase tracking-widest transition-colors"
                     >
-                        Retry
+                        Retry load
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-md text-[10px] uppercase tracking-widest transition-colors"
+                    >
+                        Reload page
                     </button>
                 </div>
             )}

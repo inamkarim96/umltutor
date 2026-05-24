@@ -78,7 +78,7 @@ const getMySubmission = async (req, res) => {
   }
 }; exports.getMySubmission = getMySubmission;
 
-const getSubmissionStatus = async (req, res) => {
+const getSubmissionStatus = async (req, res, next) => {
   try {
     const assignmentId = req.params.assignmentId || req.params.id;
     const includeReport = req.query.includeReport === 'true';
@@ -89,7 +89,11 @@ const getSubmissionStatus = async (req, res) => {
     );
     res.json({ success: true, data });
   } catch (error) {
-    res.status(500).json({ success: false, error: { message: error.message } });
+    console.error(
+      `[getSubmissionStatus] route=GET /api/submissions/:id/status assignmentId=${req.params.assignmentId || req.params.id} studentId=${req.user?.id}:`,
+      error.message
+    );
+    next(error);
   }
 }; exports.getSubmissionStatus = getSubmissionStatus;
 

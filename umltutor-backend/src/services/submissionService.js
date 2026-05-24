@@ -307,21 +307,31 @@ class SubmissionService {
   }
 
   async _loadSubmissionStatus(assignmentId, studentId, includeReport = false) {
-    const submission = await findSubmissionStatus(
-      submissionRepository,
-      {
-        assignmentId_studentId: {
-          assignmentId: Number(assignmentId),
-          studentId: Number(studentId),
+    let submission;
+    try {
+      submission = await findSubmissionStatus(
+        submissionRepository,
+        {
+          assignmentId_studentId: {
+            assignmentId: Number(assignmentId),
+            studentId: Number(studentId),
+          },
         },
-      },
-      { includeReport }
-    );
+        { includeReport }
+      );
+    } catch (err) {
+      console.error(
+        `[SubmissionService] GET status assignment=${assignmentId} student=${studentId}:`,
+        err.message
+      );
+      return { status: 'pending', assignmentId: Number(assignmentId) };
+    }
 
-    if (!submission) return { status: 'pending' };
+    if (!submission) return { status: 'pending', assignmentId: Number(assignmentId) };
 
     const base = {
       id: submission.id,
+      assignmentId: Number(assignmentId),
       status: submission.status,
       submittedAt: submission.submittedAt,
       score: submission.evaluation?.totalScore ?? 0,

@@ -61,11 +61,40 @@ export const fetchModelLogic = async ({ assignmentId }) => {
         return adaptModel(createEmptyModel('new', 'New Project'), 'new');
     }
 
-    const response = await assignmentService.getStudentAssignment(assignmentId);
-
-    if (response) {
-        return adaptModel(response, assignmentId);
-    } else {
-        return adaptModel(createEmptyModel(assignmentId), assignmentId);
+    try {
+        const response = await assignmentService.getStudentAssignment(assignmentId);
+        if (response) {
+            const model = adaptModel(response, assignmentId);
+            if (response.submissionLoadWarning) {
+                model.loadWarning = response.submissionLoadWarning;
+            }
+            return model;
+        }
+        const empty = adaptModel(createEmptyModel(assignmentId), assignmentId);
+        empty.loadWarning = 'No previous saved work found.';
+        return empty;
+    } catch (err) {
+        const status = err.status ?? err.response?.status;
+        if (status === 404) {
+            const e = new Error('Assignment not found');
+            e.status = 404;
+            throw e;
+        }
+        if (status === 403) {
+            const e = new Error('You do not have access to this assignment');
+            e.status = 403;
+            throw e;
+        }
+        if (status === 401) {
+            const e = new Error('Unauthorized access');
+            e.status = 401;
+            throw e;
+        }
+        const empty = adaptModel(createEmptyModel(assignmentId), assignmentId);
+        empty.loadWarning =
+            status >= 500
+                ? 'Server error while loading saved work. You can continue with a blank workspace.'
+                : err.message || 'No previous saved work found.';
+        return empty;
     }
 };

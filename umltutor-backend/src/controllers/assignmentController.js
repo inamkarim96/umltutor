@@ -150,10 +150,15 @@ const getStudentAssignment = async (req, res, next) => {
                 error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR' },
             });
         }
-        const result = await assignmentService.getAssignmentForStudent(req.params.id, req.user.id);
+        const assignmentId = req.params.id;
+        const studentId = req.user.id;
+        const result = await assignmentService.getAssignmentForStudent(assignmentId, studentId);
         res.json({ success: true, data: result });
     } catch (error) {
-        console.error(`[getStudentAssignment] id=${req.params.id} user=${req.user?.id}:`, error.message);
+        console.error(
+            `[getStudentAssignment] route=GET /api/student/assignments/:id assignmentId=${req.params.id} studentId=${req.user?.id}:`,
+            error.message
+        );
         next(error);
     }
 }; exports.getStudentAssignment = getStudentAssignment;

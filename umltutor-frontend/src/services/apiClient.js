@@ -109,11 +109,12 @@ apiClient.interceptors.response.use(
                     });
                 }
             } else if (status >= 500) {
-
-                eventBus.emit(GLOBAL_EVENTS.SHOW_TOAST, {
-                    message: 'Server error. Please try again later.',
-                    type: 'error'
-                });
+                if (!error.config?.skipErrorToast) {
+                    eventBus.emit(GLOBAL_EVENTS.SHOW_TOAST, {
+                        message: 'Server error. Please try again later.',
+                        type: 'error'
+                    });
+                }
             } else if (status === 403) {
                 eventBus.emit(GLOBAL_EVENTS.SHOW_TOAST, {
                     message: 'You do not have permission to perform this action.',

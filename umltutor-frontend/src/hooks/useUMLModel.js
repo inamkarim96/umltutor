@@ -6,7 +6,6 @@ import {
     selectDevelopmentModel,
 
 } from '../features/diagram';
-import { selectIsGuest } from '../features/auth';
 import { selectCurrentMode } from '../features/modes';
 import { createEmptyModel, } from '../types/umlModel';
 import { fetchModelLogic } from '../features/diagram/diagramLogic';
@@ -20,8 +19,6 @@ export const useUMLModel = (assignmentId) => {
     const mode = useSelector(selectCurrentMode);
     const tutorialModel = useSelector(selectTutorialModel);
     const developmentModel = useSelector(selectDevelopmentModel);
-    const isGuest = useSelector(selectIsGuest);
-
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -47,43 +44,40 @@ export const useUMLModel = (assignmentId) => {
             setIsLoading(true);
             setError(null);
             
-            const isStudentWork = window.location.pathname.includes('/student/assignments/');
-            console.log(`[useUMLModel] Loading ${mode} model for ID: ${assignmentId}`);
-
-            const adaptedModel = await fetchModelLogic({
-                assignmentId,
-                mode,
-                isGuest,
-                isStudentWork
-            });
+            const adaptedModel = await fetchModelLogic({ assignmentId });
 
             dispatch(setModel({ mode, model: adaptedModel }));
+
+            if (adaptedModel.loadWarning) {
+                setError(adaptedModel.loadWarning);
+            }
         } catch (err) {
             const status = err.status ?? err.response?.status;
-            console.error(`[useUMLModel] Error loading ID ${assignmentId}:`, status, err.message || err);
 
             if (status === 404 || assignmentId === 'guest-default') {
                 const newModel = createEmptyModel(assignmentId, `New ${mode === 'tutorial' ? 'Tutorial' : 'Project'}`);
                 dispatch(setModel({ mode, model: newModel }));
-                setError(null);
+                setError(status === 404 ? 'Assignment not found' : null);
             } else if (status === 403) {
-                lastFailedIdRef.current = assignmentId;
                 setError('You do not have access to this assignment. Make sure you joined the class.');
+            } else if (status === 401) {
+                setError('Unauthorized access. Please sign in again.');
+            } else if (status >= 500) {
+                const fallback = createEmptyModel(assignmentId, `Assignment ${assignmentId}`);
+                dispatch(setModel({ mode, model: fallback }));
+                setError('Server error. Please try again later.');
             } else {
-                lastFailedIdRef.current = assignmentId;
                 const msg =
                     status === 429
                         ? 'Too many requests. Please wait a moment and refresh.'
-                        : status >= 500
-                          ? `Server error (${status}): ${err.message || 'Could not load assignment data'}. Try again or contact support.`
-                          : err.message || 'Failed to initialize workspace';
+                        : err.message || 'Failed to initialize workspace';
                 setError(msg);
             }
         } finally {
             setIsLoading(false);
             loadingRef.current = null;
         }
-    }, [assignmentId, isGuest, mode, dispatch]);
+    }, [assignmentId, mode, dispatch]);
 
 
     // Reset failure ref if target ID changes
