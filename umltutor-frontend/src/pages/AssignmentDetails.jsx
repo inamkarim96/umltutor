@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { SubmitAssignment } from '../features/classroom';
 import { CreateAssignmentModal } from '../features/teacher';
+import StudentCheckingReport from '../components/shared/StudentCheckingReport';
 
 const AssignmentDetails = () => {
     const { titleSlug } = useParams();
@@ -137,9 +138,15 @@ const AssignmentDetails = () => {
         if (role === 'TEACHER' && id) {
             dispatch(fetchAssignmentSubmissions(id));
         } else if (role === 'STUDENT' && id) {
-            dispatch(fetchSubmissionStatus(id));
+            dispatch(fetchSubmissionStatus({ assignmentId: id, includeReport: false }));
         }
     }, [id, role, dispatch]);
+
+    useEffect(() => {
+        if (role === 'STUDENT' && id && submissionStatus?.status?.toLowerCase() === 'graded' && !submissionStatus?.fullReport) {
+            dispatch(fetchSubmissionStatus({ assignmentId: id, includeReport: true }));
+        }
+    }, [id, role, dispatch, submissionStatus?.status, submissionStatus?.fullReport]);
 
     const classId = assignment?.classId;
     useEffect(() => {
@@ -481,6 +488,10 @@ const AssignmentDetails = () => {
                                                         "{myOfficialSubmission.remarks || myOfficialSubmission.feedback}"
                                                     </p>
                                                 </div>
+                                            )}
+
+                                            {myOfficialSubmission.status?.toLowerCase() === 'graded' && (
+                                                <StudentCheckingReport report={myOfficialSubmission.fullReport} />
                                             )}
 
                                             <button

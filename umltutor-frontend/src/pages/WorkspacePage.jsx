@@ -53,7 +53,7 @@ const WorkspacePage = ({ mode }) => {
         if (!found) {
             dispatch(fetchAssignmentById({ id: assignmentId, role: 'STUDENT' }));
         } else {
-            dispatch(fetchSubmissionStatus({ assignmentId, includeReport: false }));
+            dispatch(fetchSubmissionStatus({ assignmentId, includeReport: true }));
         }
     }, [dispatch, titleSlug, assignments, isAssignmentLoading, assignmentId]);
 

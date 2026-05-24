@@ -898,7 +898,7 @@ const LandingPage = () => {
               <div className="step-icon">
                 <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" /></svg>
               </div>
-              <div className="step-title">AI Validation</div>
+              <div className="step-title">Validation</div>
               <div className="step-desc">Semantic analysis checks consistency, completeness, and correctness across your entire UML model.</div>
             </div>
             <div className="step-card">

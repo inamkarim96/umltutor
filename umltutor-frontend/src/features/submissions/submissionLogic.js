@@ -3,13 +3,27 @@ import submissionService from '../../services/submissionService';
 /**
  * Loads submission details and initial remarks.
  */
+const parseValidationReport = (raw) => {
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw;
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+};
+
 export const loadSubmissionLogic = async (submissionId) => {
     try {
         const data = await submissionService.getSubmissionDetail(submissionId);
+        const validationReport = parseValidationReport(
+            data?.validationReport || data?.evaluation?.validationReport
+        );
         return {
             submission: data,
             remarks: data?.evaluation?.remarks || data?.teacherFeedback || '',
-            validationReport: data?.validationReport || data?.evaluation?.validationReport || null
+            validationReport,
+            fullReport: validationReport,
         };
     } catch (error) {
         console.error('Error in loadSubmissionLogic:', error);

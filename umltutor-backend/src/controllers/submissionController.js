@@ -97,13 +97,14 @@ const getSubmissionStatus = async (req, res, next) => {
   }
 }; exports.getSubmissionStatus = getSubmissionStatus;
 
-const getSubmissionDetail = async (req, res) => {
+const getSubmissionDetail = async (req, res, next) => {
   try {
     const { id } = req.params;
     const submission = await _submissionService2.default.getSubmissionDetailWithRole(Number(id), Number(req.user.id), req.user.role);
     res.json({ success: true, data: submission });
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, error: { message: error.message } });
+    console.error(`[getSubmissionDetail] id=${req.params.id} user=${req.user?.id}:`, error.message);
+    next(error);
   }
 }; exports.getSubmissionDetail = getSubmissionDetail;
 
@@ -229,7 +230,7 @@ const rejectTutorialMode = async (req, res) => {
   }
 }; exports.rejectTutorialMode = rejectTutorialMode;
 
-const getTutorialRequests = async (req, res) => {
+const getTutorialRequests = async (req, res, next) => {
   try {
     const result = await _submissionService2.default.getTutorialRequestsForTeacher(req.user.id, {
       status: req.query.status || 'all',

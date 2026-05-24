@@ -239,10 +239,19 @@ const submissionSlice = createSlice({
       .addCase(fetchSubmissionStatus.fulfilled, (state, action) => {
         state.isLoading = false;
         const payload = action.payload;
+        let fullReport = payload?.fullReport ?? null;
+        if (typeof fullReport === 'string') {
+          try {
+            fullReport = JSON.parse(fullReport);
+          } catch {
+            fullReport = null;
+          }
+        }
         state.currentSubmission = payload
           ? {
               ...(state.currentSubmission || {}),
               ...payload,
+              fullReport,
               assignmentId:
                 payload.assignmentId ?? action.meta?.arg?.assignmentId ?? state.currentSubmission?.assignmentId,
             }

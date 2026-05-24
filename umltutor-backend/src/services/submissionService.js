@@ -16,7 +16,11 @@ const {
   isSubmissionSubmitted,
   validateTutorialApproval,
 } = require('../utils/tutorialRequestUtils');
-const { findSubmissionStatus } = require('../utils/submissionQueryUtils');
+const {
+  findSubmissionStatus,
+  findSubmissionDetailById,
+  findTutorialRequestsForTeacher,
+} = require('../utils/submissionQueryUtils');
 
 /**
  * Submission Service - optimized with parallel artifact upserts and improved transaction handling.
@@ -373,29 +377,13 @@ class SubmissionService {
       throw error;
     }
 
-    const submission = await submissionRepository.findUnique({
-      where: { id: Number(submissionId) },
-      include: {
-        student: { select: { id: true, email: true, firstName: true, lastName: true } },
-        useCaseDiagram: true,
-        useCaseDescriptions: true,
-        ssdDiagrams: true,
-        classDiagram: true,
-        sequenceDiagrams: true,
-        evaluation: true,
-        assignment: {
-          select: {
-            id: true,
-            title: true,
-            maxScore: true,
-            classId: true,
-            createdBy: true,
-            textContent: true,
-            class: { select: { teacherId: true, name: true } }
-          }
-        }
-      }
-    });
+    let submission;
+    try {
+      submission = await findSubmissionDetailById(submissionId);
+    } catch (err) {
+      console.error(`[SubmissionService] getSubmissionDetail id=${submissionId}:`, err.message);
+      throw err;
+    }
 
     if (!submission) {
       throw new NotFoundError('Submission');
@@ -1157,58 +1145,15 @@ class SubmissionService {
     const cacheKey = `tutorial:requests:${tid}:${status}:${pageNum}:${limitNum}`;
 
     return serviceCache.cached(cacheKey, 60, async () => {
-      const prisma = require('../config/prisma');
-
-      const where = {
-        assignment: { createdBy: tid },
-        OR: [
-          { tutorialRequested: true },
-          { tutorialApproved: true },
-          { tutorialRejected: true },
-        ],
-      };
-
-      if (status === 'pending') {
-        where.tutorialRequested = true;
-        where.tutorialApproved = false;
-        where.tutorialRejected = false;
-        delete where.OR;
-      } else if (status === 'approved') {
-        where.tutorialApproved = true;
-        delete where.OR;
-      } else if (status === 'rejected') {
-        where.tutorialRejected = true;
-        where.tutorialApproved = false;
-        delete where.OR;
-      }
-
-      const [total, rows] = await Promise.all([
-        prisma.submission.count({ where }),
-        prisma.submission.findMany({
-          where,
-          include: {
-            student: { select: { id: true, firstName: true, lastName: true, email: true } },
-            assignment: { select: { id: true, title: true, dueDate: true } },
-            useCaseDiagram: { select: { data: true } },
-            useCaseDescriptions: { select: { id: true } },
-            ssdDiagrams: { select: { id: true } },
-            classDiagram: { select: { data: true } },
-            sequenceDiagrams: { select: { id: true } },
-          },
-          orderBy: [{ tutorialRequestedAt: 'desc' }, { submittedAt: 'desc' }],
-          skip: (pageNum - 1) * limitNum,
-          take: limitNum,
-        }),
-      ]);
+      const { rows, pagination } = await findTutorialRequestsForTeacher(tid, {
+        status,
+        pageNum,
+        limitNum,
+      });
 
       return {
         items: rows.map((s) => this._formatTutorialRequestRow(s)),
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum) || 1,
-        },
+        pagination,
       };
     }, 30_000);
   }

@@ -235,10 +235,144 @@ async function findSubmissionStatus(submissionRepository, where, { includeReport
   return { status: "pending" };
 }
 
+/**
+ * Load full submission detail by id without failing on optional Submission columns.
+ */
+async function findSubmissionDetailById(submissionId) {
+  const id = Number(submissionId);
+  if (!id || Number.isNaN(id)) return null;
+
+  const staged = await loadSubmissionArtifactsStaged({ id });
+  if (!staged) return null;
+
+  const [student, assignment, evaluation] = await Promise.all([
+    prisma.user
+      .findUnique({
+        where: { id: staged.studentId },
+        select: { id: true, email: true, firstName: true, lastName: true },
+      })
+      .catch(() => null),
+    prisma.assignment
+      .findUnique({
+        where: { id: staged.assignmentId },
+        select: {
+          id: true,
+          title: true,
+          maxScore: true,
+          classId: true,
+          createdBy: true,
+          textContent: true,
+          class: { select: { teacherId: true, name: true } },
+        },
+      })
+      .catch(() => null),
+    prisma.evaluation
+      .findUnique({
+        where: { submissionId: id },
+      })
+      .catch(() => null),
+  ]);
+
+  return withTutorialFieldDefaults({
+    ...staged,
+    student,
+    assignment,
+    evaluation,
+  });
+}
+
+async function findTutorialRequestsForTeacher(teacherId, { status = "all", pageNum = 1, limitNum = 20 } = {}) {
+  const tid = Number(teacherId);
+  const skip = (pageNum - 1) * limitNum;
+
+  const buildWhere = (includeRejected) => {
+    const where = { assignment: { createdBy: tid } };
+    if (status === "pending") {
+      where.tutorialRequested = true;
+      where.tutorialApproved = false;
+      if (includeRejected) where.tutorialRejected = false;
+    } else if (status === "approved") {
+      where.tutorialApproved = true;
+    } else if (status === "rejected" && includeRejected) {
+      where.tutorialRejected = true;
+      where.tutorialApproved = false;
+    } else {
+      where.OR = [
+        { tutorialRequested: true },
+        { tutorialApproved: true },
+        ...(includeRejected ? [{ tutorialRejected: true }] : []),
+      ];
+    }
+    return where;
+  };
+
+  const include = {
+    student: { select: { id: true, firstName: true, lastName: true, email: true } },
+    assignment: { select: { id: true, title: true, dueDate: true } },
+    useCaseDiagram: { select: { data: true } },
+    useCaseDescriptions: { select: { id: true } },
+    ssdDiagrams: { select: { id: true } },
+    classDiagram: { select: { data: true } },
+    sequenceDiagrams: { select: { id: true } },
+  };
+
+  const attempts = [
+  {
+      where: buildWhere(true),
+      orderBy: [{ tutorialRequestedAt: "desc" }, { submittedAt: "desc" }],
+    },
+    {
+      where: buildWhere(false),
+      orderBy: [{ submittedAt: "desc" }],
+    },
+    {
+      where: { assignment: { createdBy: tid }, tutorialRequested: true },
+      orderBy: [{ submittedAt: "desc" }],
+    },
+  ];
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    try {
+      const [total, rows] = await Promise.all([
+        prisma.submission.count({ where: attempt.where }),
+        prisma.submission.findMany({
+          where: attempt.where,
+          include,
+          orderBy: attempt.orderBy,
+          skip,
+          take: limitNum,
+        }),
+      ]);
+      return {
+        rows: rows.map(withTutorialFieldDefaults),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum) || 1,
+        },
+      };
+    } catch (err) {
+      lastError = err;
+      if (!isMissingSubmissionColumnError(err)) throw err;
+      console.warn("[Submission] Tutorial requests query retry:", err.message);
+    }
+  }
+
+  if (lastError) throw lastError;
+  return {
+    rows: [],
+    pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 1 },
+  };
+}
+
 module.exports = {
   isMissingSubmissionColumnError,
   withTutorialFieldDefaults,
   findSubmissionStatus,
   findSubmissionWithArtifacts,
   loadSubmissionArtifactsStaged,
+  findSubmissionDetailById,
+  findTutorialRequestsForTeacher,
 };

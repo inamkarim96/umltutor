@@ -832,7 +832,8 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
             </button>
           )}
 
-          {currentMode === 'development' && (!isStudentWork || hasReport || currentSubmission?.tutorialApproved) && (
+          {(currentMode === 'development' || isTutorialMode) &&
+            (!isStudentWork || hasReport || currentSubmission?.fullReport || currentSubmission?.tutorialApproved) && (
             <button
                 onClick={toggleCheckingMode}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold font-body transition-colors shadow-sm border ${isCheckingActive
@@ -841,7 +842,9 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                   }`}
               >
                 <Search size={14} />
-                {hasReport || currentSubmission?.tutorialApproved ? 'Teacher Report' : 'Checking Mode'}
+                {hasReport || currentSubmission?.fullReport || currentSubmission?.tutorialApproved
+                  ? 'Checking Report'
+                  : 'Checking Mode'}
             </button>
           )}
         </div>
