@@ -239,6 +239,7 @@ const getTutorialRequests = async (req, res, next) => {
     });
     res.json({ success: true, data: result });
   } catch (error) {
-    res.status(error.statusCode || error.status || 500).json({ success: false, error: { message: error.message } });
+    console.error("[getTutorialRequests] teacher=", req.user?.id, error.message);
+    next(error);
   }
 }; exports.getTutorialRequests = getTutorialRequests;

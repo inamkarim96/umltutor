@@ -145,7 +145,7 @@ const SequenceDiagramEditorInner = ({
     return (
         <div className="flex flex-col h-full bg-slate-50 relative">
             <SequenceMarkers />
-            <div className="relative flex-1 bg-white overflow-hidden min-h-[500px]">
+            <div className="relative flex-1 bg-white overflow-hidden min-h-[500px] h-full w-full" style={{ minHeight: 480 }}>
                 {!isReadOnly && (
                     <SequenceDiagramToolbar
                         onAddLifeline={onAddLifeline}

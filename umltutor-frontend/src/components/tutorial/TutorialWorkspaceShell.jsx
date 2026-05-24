@@ -79,8 +79,11 @@ const TutorialWorkspaceShell = ({
             onValidate={onValidate}
           />
 
-          <div className="flex-1 min-h-[520px] md:min-h-[640px] bg-white rounded-2xl shadow-card border border-black/5 overflow-hidden flex flex-col">
-            {children}
+          <div
+            className="flex-1 bg-white rounded-2xl shadow-card border border-black/5 overflow-hidden flex flex-col"
+            style={{ minHeight: 520, height: "min(75vh, 720px)" }}
+          >
+            <div className="flex-1 min-h-0 w-full h-full flex flex-col">{children}</div>
           </div>
         </div>
       </div>

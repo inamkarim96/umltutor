@@ -11,8 +11,18 @@ function isMissingSubmissionColumnError(err) {
   return (
     msg.includes("does not exist") ||
     msg.includes("Unknown column") ||
-    msg.includes("column") && msg.includes("Submission") ||
+    (msg.includes("column") && msg.includes("Submission")) ||
     (err?.code === "P2022" && /Submission/i.test(msg))
+  );
+}
+
+function isMissingTableOrColumnError(err) {
+  const msg = String(err?.message || "");
+  return (
+    isMissingSubmissionColumnError(err) ||
+    msg.includes("does not exist") ||
+    (err?.code === "P2021") ||
+    (err?.code === "P2022")
   );
 }
 
@@ -306,18 +316,26 @@ async function findTutorialRequestsForTeacher(teacherId, { status = "all", pageN
     return where;
   };
 
-  const include = {
+  const baseInclude = {
     student: { select: { id: true, firstName: true, lastName: true, email: true } },
     assignment: { select: { id: true, title: true, dueDate: true } },
     useCaseDiagram: { select: { data: true } },
     useCaseDescriptions: { select: { id: true } },
     ssdDiagrams: { select: { id: true } },
-    classDiagram: { select: { data: true } },
-    sequenceDiagrams: { select: { id: true } },
   };
 
-  const attempts = [
-  {
+  // Production DB may not have ClassDiagram / SequenceDiagram tables yet
+  const includeVariants = [
+    {
+      ...baseInclude,
+      classDiagram: { select: { data: true } },
+      sequenceDiagrams: { select: { id: true } },
+    },
+    baseInclude,
+  ];
+
+  const whereAttempts = [
+    {
       where: buildWhere(true),
       orderBy: [{ tutorialRequestedAt: "desc" }, { submittedAt: "desc" }],
     },
@@ -329,38 +347,75 @@ async function findTutorialRequestsForTeacher(teacherId, { status = "all", pageN
       where: { assignment: { createdBy: tid }, tutorialRequested: true },
       orderBy: [{ submittedAt: "desc" }],
     },
+    {
+      where: {
+        assignment: { createdBy: tid },
+        status: { in: ["submitted", "graded"] },
+      },
+      orderBy: [{ submittedAt: "desc" }],
+      filterInMemory: true,
+    },
   ];
 
   let lastError = null;
-  for (const attempt of attempts) {
-    try {
-      const [total, rows] = await Promise.all([
-        prisma.submission.count({ where: attempt.where }),
-        prisma.submission.findMany({
+  for (const attempt of whereAttempts) {
+    for (const include of includeVariants) {
+      try {
+        let rows = await prisma.submission.findMany({
           where: attempt.where,
           include,
           orderBy: attempt.orderBy,
-          skip,
-          take: limitNum,
-        }),
-      ]);
-      return {
-        rows: rows.map(withTutorialFieldDefaults),
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum) || 1,
-        },
-      };
-    } catch (err) {
-      lastError = err;
-      if (!isMissingSubmissionColumnError(err)) throw err;
-      console.warn("[Submission] Tutorial requests query retry:", err.message);
+          skip: attempt.filterInMemory ? 0 : skip,
+          take: attempt.filterInMemory ? Math.min(200, limitNum * 10) : limitNum,
+        });
+        rows = rows.map(withTutorialFieldDefaults);
+
+        if (attempt.filterInMemory) {
+          rows = rows.filter((s) => {
+            const st = s.tutorialApproved
+              ? "approved"
+              : s.tutorialRejected
+                ? "rejected"
+                : s.tutorialRequested
+                  ? "pending"
+                  : "none";
+            if (status === "pending") return st === "pending";
+            if (status === "approved") return st === "approved";
+            if (status === "rejected") return st === "rejected";
+            return st !== "none";
+          });
+          const total = rows.length;
+          rows = rows.slice(skip, skip + limitNum);
+          return {
+            rows,
+            pagination: {
+              page: pageNum,
+              limit: limitNum,
+              total,
+              totalPages: Math.ceil(total / limitNum) || 1,
+            },
+          };
+        }
+
+        const total = await prisma.submission.count({ where: attempt.where });
+        return {
+          rows,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum) || 1,
+          },
+        };
+      } catch (err) {
+        lastError = err;
+        if (!isMissingTableOrColumnError(err)) throw err;
+        console.warn("[Submission] Tutorial requests query retry:", err.message);
+      }
     }
   }
 
-  if (lastError) throw lastError;
+  console.warn("[Submission] Tutorial requests unavailable — returning empty list");
   return {
     rows: [],
     pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 1 },

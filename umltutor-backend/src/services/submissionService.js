@@ -1145,16 +1145,30 @@ class SubmissionService {
     const cacheKey = `tutorial:requests:${tid}:${status}:${pageNum}:${limitNum}`;
 
     return serviceCache.cached(cacheKey, 60, async () => {
-      const { rows, pagination } = await findTutorialRequestsForTeacher(tid, {
-        status,
-        pageNum,
-        limitNum,
-      });
+      try {
+        const { rows, pagination } = await findTutorialRequestsForTeacher(tid, {
+          status,
+          pageNum,
+          limitNum,
+        });
 
-      return {
-        items: rows.map((s) => this._formatTutorialRequestRow(s)),
-        pagination,
-      };
+        const items = [];
+        for (const row of rows) {
+          try {
+            items.push(this._formatTutorialRequestRow(row));
+          } catch (formatErr) {
+            console.warn("[Submission] Skip tutorial request row:", formatErr.message);
+          }
+        }
+
+        return { items, pagination };
+      } catch (err) {
+        console.error("[SubmissionService] getTutorialRequestsForTeacher:", err.message);
+        return {
+          items: [],
+          pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 1 },
+        };
+      }
     }, 30_000);
   }
 }

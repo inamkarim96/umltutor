@@ -972,7 +972,9 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
             </span>
           }
         >
-          <div className="flex-1 min-h-0 p-2 flex flex-col">{renderContent()}</div>
+          <div className="flex-1 min-h-0 w-full h-full p-2 flex flex-col" style={{ minHeight: 480 }}>
+            {renderContent()}
+          </div>
         </TutorialWorkspaceShell>
       ) : (
         <div className="flex-1 w-full max-w-[1600px] mx-auto px-6 py-8 pb-32">
