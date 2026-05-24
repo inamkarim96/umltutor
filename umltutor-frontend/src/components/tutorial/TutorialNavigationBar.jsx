@@ -6,6 +6,7 @@ const TutorialNavigationBar = ({
   isLastStep,
   isSaving,
   proceedTooltip,
+  processLabel = 'Process',
   onPrevious,
   onProceed,
   onSave,
@@ -57,11 +58,11 @@ const TutorialNavigationBar = ({
         >
           {isLastStep ? (
             <>
-              <PartyPopper size={16} /> Complete Tutorial
+              <PartyPopper size={16} /> {processLabel}
             </>
           ) : (
             <>
-              Proceed to Next Editor <ArrowRight size={16} />
+              {processLabel} <ArrowRight size={16} />
             </>
           )}
         </button>

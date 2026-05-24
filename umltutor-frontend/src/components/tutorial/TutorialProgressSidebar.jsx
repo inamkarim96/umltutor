@@ -92,7 +92,11 @@ const TutorialProgressSidebar = ({
               key={step.id}
               type="button"
               disabled={locked}
-              onClick={() => !locked && onStepSelect(step.id)}
+              onClick={() => {
+                if (locked) return;
+                onStepSelect(step.id);
+              }}
+              title={locked ? 'Complete previous steps first' : undefined}
               className={`w-full text-left p-3 rounded-xl transition-all flex gap-3 items-start border-2 ${
                 isActive
                   ? 'border-accent/30 bg-accent/5 shadow-sm'

@@ -36,7 +36,7 @@ const TutorialValidationPanel = ({
             <Sparkles size={20} className="text-accent shrink-0 mt-0.5" />
             <p className="text-sm font-medium leading-relaxed">
               Complete the diagram, then run <strong className="text-ink">Run Check</strong>. When validation passes,
-              <strong className="text-ink"> Proceed to Next Editor</strong> will unlock.
+              the <strong className="text-ink">Process</strong> button unlocks to move to the next step.
             </p>
           </div>
         )}

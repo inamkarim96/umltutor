@@ -162,8 +162,9 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   const tutorialCompletedSteps = useAppSelector(selectTutorialCompletedSteps);
   const tutorialValidationByStep = useAppSelector(selectTutorialValidationByStep);
   const normalizedTutorialStep = normalizeTutorialStepId(tutorialStep);
-  const showTutorialUI =
-    (isTutorialActive || isTutorialEditable) && !isReadOnly && !(isStudentWork && isSubmitted && !isTutorialEditable);
+  // Tutorial shell when in tutorial mode and the student can edit (incl. approved tutorial on submitted work)
+  const showTutorialUI = isTutorialMode && !effectivelyReadOnly;
+  const enforceTutorialProgression = isTutorialMode;
   const isSubmitting = useAppSelector(selectIsSubmitting);
   const checkingState = useAppSelector(state => state.checking);
 
@@ -365,13 +366,24 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
     }
   }, [showTutorialUI, assignmentId, dispatch]);
 
+  // Keep the student on the highest allowed step (cannot skip ahead)
   useEffect(() => {
-    if (!showTutorialUI) return;
+    if (!enforceTutorialProgression) return;
+    if (isStepUnlocked(activeSection, tutorialCompletedSteps)) return;
+    const allowedStep =
+      [...TUTORIAL_STEPS].reverse().find((s) => isStepUnlocked(s.id, tutorialCompletedSteps))?.id ||
+      'usecase';
+    setActiveSection(allowedStep);
+    dispatch(setTutorialStep(allowedStep));
+  }, [enforceTutorialProgression, tutorialCompletedSteps, activeSection, dispatch]);
+
+  useEffect(() => {
+    if (!enforceTutorialProgression) return;
     const step = normalizeTutorialStepId(tutorialStep);
-    if (activeSection !== step) {
+    if (isStepUnlocked(step, tutorialCompletedSteps) && activeSection !== step) {
       setActiveSection(step);
     }
-  }, [showTutorialUI, tutorialStep]);
+  }, [enforceTutorialProgression, tutorialStep, tutorialCompletedSteps]);
 
   const persistTutorialProgress = useCallback(
     (overrides = {}) => {
@@ -389,8 +401,11 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
     id: step.id,
     label: `${step.order}. ${step.label}`,
     icon: step.id === 'usecase' || step.id === 'sequence-diagram' ? Share2 : step.id === 'description' ? FileText : Database,
-    isLocked: showTutorialUI && !isStepUnlocked(step.id, tutorialCompletedSteps),
-    isActive: !showTutorialUI || step.id === normalizedTutorialStep || tutorialCompletedSteps.includes(step.id),
+    isLocked: enforceTutorialProgression && !isStepUnlocked(step.id, tutorialCompletedSteps),
+    isActive:
+      !enforceTutorialProgression ||
+      step.id === normalizedTutorialStep ||
+      tutorialCompletedSteps.includes(step.id),
   }));
 
   const currentStepValidation = tutorialValidationByStep[activeSection];
@@ -409,8 +424,8 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   }, [model, activeSection, systemName, dispatch, persistTutorialProgress]);
 
   const handleSectionTabChange = (sectionId) => {
-    if (showTutorialUI && !isStepUnlocked(sectionId, tutorialCompletedSteps)) {
-      errorToast('Complete and validate previous steps first.');
+    if (enforceTutorialProgression && !isStepUnlocked(sectionId, tutorialCompletedSteps)) {
+      errorToast('Complete and validate the current step before opening later editors.');
       return;
     }
     const section = sections.find((s) => s.id === sectionId);
@@ -425,13 +440,11 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
     }
   };
 
-  const handleTutorialProceed = async () => {
-    const validation = currentStepValidation?.isValid
-      ? currentStepValidation
-      : await runTutorialValidation();
+  const handleTutorialProcess = async () => {
+    const validation = await runTutorialValidation();
 
     if (!validation?.isValid) {
-      errorToast(validation?.message || 'Fix validation issues before proceeding.');
+      errorToast(validation?.message || 'Complete this step according to the validation rules.');
       return;
     }
 
@@ -466,8 +479,8 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   };
 
   const handleProcess = async () => {
-    if (showTutorialUI) {
-      await handleTutorialProceed();
+    if (enforceTutorialProgression) {
+      await handleTutorialProcess();
       return;
     }
     if (activeSection === 'usecase') {
@@ -861,19 +874,19 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
         </div>
       )}
 
-      {/* 3. Horizontal Tab Bar (development / read-only; tutorial uses sidebar) */}
-      {!showTutorialUI && (
+      {/* 3. Horizontal Tab Bar (development only — tutorial uses guided sidebar) */}
+      {!enforceTutorialProgression && (
       <div className="bg-white border-b border-black/5 px-6 pt-3 flex gap-4 overflow-x-auto custom-scrollbar sticky z-30" style={{ top: '73px' }}>
          {sections.map(section => (
             <button
               key={section.id}
               onClick={() => handleSectionTabChange(section.id)}
-              disabled={isTutorialMode && section.isLocked}
+              disabled={section.isLocked}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-bold font-body transition-all border-b-2 whitespace-nowrap ${
                 activeSection === section.id
                 ? 'border-accent text-accent bg-accent/5'
                 : 'border-transparent text-muted hover:bg-surface-3 hover:text-ink'
-              } ${isTutorialMode && section.isLocked ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
+              } ${section.isLocked ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
             >
               <section.icon size={16} className={activeSection === section.id ? 'text-accent' : 'text-gray-400'} />
               {section.label}
@@ -941,11 +954,12 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           canProceed={canProceedTutorial}
           isLastStep={isLastTutorialStep}
           isSaving={isManualSaving || isAutoSaving}
-          proceedTooltip="Run Check and pass validation to unlock the next editor."
+          proceedTooltip="Complete this diagram, run Check, then use Process to continue."
+          processLabel="Process"
           onStepSelect={handleSectionTabChange}
           onValidate={runTutorialValidation}
           onPrevious={handleBack}
-          onProceed={handleTutorialProceed}
+          onProceed={handleTutorialProcess}
           onSave={handleTutorialSave}
           onExit={() => setIsExitConfirmOpen(true)}
           showPrevious={!!getPreviousStepId(activeSection)}

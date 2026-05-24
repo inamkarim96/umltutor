@@ -25,6 +25,7 @@ const TutorialWorkspaceShell = ({
   onSave,
   onExit,
   showPrevious,
+  processLabel = 'Process',
   children,
   headerExtras,
 }) => {
@@ -94,6 +95,7 @@ const TutorialWorkspaceShell = ({
         onSave={onSave}
         onExit={onExit}
         showPrevious={showPrevious}
+        processLabel={processLabel}
       />
 
       {sidebarOpen && (
