@@ -1,0 +1,54 @@
+/* Assignments list component styles */
+.sdb-asgn-list {
+  padding: 8px 12px 16px;
+}
+
+.sdb-asgn-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 12px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.sdb-asgn-row:hover {
+  background: var(--surface-2);
+  transform: translateX(2px);
+}
+
+.sdb-asgn-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: var(--surface);
+  font-family: var(--font-d);
+  font-size: 14px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sdb-asgn-info { flex: 1; }
+
+.sdb-asgn-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.sdb-asgn-class {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+
+.sdb-asgn-due {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+}

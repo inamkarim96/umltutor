@@ -1,0 +1,84 @@
+/* Class List component styles */
+.sdb-class-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sdb-class-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.sdb-class-row:hover {
+  background: var(--surface-3);
+  border-color: var(--accent);
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
+}
+
+.sdb-class-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: var(--surface);
+  font-family: var(--font-d);
+  font-size: 18px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sdb-class-info { flex: 1; }
+
+.sdb-class-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.sdb-class-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+
+.sdb-class-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sdb-class-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 100px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid rgba(80,70,229,0.15);
+  flex-shrink: 0;
+}
+
+.sdb-class-arrow {
+  color: var(--ink-3);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.sdb-class-row:hover .sdb-class-arrow { opacity: 1; }

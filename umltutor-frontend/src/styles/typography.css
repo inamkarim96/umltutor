@@ -1,0 +1,9 @@
+/* Typography utilities */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-d);
+  color: var(--ink);
+}
+body, p, span, a {
+  font-family: var(--font-b);
+  color: var(--ink);
+}

@@ -1,0 +1,240 @@
+.practice-workbench {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.practice-workbench-header {
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(255, 255, 255, 0));
+}
+
+.practice-workbench-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.practice-workbench-subtitle {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  max-width: 720px;
+}
+
+.practice-workbench-body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 680px;
+}
+
+.practice-steps {
+  border-right: 1px solid var(--border);
+  background: var(--surface-2, #fafafa);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.practice-steps-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 0 8px;
+}
+
+.practice-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.practice-step-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.practice-step-btn:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.practice-step-btn.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.practice-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.12);
+  flex-shrink: 0;
+}
+
+.practice-step-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.practice-save-block {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.practice-save-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 0 4px 4px;
+}
+
+.practice-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.practice-save-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.practice-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.practice-save-error {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.practice-save-hint {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
+}
+
+.practice-editor-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface);
+}
+
+.practice-editor-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.practice-editor-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--surface);
+  background: var(--accent);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.practice-editor-panel-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.practice-editor-canvas {
+  flex: 1;
+  min-height: 600px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.practice-editor-canvas > div {
+  min-height: 580px;
+}
+
+.practice-class-wrap,
+.practice-class-wrap > div {
+  height: 100%;
+  min-height: 580px;
+}
+
+.practice-editor-loading {
+  display: grid;
+  place-items: center;
+  min-height: 400px;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .practice-workbench-body {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-steps {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .practice-steps-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .practice-save-block {
+    margin-top: 0;
+  }
+}

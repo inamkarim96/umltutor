@@ -1,0 +1,23 @@
+/* Main Layout Grid */
+.sdb-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  padding: 28px 28px 40px;
+}
+
+.sdb-col { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 24px; 
+}
+
+@media (max-width: 768px) {
+  .sdb-grid {
+    padding: 16px 16px 32px;
+  }
+  .sdb-col {
+    gap: 16px;
+  }
+}
+

@@ -1,11 +1,8 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-/**
- * Protected route component that redirects to login if user is not authenticated.
- * Passes the current location as `state.from` so LoginPage can redirect back after login.
- */
+
 const ProtectedRoute = ({ children, requiredRole }) => {
     const { authState, isLoading } = useAuth();
 
@@ -21,14 +18,11 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     }
 
     if (!authState.isAuthenticated) {
-        // Send logged-out users to the public landing page.
-        // Using `replace` prevents polluting browser history (Back button issues).
         return <Navigate to="/" replace />;
     }
 
     // Role-based access control
     if (requiredRole && authState?.user?.role !== requiredRole) {
-        // Show unauthorized page instead of redirecting
         return (
             <div className="min-h-screen flex items-center justify-center bg-transparent">
                 <div className="text-center">
@@ -42,7 +36,10 @@ const ProtectedRoute = ({ children, requiredRole }) => {
         );
     }
 
-    return <>{children}</>;
+    // If children provided (e.g. wrapping a single page), render children.
+    // If no children (used as a layout-guard route element), render Outlet
+    // so nested child routes can render inside their layout component.
+    return children ? <>{children}</> : <Outlet />;
 };
 
 export default ProtectedRoute;

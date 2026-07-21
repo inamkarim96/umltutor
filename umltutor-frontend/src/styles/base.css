@@ -1,0 +1,9 @@
+/* Base root styles */
+.sdb-root {
+  font-family: var(--font-b);
+  color: var(--ink);
+  background: var(--surface-2);
+  min-height: 100%;
+  flex: 1;
+  overflow-y: auto;
+}

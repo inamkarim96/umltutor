@@ -1,7 +1,8 @@
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import './index.css';
+import "./index.css";          /* Tailwind base — used by Login, Landing, auth pages */
+import "./styles/index.css";   /* Modular design system — used by Student Dashboard    */
 import App from './App';
 import { store } from './app/store';
 import { ThemeProvider } from './contexts/ThemeContext';

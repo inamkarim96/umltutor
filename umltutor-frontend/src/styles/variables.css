@@ -1,0 +1,44 @@
+:root {
+  /* Colors */
+  --accent: #5046E5;
+  --accent-light: #7B6FFF;
+  --accent-soft: rgba(80, 70, 229, 0.10);
+  --blue: #3B82F6;
+  --blue-soft: rgba(59, 130, 246, 0.10);
+  --amber: #F59E0B;
+  --amber-soft: rgba(245, 158, 11, 0.10);
+  --green: #10B981;
+  --green-soft: rgba(16, 185, 129, 0.10);
+  --purple: #8B5CF6;
+  --purple-soft: rgba(139, 92, 246, 0.10);
+  --red: #EF4444;
+  --red-soft: rgba(239, 68, 68, 0.10);
+  --ink: #0F0F1A;
+  --ink-2: #3D3D5C;
+  --ink-3: #8888A8;
+  --surface: #FFFFFF;
+  --surface-2: #F8F8FC;
+  --surface-3: #EFEFF8;
+  --border: rgba(15, 15, 26, 0.07);
+  --border-med: rgba(15, 15, 26, 0.12);
+  --shadow-sm: 0 1px 3px rgba(15, 15, 26, 0.06), 0 1px 2px rgba(15, 15, 26, 0.04);
+  --shadow-md: 0 4px 16px rgba(15, 15, 26, 0.08), 0 1px 4px rgba(15, 15, 26, 0.04);
+  --shadow-lg: 0 8px 32px rgba(15, 15, 26, 0.10), 0 2px 8px rgba(15, 15, 26, 0.06);
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --font-d: 'Syne', sans-serif;
+  --font-b: 'DM Sans', sans-serif;
+  /* Brand token aliases */
+  --brand-primary: var(--accent);
+  --brand-primary-light: var(--accent-light);
+  --brand-secondary: var(--blue);
+  --brand-success: var(--green);
+  --brand-warning: var(--amber);
+  --brand-error: var(--red);
+  --brand-font-display: var(--font-d);
+  --brand-font-body: var(--font-b);
+  --transition-base: 0.2s ease;
+  --focus-ring: 0 0 0 3px rgba(80, 70, 229, 0.3);
+}

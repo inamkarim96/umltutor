@@ -1,0 +1,35 @@
+/* Layout component styles */
+.sdb-layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    font-family: var(--font-b);
+    color: var(--ink);
+    background: var(--surface-2);
+}
+
+.sdb-main {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sdb-outlet {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: min-content;
+}
+
+/* Each routed page fills the outlet naturally */
+.sdb-outlet > * {
+    flex: 1;
+}
+
+@media (max-width: 1024px) {
+    .sdb-main {
+        padding-top: 56px;
+    }
+}

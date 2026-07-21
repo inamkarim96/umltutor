@@ -1,0 +1,14 @@
+/* Simple CSS reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html, body {
+  height: 100%;
+  font-family: var(--font-b);
+  background: var(--surface-2);
+  color: var(--ink);
+}

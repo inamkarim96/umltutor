@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, ArrowLeft, Calendar, Target, FileText } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { selectAllAssignments, fetchAllAssignments } from '../../features/assignments';
@@ -8,13 +8,14 @@ import { selectUser } from '../../features/auth';
 
 const SubmittedAssignments = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const dispatch = useAppDispatch();
     const user = useAppSelector(selectUser);
     const allAssignments = useAppSelector(selectAllAssignments) || [];
     const mySubmissions = useAppSelector(selectSubmissions) || [];
     
-    // Detect mode from URL
-    const isReviewedMode = window.location.pathname.includes('/reviewed');
+    // Detect mode reactively from current route location
+    const isReviewedMode = location.pathname.includes('/reviewed');
 
     React.useEffect(() => {
         dispatch(fetchAllAssignments('STUDENT'));

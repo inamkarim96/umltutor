@@ -152,7 +152,7 @@ export const AuthProvider = ({ children }) => {
                 navigate('/register', { replace: true });
             }
         }
-    }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.needsEmailVerification, authState.user, authState.redirectPath, navigate, location.pathname, isLoading]);
+    }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.needsEmailVerification, authState.user, authState.redirectPath, navigate, isLoading]);
 
     const login = async (email, password) => {
         try {

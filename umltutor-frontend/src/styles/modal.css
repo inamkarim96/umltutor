@@ -1,0 +1,147 @@
+/* Modal component styles */
+.sdb-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,15,26,0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: sdb-fadeIn 0.15s ease;
+}
+
+.sdb-modal {
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: sdb-scaleIn 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+
+.sdb-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sdb-modal-head h2 {
+  font-family: var(--font-d);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 4px;
+}
+
+.sdb-modal-head p {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.sdb-modal-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.sdb-modal-close:hover { background: var(--surface-3); color: var(--ink); }
+
+.sdb-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sdb-modal-body label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+  letter-spacing: 0.03em;
+}
+
+.sdb-modal-body input {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 2px solid var(--border-med);
+  border-radius: var(--r-md);
+  font-family: var(--font-d);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.sdb-modal-body input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.sdb-input-err { border-color: var(--red) !important; }
+.sdb-input-err:focus { box-shadow: 0 0 0 3px var(--red-soft) !important; }
+
+.sdb-form-err {
+  font-size: 12px;
+  color: var(--red);
+  font-weight: 500;
+  margin: 0;
+}
+
+.sdb-modal-submit {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: var(--surface);
+  font-family: var(--font-b);
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(80,70,229,0.35);
+}
+
+.sdb-modal-submit:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(80,70,229,0.45);
+}
+
+/* Modal keyframe animations */
+@keyframes sdb-fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes sdb-fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sdb-scaleIn {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1);    }
+}

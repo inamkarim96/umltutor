@@ -123,21 +123,19 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-transparent px-4 py-12">
-            <div className="max-w-md w-full bg-white p-12 rounded-lg border border-black/5 shadow-card hover:shadow-hover transition-all duration-300 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                
-                <div className="relative z-10">
-                    <h2 className="text-center text-4xl font-heading font-extrabold text-ink tracking-tight mb-3">
+        <div className="sdb-auth-container">
+            <div className="sdb-auth-card">
+                <div className="sdb-auth-header">
+                    <h2 className="sdb-auth-title">
                         {isForgotPassword ? 'Reset Access' : 'Welcome Back'}
                     </h2>
-                    <p className="text-center text-sm text-muted font-medium mb-10">
+                    <p className="sdb-auth-subtitle">
                         {isForgotPassword ? (
                             'Enter your email to receive a recovery link.'
                         ) : (
                             <>
                                 New to UML Tutor?{' '}
-                                <Link to="/signup" className="text-accent font-bold font-body hover:text-accent/80 transition-all underline-offset-4 decoration-2 hover:underline">
+                                <Link to="/signup" className="sdb-auth-link">
                                     Create account
                                 </Link>
                             </>
@@ -145,100 +143,96 @@ const LoginPage = () => {
                     </p>
                 </div>
 
-                <div className="mt-8 space-y-6">
+                <div className="sdb-form-container">
                     {/* Feedback Messages */}
                     {successMessage && (
-                        <div className="bg-status-green/10 border-l-4 border-status-green p-4 rounded-sm flex items-center gap-3 animate-fadeIn">
-                            <CheckCircle2 className="w-5 h-5 text-status-green" />
-                            <span className="text-sm font-semibold text-status-green">{successMessage}</span>
+                        <div className="sdb-form-alert sdb-form-alert-success">
+                            <CheckCircle2 size={20} />
+                            <span>{successMessage}</span>
                         </div>
                     )}
 
                     {errorMessage && (
-                        <div className="bg-status-red/10 border-l-4 border-status-red p-4 rounded-sm flex items-center gap-3 animate-shake">
-                            <AlertCircle className="w-5 h-5 text-status-red" />
-                            <span className="text-sm font-semibold text-status-red">{errorMessage}</span>
+                        <div className="sdb-form-alert sdb-form-alert-error">
+                            <AlertCircle size={20} />
+                            <span>{errorMessage}</span>
                         </div>
                     )}
 
                     {isForgotPassword ? (
-                        <div className="space-y-5">
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-bold font-body text-ink ml-1">Email address</label>
+                        <div className="sdb-form-group-container">
+                            <div className="sdb-form-group">
+                                <label htmlFor="email" className="sdb-form-label">Email address</label>
                                 <input
                                     id="email"
                                     type="email"
                                     {...register('email')}
-                                    className={`mt-1.5 block w-full px-4 py-3 border-2 ${errors.email ? 'border-status-red' : 'border-transparent'} rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all`}
+                                    className={`sdb-form-input ${errors.email ? 'sdb-form-input-error' : ''}`}
                                     placeholder="you@example.com"
                                 />
-                                {errors.email && <p className="mt-1.5 text-xs font-bold font-body text-status-red ml-1">{errors.email.message}</p>}
+                                {errors.email && <p className="sdb-form-error-text">{errors.email.message}</p>}
                             </div>
                             <button
                                 type="button"
                                 onClick={handleForgotPassword}
                                 disabled={isLoading}
-                                className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-card hover:shadow-hover hover:-translate-y-[2px] text-sm font-bold font-body text-white transition-all transform active:scale-98 ${
-                                    isLoading ? 'bg-accent/50 cursor-not-allowed' : 'bg-accent'
-                                }`}
+                                className="sdb-form-submit"
                             >
                                 {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Send Reset Link'}
                             </button>
-                            <div className="text-center">
-                                <button type="button" onClick={() => { setIsForgotPassword(false); setErrorMessage(''); setSuccessMessage(''); }} className="text-sm font-semibold text-accent hover:text-accent/80 hover:underline">
+                            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                                <button type="button" onClick={() => { setIsForgotPassword(false); setErrorMessage(''); setSuccessMessage(''); }} className="sdb-auth-link">
                                     Back to Login
                                 </button>
                             </div>
                         </div>
                     ) : (
-                        <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-                            <div className="space-y-4">
-                                <div>
-                                    <label htmlFor="email" className="block text-sm font-bold font-body text-ink ml-1">Email address</label>
+                        <form onSubmit={handleSubmit(onSubmit)}>
+                            <div className="sdb-form-group-container">
+                                <div className="sdb-form-group">
+                                    <label htmlFor="email" className="sdb-form-label">Email address</label>
                                     <input
                                         id="email"
                                         type="email"
                                         {...register('email')}
-                                        className={`mt-1.5 block w-full px-4 py-3 border-2 ${errors.email ? 'border-status-red' : 'border-transparent'} rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all`}
+                                        className={`sdb-form-input ${errors.email ? 'sdb-form-input-error' : ''}`}
                                         placeholder="you@example.com"
                                     />
-                                    {errors.email && <p className="mt-1.5 text-xs font-bold font-body text-status-red ml-1">{errors.email.message}</p>}
+                                    {errors.email && <p className="sdb-form-error-text">{errors.email.message}</p>}
                                 </div>
 
-                                <div>
-                                    <div className="flex items-center justify-between ml-1 mb-1.5">
-                                        <label htmlFor="password" className="block text-sm font-bold font-body text-ink">Password</label>
-                                        <button type="button" onClick={() => setIsForgotPassword(true)} className="text-sm font-semibold text-accent hover:text-accent/80 hover:underline">
+                                <div className="sdb-form-group">
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                        <label htmlFor="password" className="sdb-form-label" style={{ margin: 0 }}>Password</label>
+                                        <button type="button" onClick={() => setIsForgotPassword(true)} className="sdb-auth-link">
                                             Forgot password?
                                         </button>
                                     </div>
-                                    <div className="relative">
+                                    <div style={{ position: 'relative' }}>
                                         <input
                                             id="password"
                                             type={showPassword ? 'text' : 'password'}
                                             {...register('password')}
-                                            className={`block w-full px-4 py-3 border-2 ${errors.password ? 'border-status-red' : 'border-transparent'} rounded-md bg-surface-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all pr-12`}
+                                            className={`sdb-form-input ${errors.password ? 'sdb-form-input-error' : ''}`}
                                             placeholder="••••••••"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted hover:text-accent transition-colors rounded-sm hover:bg-surface-3"
+                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)' }}
                                             tabIndex="-1"
                                         >
-                                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </div>
-                                    {errors.password && <p className="mt-1.5 text-xs font-bold font-body text-status-red ml-1">{errors.password.message}</p>}
+                                    {errors.password && <p className="sdb-form-error-text">{errors.password.message}</p>}
                                 </div>
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-card hover:shadow-hover hover:-translate-y-[2px] text-sm font-bold font-body text-white transition-all transform active:scale-98 ${
-                                    isLoading ? 'bg-accent/50 cursor-not-allowed' : 'bg-accent'
-                                }`}
+                                className="sdb-form-submit"
                             >
                                 {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Log In'}
                             </button>

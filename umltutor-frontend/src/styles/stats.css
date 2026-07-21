@@ -1,0 +1,83 @@
+/* Stats Strip */
+.sdb-stats-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .sdb-stats-strip { grid-template-columns: repeat(2, 1fr); }
+}
+
+.sdb-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.sdb-stat:last-child { border-right: none; }
+.sdb-stat:hover { background: var(--surface-2); }
+
+.sdb-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sdb-stat-blue   .sdb-stat-icon { background: var(--blue-soft);   color: var(--blue);   }
+.sdb-stat-amber  .sdb-stat-icon { background: var(--amber-soft);  color: var(--amber);  }
+.sdb-stat-green  .sdb-stat-icon { background: var(--green-soft);  color: var(--green);  }
+.sdb-stat-purple .sdb-stat-icon { background: var(--purple-soft); color: var(--purple); }
+
+.sdb-stat-body { flex: 1; }
+
+.sdb-stat-value {
+  font-family: var(--font-d);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.sdb-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 1px;
+}
+
+.sdb-stat-note {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+
+.sdb-stat-arrow {
+  color: var(--ink-3);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.sdb-stat:hover .sdb-stat-arrow { opacity: 1; transform: translateX(0); }
+
+.sdb-stat-blue:hover   .sdb-stat-value { color: var(--blue);   }
+.sdb-stat-amber:hover  .sdb-stat-value { color: var(--amber);  }
+.sdb-stat-green:hover  .sdb-stat-value { color: var(--green);  }
+.sdb-stat-purple:hover .sdb-stat-value { color: var(--purple); }

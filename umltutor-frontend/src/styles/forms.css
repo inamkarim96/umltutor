@@ -1,0 +1,193 @@
+/* Forms and Auth component styles */
+.sdb-auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-2);
+    padding: 24px;
+}
+
+.sdb-auth-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--surface);
+    padding: 40px;
+    border-radius: var(--r-xl);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.sdb-auth-card::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 150px;
+    height: 150px;
+    background: var(--accent-soft);
+    border-radius: 50%;
+}
+
+.sdb-auth-header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.sdb-auth-title {
+    font-family: var(--font-d);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+}
+
+.sdb-auth-subtitle {
+    font-size: 14px;
+    color: var(--ink-3);
+    font-weight: 500;
+}
+
+.sdb-auth-link {
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.sdb-auth-link:hover {
+    color: var(--accent-light);
+    text-decoration: underline;
+}
+
+.sdb-form-group {
+    margin-bottom: 20px;
+}
+
+.sdb-form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+    margin-left: 2px;
+}
+
+.sdb-form-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--surface-3);
+    border: 2px solid transparent;
+    border-radius: var(--r-md);
+    font-family: var(--font-b);
+    font-size: 14px;
+    color: var(--ink);
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.sdb-form-input:focus {
+    background: var(--surface);
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.sdb-form-input-error {
+    border-color: var(--red);
+}
+
+.sdb-form-input-error:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px var(--red-soft);
+}
+
+.sdb-form-error-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--red);
+    margin-top: 6px;
+    margin-left: 2px;
+}
+
+.sdb-form-alert {
+    padding: 16px;
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.sdb-form-alert-error {
+    background: var(--red-soft);
+    border-left: 4px solid var(--red);
+}
+
+.sdb-form-alert-error svg {
+    color: var(--red);
+}
+
+.sdb-form-alert-error span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--red);
+}
+
+.sdb-form-alert-success {
+    background: var(--green-soft);
+    border-left: 4px solid var(--green);
+}
+
+.sdb-form-alert-success svg {
+    color: var(--green);
+}
+
+.sdb-form-alert-success span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--green);
+}
+
+.sdb-form-submit {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: var(--accent);
+    color: var(--surface);
+    font-family: var(--font-b);
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--r-md);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    box-shadow: 0 4px 16px rgba(80,70,229,0.25);
+    margin-top: 8px;
+}
+
+.sdb-form-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(80,70,229,0.35);
+    background: var(--accent-light);
+}
+
+.sdb-form-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.sdb-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
