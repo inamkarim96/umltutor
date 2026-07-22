@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component {
     });
 
     // Log error to console in development
-    if (import.meta.env.DEV) {
+    if (process.env.NODE_ENV !== 'production') {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component {
     }
 
     // Log to external service in production
-    if (import.meta.env.PROD) {
+    if (process.env.NODE_ENV === 'production') {
       this.logErrorToService(error, errorInfo);
     }
   }
@@ -121,7 +121,7 @@ export class ErrorBoundary extends Component {
 
             <p className="text-muted text-center mb-6">We're sorry, but something unexpected happened. Our team has been notified.</p>
 
-            {import.meta.env.DEV && this.state.error && (
+            {process.env.NODE_ENV !== 'production' && this.state.error && (
               <details className="mb-6 p-4 bg-surface-3 rounded-lg">
                 <summary className="cursor-pointer font-medium text-gray-700 mb-2">Error Details (Development Only)</summary>
                 <div className="text-sm text-muted">

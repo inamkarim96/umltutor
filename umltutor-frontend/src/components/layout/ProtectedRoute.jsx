@@ -6,7 +6,9 @@ import { useAuth } from '../../contexts/AuthContext';
 const ProtectedRoute = ({ children, requiredRole }) => {
     const { authState, isLoading } = useAuth();
 
-    if (isLoading) {
+    // Only block the entire page during initial auth bootstrap.
+    // Token refresh must not unmount the layout and break client-side navigation.
+    if (isLoading && !authState.user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-transparent">
                 <div className="text-center">
@@ -36,10 +38,12 @@ const ProtectedRoute = ({ children, requiredRole }) => {
         );
     }
 
-    // If children provided (e.g. wrapping a single page), render children.
-    // If no children (used as a layout-guard route element), render Outlet
-    // so nested child routes can render inside their layout component.
-    return children ? <>{children}</> : <Outlet />;
+    // Layout routes (no children) must render Outlet so nested pages mount correctly.
+    if (!children) {
+        return <Outlet />;
+    }
+
+    return <>{children}</>;
 };
 
 export default ProtectedRoute;

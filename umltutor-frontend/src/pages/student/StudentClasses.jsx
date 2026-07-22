@@ -3,13 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, ArrowLeft, Plus, X, ChevronRight, GraduationCap } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { selectClasses, fetchClasses, joinClass } from '../../features/classroom';
-import { selectUser } from '../../features/auth';
 
 const StudentClasses = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const classes = useAppSelector(selectClasses);
-    const user = useAppSelector(selectUser);
     const [classCode, setClassCode] = useState('');
     const [isJoining, setIsJoining] = useState(false);
     const [joinError, setJoinError] = useState('');
@@ -27,7 +25,7 @@ const StudentClasses = () => {
         setIsJoining(true);
         
         try {
-            await dispatch(joinClass({ studentId: user?.id, classCode })).unwrap();
+            await dispatch(joinClass(classCode)).unwrap();
             setClassCode('');
             setIsJoining(false);
             setShowJoinForm(false);

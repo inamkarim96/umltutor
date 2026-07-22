@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     onAuthStateChanged,
@@ -37,12 +37,14 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const lastCheckedUid = useRef(null);
     const checkingInProgress = useRef(false);
+    const authStateRef = useRef(authState);
+    authStateRef.current = authState;
 
     // Listen for Firebase Auth state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             // Prevent redundant checks if we already have this user and didn't sign out
-            if (firebaseUser?.uid === lastCheckedUid.current && authState.user && !checkingInProgress.current) {
+            if (firebaseUser?.uid === lastCheckedUid.current && authStateRef.current.user && !checkingInProgress.current) {
                 setIsLoading(false);
                 return;
             }
@@ -140,8 +142,12 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (isLoading) return;
 
+        const publicPaths = ['/', '/login', '/register', '/signup'];
+        const isOnPublicPage = publicPaths.includes(location.pathname);
+
         if (authState.isAuthenticated && authState.user) {
-            if (location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/signup' || location.pathname === '/') {
+            // Only redirect to dashboard when on public pages
+            if (isOnPublicPage) {
                 const path = authState.redirectPath || '/dashboard';
                 clearRedirectPath();
                 navigate(path, { replace: true });
@@ -152,7 +158,7 @@ export const AuthProvider = ({ children }) => {
                 navigate('/register', { replace: true });
             }
         }
-    }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.needsEmailVerification, authState.user, authState.redirectPath, navigate, isLoading]);
+    }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.needsEmailVerification, authState.user, authState.redirectPath, navigate, isLoading, location.pathname]);
 
     const login = async (email, password) => {
         try {
@@ -300,7 +306,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const value = {
+    const value = useMemo(() => ({
         authState,
         isLoading,
         login,
@@ -310,7 +316,7 @@ export const AuthProvider = ({ children }) => {
         clearRedirectPath,
         changePassword,
         deleteUserAccount
-    };
+    }), [authState, isLoading]);
 
     return (
         <AuthContext.Provider value={value}>

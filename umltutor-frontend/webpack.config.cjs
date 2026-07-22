@@ -8,7 +8,7 @@ module.exports = {
     entry: './src/main.jsx',
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'bundle.[contenthash].js',
+        filename: process.env.NODE_ENV === 'production' ? 'bundle.[contenthash].js' : 'bundle.js',
         publicPath: '/',
     },
     stats: 'minimal', // Minimal stats only

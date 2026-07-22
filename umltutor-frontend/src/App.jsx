@@ -12,6 +12,7 @@ import TeacherLayout from './components/layout/TeacherLayout';
 import DashboardRedirect from './components/layout/DashboardRedirect';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import NotFound from './components/ui/NotFound';
+import PageLoader from './components/ui/PageLoader';
 
 // Eager load auth pages
 import LoginPage from './features/auth/pages/LoginPage';
@@ -19,37 +20,29 @@ import RegisterPage from './features/auth/pages/RegisterPage';
 
 import LandingPage from './pages/LandingPage';
 
-// Lazy load workspace and dashboard pages
-const WorkspacePage = lazy(() => import('./pages/WorkspacePage'));
-const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
-const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
-const ClassesManagement = lazy(() => import('./pages/teacher/ClassesManagement'));
-const ClassDetail = lazy(() => import('./pages/teacher/ClassDetail'));
+// Student portal — eager loaded so layout navigation always swaps pages immediately
+import StudentDashboard from './pages/student/StudentDashboard';
+import StudentClasses from './pages/student/StudentClasses';
+import StudentClassDetail from './pages/student/StudentClassDetail';
+import StudentAssignmentsList from './pages/student/AssignmentsList';
+import PendingAssignments from './pages/student/PendingAssignments';
+import SubmittedAssignments from './pages/student/SubmittedAssignments';
+import StudentPractice from './pages/student/StudentPractice';
+import StudentSettings from './pages/student/StudentSettings';
 
-const AllSubmissions = lazy(() => import('./pages/teacher/AllSubmissions'));
-const StudentAssignmentsList = lazy(() => import('./pages/student/AssignmentsList'));
-const StudentClassDetail = lazy(() => import('./pages/student/StudentClassDetail'));
-const StudentClasses = lazy(() => import('./pages/student/StudentClasses'));
-const PendingAssignments = lazy(() => import('./pages/student/PendingAssignments'));
-const SubmittedAssignments = lazy(() => import('./pages/student/SubmittedAssignments'));
-const StudentPractice = lazy(() => import('./pages/student/StudentPractice'));
-const StudentSettings = lazy(() => import('./pages/student/StudentSettings'));
-const TeacherAssignmentsDashboard = lazy(() => import('./pages/teacher/AssignmentsDashboard'));
-const AssignmentSubmissions = lazy(() => import('./pages/teacher/AssignmentSubmissions'));
-const AssignmentReview = lazy(() => import('./pages/teacher/AssignmentReview'));
-const TutorialRequestsPage = lazy(() => import('./pages/teacher/TutorialRequestsPage'));
-const AssignmentDetails = lazy(() => import('./pages/AssignmentDetails'));
-const SubmissionDetail = lazy(() => import('./features/submissions/SubmissionDetail'));
+// teacher portal - eager loaded so layout navigation always swaps pages immediately
+import WorkspacePage from './pages/WorkspacePage';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import ClassesManagement from './pages/teacher/ClassesManagement';
+import ClassDetail from './pages/teacher/ClassDetail';
+import AllSubmissions from './pages/teacher/AllSubmissions';
+import TeacherAssignmentsDashboard from './pages/teacher/AssignmentsDashboard';
+import AssignmentSubmissions from './pages/teacher/AssignmentSubmissions';
+import AssignmentReview from './pages/teacher/AssignmentReview';
+import TutorialRequestsPage from './pages/teacher/TutorialRequestsPage';
+import AssignmentDetails from './pages/AssignmentDetails';
+import SubmissionDetail from './features/submissions/SubmissionDetail';
 
-// Loading fallback
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen bg-transparent">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
-      <p className="mt-4 text-muted">Loading...</p>
-    </div>
-  </div>
-);
 
 function AppRoutes() {
   const location = useLocation();
@@ -59,78 +52,78 @@ function AppRoutes() {
     <div className="app-root">
       <AnimatedPageBackground variant={bgVariant} />
       <div className="app-root-content">
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/signup" element={<RegisterPage />} />
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/signup" element={<RegisterPage />} />
 
-                {/* Redirect old dashboard path to role-based dashboard */}
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <DashboardRedirect />
-                    </ProtectedRoute>
-                  }
-                />
+          {/* Redirect old dashboard path to role-based dashboard */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardRedirect />
+              </ProtectedRoute>
+            }
+          />
 
-                {/* Teacher Routes */}
-                <Route element={<ProtectedRoute requiredRole="TEACHER" />}>
-                  <Route element={<TeacherLayout />}>
-                    <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
-                    <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-                    <Route path="/teacher/tutorial-requests" element={<TutorialRequestsPage />} />
-                    <Route path="/teacher/assignments" element={<TeacherAssignmentsDashboard />} />
-                    <Route path="/teacher/assignments/pending" element={<TeacherAssignmentsDashboard />} />
-                    <Route path="/teacher/assignments/:titleSlug" element={<AssignmentDetails />} />
-                    <Route path="/teacher/assignments/:titleSlug/submissions" element={<AssignmentSubmissions />} />
-                    <Route path="/teacher/assignments/:titleSlug/review" element={<AssignmentReview />} />
-                    <Route path="/teacher/classes" element={<ClassesManagement />} />
-                    <Route path="/teacher/classes/:className" element={<ClassDetail />} />
-                    <Route path="/teacher/submissions" element={<AllSubmissions />} />
-                    <Route path="/teacher/submissions/:submissionId" element={<SubmissionDetail />} />
-                    <Route path="/teacher/submissions/:assignmentName/:userName/:submissionId" element={<SubmissionDetail />} />
-                    <Route path="/teacher/messages/:studentId" element={<TeacherAssignmentsDashboard />} />
-                  </Route>
-                </Route>
+          {/* Teacher Routes — auth guard → layout → page */}
+          <Route path="/teacher" element={<ProtectedRoute requiredRole="TEACHER" />}>
+            <Route element={<TeacherLayout />}>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<TeacherDashboard />} />
+              <Route path="tutorial-requests" element={<TutorialRequestsPage />} />
+              <Route path="assignments" element={<TeacherAssignmentsDashboard />} />
+              <Route path="assignments/pending" element={<TeacherAssignmentsDashboard />} />
+              <Route path="assignments/:titleSlug" element={<AssignmentDetails />} />
+              <Route path="assignments/:titleSlug/submissions" element={<AssignmentSubmissions />} />
+              <Route path="assignments/:titleSlug/review" element={<AssignmentReview />} />
+              <Route path="classes" element={<ClassesManagement />} />
+              <Route path="classes/:className" element={<ClassDetail />} />
+              <Route path="submissions" element={<AllSubmissions />} />
+              <Route path="submissions/:submissionId" element={<SubmissionDetail />} />
+              <Route path="submissions/:assignmentName/:userName/:submissionId" element={<SubmissionDetail />} />
+              <Route path="messages/:studentId" element={<TeacherAssignmentsDashboard />} />
+            </Route>
+          </Route>
 
-                {/* Student Routes */}
-                <Route element={<ProtectedRoute requiredRole="STUDENT" />}>
-                  <Route element={<StudentLayout />}>
-                    <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
-                    <Route path="/student/dashboard" element={<StudentDashboard />} />
-                    <Route path="/student/classes" element={<StudentClasses />} />
-                    <Route path="/student/classes/:name" element={<StudentClassDetail />} />
-                    <Route path="/student/assignments" element={<StudentAssignmentsList />} />
-                    <Route path="/student/upcoming" element={<PendingAssignments />} />
-                    <Route path="/student/assignments/pending" element={<PendingAssignments />} />
-                    <Route path="/student/practice" element={<StudentPractice />} />
-                    <Route path="/student/submitted" element={<SubmittedAssignments />} />
-                    <Route path="/student/assignments/submitted" element={<SubmittedAssignments />} />
-                    <Route path="/student/reviewed" element={<SubmittedAssignments />} />
-                    <Route path="/student/assignments/reviewed" element={<SubmittedAssignments />} />
-                    <Route path="/student/settings" element={<StudentSettings />} />
-                    <Route path="/student/assignments/:titleSlug" element={<AssignmentDetails />} />
-                    <Route path="/student/submissions/:submissionId/report" element={<SubmissionDetail />} />
-                  </Route>
-                </Route>
+          {/* Student Routes — auth guard → layout → page */}
+          <Route path="/student" element={<ProtectedRoute requiredRole="STUDENT" />}>
+            <Route element={<StudentLayout />}>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<StudentDashboard />} />
+              <Route path="classes" element={<StudentClasses />} />
+              <Route path="classes/:name" element={<StudentClassDetail />} />
+              <Route path="assignments" element={<StudentAssignmentsList />} />
+              <Route path="upcoming" element={<PendingAssignments />} />
+              <Route path="assignments/pending" element={<PendingAssignments />} />
+              <Route path="practice" element={<StudentPractice />} />
+              <Route path="submitted" element={<SubmittedAssignments />} />
+              <Route path="assignments/submitted" element={<SubmittedAssignments />} />
+              <Route path="reviewed" element={<SubmittedAssignments />} />
+              <Route path="assignments/reviewed" element={<SubmittedAssignments />} />
+              <Route path="settings" element={<StudentSettings />} />
+              <Route path="assignments/:titleSlug" element={<AssignmentDetails />} />
+              <Route path="submissions/:submissionId/report" element={<SubmissionDetail />} />
+            </Route>
+          </Route>
 
-                <Route
-                  path="/student/assignments/:titleSlug/work"
-                  element={
-                    <ProtectedRoute requiredRole="STUDENT">
-                      <WorkspacePage mode="development" />
-                    </ProtectedRoute>
-                  }
-                />
+          <Route
+            path="/student/assignments/:titleSlug/work"
+            element={
+              <ProtectedRoute requiredRole="STUDENT">
+                <Suspense fallback={<PageLoader />}>
+                  <WorkspacePage mode="development" />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
 
-                {/* 404 Fallback */}
-                <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+          {/* 404 Fallback */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </div>
     </div>
   );
