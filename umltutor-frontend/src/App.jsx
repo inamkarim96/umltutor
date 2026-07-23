@@ -70,44 +70,55 @@ function AppRoutes() {
           />
 
           {/* Teacher Routes — auth guard → layout → page */}
-          <Route path="/teacher" element={<ProtectedRoute requiredRole="TEACHER" />}>
-            <Route element={<TeacherLayout />}>
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<TeacherDashboard />} />
-              <Route path="tutorial-requests" element={<TutorialRequestsPage />} />
-              <Route path="assignments" element={<TeacherAssignmentsDashboard />} />
-              <Route path="assignments/pending" element={<TeacherAssignmentsDashboard />} />
-              <Route path="assignments/:titleSlug" element={<AssignmentDetails />} />
-              <Route path="assignments/:titleSlug/submissions" element={<AssignmentSubmissions />} />
-              <Route path="assignments/:titleSlug/review" element={<AssignmentReview />} />
-              <Route path="classes" element={<ClassesManagement />} />
-              <Route path="classes/:className" element={<ClassDetail />} />
-              <Route path="submissions" element={<AllSubmissions />} />
-              <Route path="submissions/:submissionId" element={<SubmissionDetail />} />
-              <Route path="submissions/:assignmentName/:userName/:submissionId" element={<SubmissionDetail />} />
-              <Route path="messages/:studentId" element={<TeacherAssignmentsDashboard />} />
-            </Route>
+          <Route
+            path="/teacher"
+            element={
+              <ProtectedRoute requiredRole="TEACHER">
+                <TeacherLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<TeacherDashboard />} />
+            <Route path="tutorial-requests" element={<TutorialRequestsPage />} />
+            <Route path="assignments" element={<TeacherAssignmentsDashboard />} />
+            <Route path="assignments/pending" element={<TeacherAssignmentsDashboard />} />
+            <Route path="assignments/:titleSlug" element={<AssignmentDetails />} />
+            <Route path="assignments/:titleSlug/submissions" element={<AssignmentSubmissions />} />
+            <Route path="assignments/:titleSlug/review" element={<AssignmentReview />} />
+            <Route path="classes" element={<ClassesManagement />} />
+            <Route path="classes/:className" element={<ClassDetail />} />
+            <Route path="submissions" element={<AllSubmissions />} />
+            <Route path="submissions/:submissionId" element={<SubmissionDetail />} />
+            <Route path="submissions/:assignmentName/:userName/:submissionId" element={<SubmissionDetail />} />
+            <Route path="messages/:studentId" element={<TeacherAssignmentsDashboard />} />
+            <Route path="settings" element={<StudentSettings />} />
           </Route>
 
           {/* Student Routes — auth guard → layout → page */}
-          <Route path="/student" element={<ProtectedRoute requiredRole="STUDENT" />}>
-            <Route element={<StudentLayout />}>
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<StudentDashboard />} />
-              <Route path="classes" element={<StudentClasses />} />
-              <Route path="classes/:name" element={<StudentClassDetail />} />
-              <Route path="assignments" element={<StudentAssignmentsList />} />
-              <Route path="upcoming" element={<PendingAssignments />} />
-              <Route path="assignments/pending" element={<PendingAssignments />} />
-              <Route path="practice" element={<StudentPractice />} />
-              <Route path="submitted" element={<SubmittedAssignments />} />
-              <Route path="assignments/submitted" element={<SubmittedAssignments />} />
-              <Route path="reviewed" element={<SubmittedAssignments />} />
-              <Route path="assignments/reviewed" element={<SubmittedAssignments />} />
-              <Route path="settings" element={<StudentSettings />} />
-              <Route path="assignments/:titleSlug" element={<AssignmentDetails />} />
-              <Route path="submissions/:submissionId/report" element={<SubmissionDetail />} />
-            </Route>
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute requiredRole="STUDENT">
+                <StudentLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<StudentDashboard />} />
+            <Route path="classes" element={<StudentClasses />} />
+            <Route path="classes/:name" element={<StudentClassDetail />} />
+            <Route path="assignments" element={<StudentAssignmentsList />} />
+            <Route path="upcoming" element={<PendingAssignments />} />
+            <Route path="assignments/pending" element={<PendingAssignments />} />
+            <Route path="practice" element={<StudentPractice />} />
+            <Route path="submitted" element={<SubmittedAssignments />} />
+            <Route path="assignments/submitted" element={<SubmittedAssignments />} />
+            <Route path="reviewed" element={<SubmittedAssignments />} />
+            <Route path="assignments/reviewed" element={<SubmittedAssignments />} />
+            <Route path="settings" element={<StudentSettings />} />
+            <Route path="assignments/:titleSlug" element={<AssignmentDetails />} />
+            <Route path="submissions/:submissionId/report" element={<SubmissionDetail />} />
           </Route>
 
           <Route

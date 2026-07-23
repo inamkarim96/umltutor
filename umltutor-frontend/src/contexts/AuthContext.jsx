@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
@@ -23,7 +23,6 @@ const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
     const navigate = useNavigate();
-    const location = useLocation();
     const dispatch = useAppDispatch();
     const [authState, setAuthState] = useState({
         isAuthenticated: false,
@@ -142,8 +141,9 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (isLoading) return;
 
+        const currentPath = window.location.pathname;
         const publicPaths = ['/', '/login', '/register', '/signup'];
-        const isOnPublicPage = publicPaths.includes(location.pathname);
+        const isOnPublicPage = publicPaths.includes(currentPath);
 
         if (authState.isAuthenticated && authState.user) {
             // Only redirect to dashboard when on public pages
@@ -154,11 +154,11 @@ export const AuthProvider = ({ children }) => {
             }
         }
         else if (authState.needsProfileCompletion && !isLoading) {
-            if (location.pathname !== '/register') {
+            if (currentPath !== '/register') {
                 navigate('/register', { replace: true });
             }
         }
-    }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.needsEmailVerification, authState.user, authState.redirectPath, navigate, isLoading, location.pathname]);
+    }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.needsEmailVerification, authState.user, authState.redirectPath, navigate, isLoading]);
 
     const login = async (email, password) => {
         try {
