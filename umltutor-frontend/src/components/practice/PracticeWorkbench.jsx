@@ -5,7 +5,6 @@ import {
     setModel,
     selectDevelopmentModel,
 } from '../../features/diagram';
-import { setMode } from '../../features/modes';
 import { createEmptyModel } from '../../types/umlModel';
 import { UseCaseDiagramEditor } from '../../features/diagram';
 import { UseCaseDescriptionEditor } from '../../features/description';
@@ -58,7 +57,7 @@ const PracticeWorkbench = ({ activeSection: controlledSection, onSectionChange }
     };
 
     useEffect(() => {
-        dispatch(setMode('development'));
+        // Note: mode defaults to 'development' in Redux initialState — no dispatch needed.
         dispatch(setModel({ mode: 'development', model: loadPracticeModel() }));
     }, [dispatch]);
 

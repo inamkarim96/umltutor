@@ -40,13 +40,14 @@ module.exports = {
     },
     resolve: {
         extensions: ['.js', '.jsx'],
+        alias: {
+            react: path.resolve(__dirname, './node_modules/react'),
+            'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+        },
     },
     plugins: [
         new HtmlWebpackPlugin({
             template: './index.html',
-        }),
-        new webpack.ProvidePlugin({
-            React: 'react',
         }),
         new webpack.DefinePlugin({
             'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL || ''),

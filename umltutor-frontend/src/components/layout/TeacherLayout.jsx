@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Layout from './Layout';
 
 
 
 const TeacherLayout = () => {
-    const navConfig = [
+    const navConfig = useMemo(() => [
         {
             items: [
                 {
@@ -47,7 +47,7 @@ const TeacherLayout = () => {
                 },
             ]
         }
-    ];
+    ], []);
 
     return <Layout role="TEACHER" navConfig={navConfig} />;
 };
