@@ -3,6 +3,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);
+  min-height: 680px;
 }
 
 .practice-workbench-head {
@@ -13,6 +17,7 @@
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--surface-2, #fafafa);
+  flex-shrink: 0;
 }
 
 .practice-workbench-name {
@@ -67,30 +72,30 @@
   color: #dc2626;
   background: rgba(220, 38, 38, 0.06);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .practice-editor-panel {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  background: var(--surface);
 }
 
 .practice-editor-canvas {
   flex: 1;
-  min-height: 600px;
-  overflow: auto;
-  padding: 12px;
+  min-height: 0;
+  position: relative;
 }
 
 .practice-editor-canvas > div {
-  min-height: 580px;
+  position: absolute;
+  inset: 0;
 }
 
 .practice-class-wrap,
 .practice-class-wrap > div {
   height: 100%;
-  min-height: 580px;
 }
 
 .practice-editor-loading {
