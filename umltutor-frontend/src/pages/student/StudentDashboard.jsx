@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { selectUser } from '../../features/auth';
 import { selectClasses, joinClass, fetchClasses } from '../../features/classroom';
 import { selectAllAssignments, fetchAllAssignments } from '../../features/assignments';
 import { selectSubmissions, fetchMySubmissions } from '../../features/submissions';
 import { X, BookOpen, Clock, CheckCircle2, Users, ArrowRight, Plus, Star } from 'lucide-react';
-import PracticeWorkbench from '../../components/practice/PracticeWorkbench';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import HeroBanner from '../../components/dashboard/HeroBanner';
 import StatisticsCard from '../../components/dashboard/StatisticsCard';
@@ -16,8 +15,6 @@ const StudentDashboard = () => {
     const user = useAppSelector(selectUser);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const practiceType = searchParams.get('type') || 'usecase';
 
     const allClasses = useAppSelector(selectClasses);
     const allAssignments = useAppSelector(selectAllAssignments) || [];
@@ -182,19 +179,7 @@ const StudentDashboard = () => {
                         )}
                     </DashboardCard>
 
-                    {/* Practice Workbench */}
-                    <DashboardCard
-                        title="Practice Workbench"
-                        subtitle="Experiment freely — no submission required"
-                        icon={<CheckCircle2 size={16} />}
-                        className="sdb-card-workbench"
-                    >
-                        <div className="sdb-workbench-body">
-                            <PracticeWorkbench
-                                activeSection={practiceType}
-                            />
-                        </div>
-                    </DashboardCard>
+
                 </div>
             </DashboardLayout>
 
