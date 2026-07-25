@@ -101,18 +101,23 @@ const ROUTES = [
   { pattern: '/student/assignments/:titleSlug/work', page: 'workspace' },
 ];
 
+function getSearchParam(key) {
+  const m = window.location.search.match(new RegExp('[?&]' + key + '=([^&]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 function matchRoute(pathname) {
   for (const route of ROUTES) {
     const m = matchPath(route.pattern, pathname);
-    if (m) return { page: route.page, params: m.params };
+    if (m) return { page: route.page, params: m.params, type: getSearchParam('type') };
   }
-  return { page: 'not-found', params: {} };
+  return { page: 'not-found', params: {}, type: null };
 }
 
 function AppContent() {
   const { authState } = useAuth();
   const [pageInfo, setPageInfo] = useState(() => matchRoute(window.location.pathname));
-  const { page } = pageInfo;
+  const { page, type } = pageInfo;
 
   useEffect(() => {
     const origPush = window.history.pushState;
@@ -152,7 +157,7 @@ function AppContent() {
       case 'student-class-detail': return <StudentClassDetail />;
       case 'student-assignments': return <StudentAssignmentsList />;
       case 'student-upcoming': return <PendingAssignments />;
-      case 'student-practice': return <StudentPractice />;
+      case 'student-practice': return <StudentPractice type={type} />;
       case 'student-submitted': return <SubmittedAssignments />;
       case 'student-reviewed': return <SubmittedAssignments />;
       case 'student-settings': return <StudentSettings />;
