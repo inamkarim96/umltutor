@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
@@ -23,6 +23,7 @@ const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const dispatch = useAppDispatch();
     const [authState, setAuthState] = useState({
         isAuthenticated: false,
@@ -43,16 +44,23 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             // Prevent redundant checks if we already have this user and didn't sign out
-            if (firebaseUser?.uid === lastCheckedUid.current && authStateRef.current.user && !checkingInProgress.current) {
-                setIsLoading(false);
+            if (firebaseUser?.uid === lastCheckedUid.current && authStateRef.current.user) {
                 return;
             }
+            // Block concurrent auth checks — if one is already in-flight, skip
+            if (checkingInProgress.current) {
+                return;
+            }
+            checkingInProgress.current = true;
 
-            setIsLoading(true);
+            // Only set loading to true if we don't already have a user (initial load)
+            // Token refresh should not trigger loading state
+            if (!authStateRef.current.user) {
+                setIsLoading(true);
+            }
             try {
                 if (firebaseUser) {
                     lastCheckedUid.current = firebaseUser.uid;
-                    checkingInProgress.current = true;
                     
                     const isEmailVerified = firebaseUser.emailVerified;
                     const token = await firebaseUser.getIdToken(false);
@@ -141,24 +149,25 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (isLoading) return;
 
-        const currentPath = window.location.pathname;
         const publicPaths = ['/', '/login', '/register', '/signup'];
-        const isOnPublicPage = publicPaths.includes(currentPath);
+        const isOnPublicPage = publicPaths.includes(location.pathname);
 
-        if (authState.isAuthenticated && authState.user) {
-            // Only redirect to dashboard when on public pages
-            if (isOnPublicPage) {
-                const path = authState.redirectPath || '/dashboard';
+        if (authState.isAuthenticated && authState.user && isOnPublicPage) {
+            if (authState.redirectPath) {
+                const path = authState.redirectPath;
                 clearRedirectPath();
                 navigate(path, { replace: true });
+            } else {
+                const roleBasedPath = authState.user.role === 'TEACHER'
+                    ? '/teacher/dashboard'
+                    : '/student/dashboard';
+                navigate(roleBasedPath, { replace: true });
             }
         }
-        else if (authState.needsProfileCompletion && !isLoading) {
-            if (currentPath !== '/register') {
-                navigate('/register', { replace: true });
-            }
+        else if (authState.needsProfileCompletion && location.pathname !== '/register') {
+            navigate('/register', { replace: true });
         }
-    }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.needsEmailVerification, authState.user, authState.redirectPath, navigate, isLoading]);
+    }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.user?.id, authState.redirectPath, authState.user?.role, navigate, isLoading, location.pathname]);
 
     const login = async (email, password) => {
         try {

@@ -17,13 +17,6 @@ export const fetchClasses = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch classes');
     }
-  },
-  {
-    condition: (_, { getState }) => {
-      const { isLoading, classes, lastFetchedAt } = getState().classroom;
-      if (isLoading) return false;
-      return isListFetchStale(lastFetchedAt, classes.length > 0);
-    },
   }
 );
 
@@ -223,6 +216,10 @@ const classroomSlice = createSlice({
     },
     setClasses: (state, action) => {
       state.classes = action.payload;
+    },
+    resetFetchState: (state) => {
+      state.lastFetchedAt = null;
+      state.classes = [];
     }
   },
   extraReducers: (builder) => {
@@ -364,7 +361,7 @@ const classroomSlice = createSlice({
   }
 });
 
-export const { clearStatus, setClasses } = classroomSlice.actions;
+export const { clearStatus, setClasses, resetFetchState } = classroomSlice.actions;
 
 export const selectClasses = (state) => state.classroom.classes;
 export const selectStudents = (state) => state.classroom.students;

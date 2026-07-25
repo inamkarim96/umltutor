@@ -37,7 +37,11 @@ const getClasses = async (req, res, next) => {
 const getJoinedClasses = async (req, res, next) => {
     try {
         const classes = await classService.getJoinedClasses(req.user.id);
-        res.json({ success: true, data: classes });
+        const transformedClasses = classes.map((c) => ({
+            ...c,
+            studentCount: c.totalStudents,
+        }));
+        res.json({ success: true, data: transformedClasses });
     } catch (error) {
         next(error);
     }

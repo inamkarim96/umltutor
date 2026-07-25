@@ -1,10 +1,10 @@
 /* Workbench component styles */
 .sdb-card-workbench {
-  min-height: 480px;
+  overflow: hidden;
 }
 
 .sdb-workbench-body {
-  min-height: 420px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }

@@ -15,13 +15,6 @@ export const fetchAllAssignments = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch assignments');
     }
-  },
-  {
-    condition: (_, { getState }) => {
-      const { isLoading, assignments, lastFetchedAt } = getState().assignments;
-      if (isLoading) return false;
-      return isListFetchStale(lastFetchedAt, assignments.length > 0);
-    },
   }
 );
 

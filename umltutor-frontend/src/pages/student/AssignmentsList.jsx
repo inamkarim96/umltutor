@@ -20,12 +20,17 @@ const StudentAssignmentsList = () => {
     const submissionsMap = useAppSelector(selectSubmissions) || [];
 
     useEffect(() => {
-        dispatch(fetchClasses('STUDENT'));
-        dispatch(fetchAllAssignments('STUDENT'));
-        dispatch(fetchMySubmissions());
-    }, [dispatch]);
+        if (user?.id) {
+            dispatch(fetchClasses('STUDENT'));
+            dispatch(fetchAllAssignments('STUDENT'));
+            dispatch(fetchMySubmissions());
+        }
+    }, [dispatch, user?.id]);
 
-    const myClasses = (allClasses || []).filter(c => c.studentIds?.includes(user?.id) || c.students?.some(s => s.id === user?.id));
+    const myClasses = useMemo(
+        () => (allClasses || []).filter(c => c.studentIds?.includes(user?.id) || c.students?.some(s => s.id === user?.id)),
+        [allClasses, user?.id]
+    );
     const mySubmissions = submissionsMap;
 
     const filteredAssignments = useMemo(() => {

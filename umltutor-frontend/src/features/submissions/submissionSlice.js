@@ -26,13 +26,6 @@ export const fetchMySubmissions = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch submissions');
     }
-  },
-  {
-    condition: (_, { getState }) => {
-      const { isLoading, submissions, lastFetchedAt } = getState().submission;
-      if (isLoading) return false;
-      return isListFetchStale(lastFetchedAt, submissions.length > 0);
-    },
   }
 );
 

@@ -14,10 +14,8 @@ const StudentClasses = () => {
     const [showJoinForm, setShowJoinForm] = useState(false);
 
     React.useEffect(() => {
-        if (classes.length === 0) {
-            dispatch(fetchClasses('STUDENT'));
-        }
-    }, [dispatch, classes.length]);
+        dispatch(fetchClasses('STUDENT'));
+    }, [dispatch]);
 
     const handleJoinClass = async (e) => {
         e.preventDefault();

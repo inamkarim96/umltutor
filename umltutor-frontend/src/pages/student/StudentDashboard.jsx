@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { selectUser } from '../../features/auth';
 import { selectClasses, joinClass, fetchClasses } from '../../features/classroom';
@@ -16,7 +16,8 @@ const StudentDashboard = () => {
     const user = useAppSelector(selectUser);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { practiceSection, setPracticeSection } = useOutletContext() || {};
+    const [searchParams] = useSearchParams();
+    const practiceType = searchParams.get('type') || 'usecase';
 
     const allClasses = useAppSelector(selectClasses);
     const allAssignments = useAppSelector(selectAllAssignments) || [];
@@ -190,8 +191,7 @@ const StudentDashboard = () => {
                     >
                         <div className="sdb-workbench-body">
                             <PracticeWorkbench
-                                activeSection={practiceSection}
-                                onSectionChange={setPracticeSection}
+                                activeSection={practiceType}
                             />
                         </div>
                     </DashboardCard>

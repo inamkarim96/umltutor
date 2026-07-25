@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppSelector } from '../../app/hooks';
 import { selectUser } from '../../features/auth';
@@ -9,6 +9,7 @@ const Sidebar = ({ role, navConfig }) => {
     const user = useAppSelector(selectUser);
     const { logout } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -110,31 +111,40 @@ const Sidebar = ({ role, navConfig }) => {
 
         /* ── Regular link ── */
         return (
-            <Link
+            <button
                 key={key}
-                to={item.path}
+                type="button"
                 className={`sdb-sidebar-item ${isActive(item.path, item.exact) ? 'active' : ''}`}
-                onClick={closeMobile}
+                style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigate(item.path);
+                    closeMobile();
+                }}
             >
                 {item.icon}
                 <span>{item.title}</span>
-            </Link>
+            </button>
         );
     };
 
     const sidebarContent = (
         <>
             {/* ── Logo ── */}
-            <Link
-                to={role === 'TEACHER' ? '/teacher/dashboard' : '/student/dashboard'}
+            <button
+                type="button"
                 className="sdb-sidebar-logo"
-                onClick={closeMobile}
+                onClick={() => {
+                    navigate(role === 'TEACHER' ? '/teacher/dashboard' : '/student/dashboard');
+                    closeMobile();
+                }}
             >
                 <div className="sdb-sidebar-logo-icon">
                     <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h12M3 18h8" /><circle cx="19" cy="18" r="3" /></svg>
                 </div>
                 UMLTutor
-            </Link>
+            </button>
 
             {/* ── Navigation ── */}
             <nav className="sdb-sidebar-nav">
@@ -162,14 +172,17 @@ const Sidebar = ({ role, navConfig }) => {
                 </div>
 
                 {/* Settings */}
-                <Link
-                    to={role === 'TEACHER' ? '/teacher/settings' : '/student/settings'}
+                <button
+                    type="button"
                     className={`sdb-sidebar-item sdb-util-btn ${isActive(role === 'TEACHER' ? '/teacher/settings' : '/student/settings') ? 'active' : ''}`}
-                    onClick={closeMobile}
+                    onClick={() => {
+                        navigate(role === 'TEACHER' ? '/teacher/settings' : '/student/settings');
+                        closeMobile();
+                    }}
                 >
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
                     <span>Settings</span>
-                </Link>
+                </button>
 
                 {/* Logout */}
                 <button

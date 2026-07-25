@@ -1,13 +1,10 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-
 
 const ProtectedRoute = ({ children, requiredRole }) => {
     const { authState, isLoading } = useAuth();
 
-    // Only block the entire page during initial auth bootstrap.
-    // Token refresh must not unmount the layout and break client-side navigation.
     if (isLoading && !authState.user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-transparent">
@@ -23,7 +20,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
         return <Navigate to="/" replace />;
     }
 
-    // Role-based access control
     if (requiredRole && authState?.user?.role !== requiredRole) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-transparent">
@@ -36,11 +32,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
                 </div>
             </div>
         );
-    }
-
-    // Layout routes (no children) must render Outlet so nested pages mount correctly.
-    if (!children) {
-        return <Outlet />;
     }
 
     return <>{children}</>;
