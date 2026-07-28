@@ -9,6 +9,7 @@ const { PrismaClient } = require('@prisma/client');
  * - Neon aggressively closes idle connections ("Error { kind: Closed }")
  * - Prisma automatically retries on connection close when using the pooler URL
  * - log level includes 'query' in dev for visibility
+ * - Connection pooling via pooler URL handles serverless scaling
  */
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],

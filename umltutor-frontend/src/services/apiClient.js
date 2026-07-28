@@ -69,12 +69,13 @@ apiClient.interceptors.response.use(
             }
             // If success is false, treat as error even if HTTP status is 200
             const errorMessage = response.data.error?.message || response.data.message || 'Operation failed';
-            return Promise.reject({
-                message: errorMessage,
+            const err = new Error(errorMessage);
+            Object.assign(err, {
                 status: response.status,
                 code: response.data.error?.code || 'OPERATION_FAILED',
                 details: response.data.error?.details || null
             });
+            return Promise.reject(err);
         }
         return response.data;
     },
@@ -122,15 +123,16 @@ apiClient.interceptors.response.use(
                 });
             }
 
-            const apiError = {
-                message: data?.error?.message || data?.message || error.message || 'An unexpected error occurred',
+            const msg = data?.error?.message || data?.message || error.message || 'An unexpected error occurred';
+            const apiError = new Error(msg);
+            Object.assign(apiError, {
                 code: data?.error?.code || `HTTP_${status}`,
                 details: data?.error?.details || data?.details || null,
                 status,
                 needsRegistration: data?.needsRegistration || false,
                 needsEmailVerification: data?.needsEmailVerification || false,
                 raw: data
-            };
+            });
 
             return Promise.reject(apiError);
         }
@@ -141,11 +143,13 @@ apiClient.interceptors.response.use(
             type: 'error'
         });
 
-        return Promise.reject({
-            message: 'Network error or server unreachable',
+        const netErr = new Error('Network error or server unreachable');
+        Object.assign(netErr, {
             code: 'NETWORK_ERROR',
             status: 0,
         });
+
+        return Promise.reject(netErr);
     }
 );
 

@@ -6,14 +6,18 @@ import { isListFetchStale } from '../../utils/fetchStaleGuard';
 
 export const fetchAllAssignments = createAsyncThunk(
   'assignments/fetchAll',
-  async (role, { rejectWithValue }) => {
-    try {
-      if (role === 'STUDENT') {
-        return await assignmentService.getStudentAssignments();
+  async (role) => {
+    if (role === 'STUDENT') {
+      return await assignmentService.getStudentAssignments();
+    }
+    return await assignmentService.getAssignmentDefinitions();
+  },
+  {
+    condition: (role, { getState }) => {
+      const state = getState();
+      if (!isListFetchStale(state.assignments.lastFetchedAt, state.assignments.assignments.length > 0)) {
+        return false;
       }
-      return await assignmentService.getAssignmentDefinitions();
-    } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch assignments');
     }
   }
 );

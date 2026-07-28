@@ -1,16 +1,12 @@
 "use strict";
 
 /**
- * In-memory user profile cache keyed by Firebase UID or email.
+ * In-memory user profile cache keyed by Firebase UID, email, or numeric User ID.
  * Cuts ~10–30ms per request vs repeated Prisma lookups after token verify.
  */
-const TTL_MS = Number(process.env.USER_CACHE_TTL_MS) || 5 * 60 * 1000;
-const MAX_ENTRIES = 500;
+const TTL_MS = Number(process.env.USER_CACHE_TTL_MS) || 10 * 60 * 1000;
+const MAX_ENTRIES = 2000;
 const cache = new Map();
-
-function cacheKey(uid, email) {
-  return uid || (email && email.toLowerCase()) || '';
-}
 
 function prune() {
   if (cache.size <= MAX_ENTRIES) return;
@@ -23,27 +19,33 @@ function prune() {
 
 const userCache = {
   get(uid, email) {
-    const key = cacheKey(uid, email);
-    if (!key) return null;
-    const entry = cache.get(key);
-    if (!entry || Date.now() - entry.ts > TTL_MS) {
-      if (entry) cache.delete(key);
-      return null;
+    const now = Date.now();
+    if (uid) {
+      const entry = cache.get(`uid:${uid}`);
+      if (entry && now - entry.ts <= TTL_MS) return entry.user;
+      if (entry) cache.delete(`uid:${uid}`);
     }
-    return entry.user;
+    if (email) {
+      const key = `email:${email.toLowerCase()}`;
+      const entry = cache.get(key);
+      if (entry && now - entry.ts <= TTL_MS) return entry.user;
+      if (entry) cache.delete(key);
+    }
+    return null;
   },
 
   set(uid, email, user) {
     if (!user) return;
-    const key = cacheKey(uid, email);
-    if (!key) return;
-    cache.set(key, { user, ts: Date.now() });
+    const entry = { user, ts: Date.now() };
+    if (uid) cache.set(`uid:${uid}`, entry);
+    if (email) cache.set(`email:${email.toLowerCase()}`, entry);
+    if (user.id) cache.set(`id:${user.id}`, entry);
     prune();
   },
 
   invalidate(uid, email) {
-    const key = cacheKey(uid, email);
-    if (key) cache.delete(key);
+    if (uid) cache.delete(`uid:${uid}`);
+    if (email) cache.delete(`email:${email.toLowerCase()}`);
   },
 
   getById(userId) {
@@ -58,8 +60,10 @@ const userCache = {
 
   setById(userId, user) {
     if (!user || !userId) return;
-    cache.set(`id:${userId}`, { user, ts: Date.now() });
-    if (user.email) cache.set(cacheKey(null, user.email), { user, ts: Date.now() });
+    const entry = { user, ts: Date.now() };
+    cache.set(`id:${userId}`, entry);
+    if (user.email) cache.set(`email:${user.email.toLowerCase()}`, entry);
+    if (user.firebaseUid) cache.set(`uid:${user.firebaseUid}`, entry);
     prune();
   },
 
@@ -70,3 +74,4 @@ const userCache = {
 };
 
 module.exports = userCache;
+

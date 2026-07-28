@@ -131,6 +131,17 @@ const SequenceDiagramEditorInner = ({
         setNodes((nds) => [...nds, newNode]);
     }, [nodes.length, setNodes, isReadOnly]);
 
+    const onAddSystem = useCallback(() => {
+        const id = crypto.randomUUID();
+        const newNode = {
+            id,
+            type: 'lifeline',
+            position: { x: nodes.length * 200 + 100, y: 50 },
+            data: { label: 'System', isReadOnly, isSystem: true },
+        };
+        setNodes((nds) => [...nds, newNode]);
+    }, [nodes.length, setNodes, isReadOnly]);
+
     const onDelete = useCallback(() => {
         if (!selectedElement) return;
         if (selectedElement.type === 'node') {
@@ -149,11 +160,15 @@ const SequenceDiagramEditorInner = ({
                 {!isReadOnly && (
                     <SequenceDiagramToolbar
                         onAddLifeline={onAddLifeline}
+                        onAddObject={onAddLifeline}
                         onAddActor={onAddActor}
+                        onAddSystem={onAddSystem}
                         onDelete={onDelete}
                         onClear={() => setIsClearConfirmOpen(true)}
+                        hasSelection={!!selectedElement}
                         activeMessageType={activeMessageType}
                         onMessageTypeChange={setActiveMessageType}
+                        isReadOnly={isReadOnly}
                     />
                 )}
                 <div data-testid="sequence-canvas" data-usecase-id={activeUseCaseId} className="w-full h-full">

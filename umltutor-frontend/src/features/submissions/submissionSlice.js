@@ -20,22 +20,30 @@ export const submitAssignmentData = createAsyncThunk(
 
 export const fetchMySubmissions = createAsyncThunk(
   'submission/fetchMySubmissions',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await submissionService.getMySubmissions();
-    } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch submissions');
+  async () => {
+    return await submissionService.getMySubmissions();
+  },
+  {
+    condition: (_, { getState }) => {
+      const state = getState();
+      if (!isListFetchStale(state.submission.lastFetchedAt, state.submission.submissions.length > 0)) {
+        return false;
+      }
     }
   }
 );
 
 export const fetchAllSubmissionsForTeacher = createAsyncThunk(
   'submission/fetchAll',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await submissionService.getAllSubmissions();
-    } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch all submissions');
+  async () => {
+    return await submissionService.getAllSubmissions();
+  },
+  {
+    condition: (_, { getState }) => {
+      const state = getState();
+      if (!isListFetchStale(state.submission.lastFetchedAt, state.submission.submissions.length > 0)) {
+        return false;
+      }
     }
   }
 );
@@ -136,11 +144,17 @@ export const rejectTutorialMode = createAsyncThunk(
 
 export const fetchTutorialRequests = createAsyncThunk(
   'submission/fetchTutorialRequests',
-  async (params = {}, { rejectWithValue }) => {
-    try {
-      return await submissionService.getTutorialRequests(params);
-    } catch (error) {
-      return rejectWithValue(error?.message || 'Failed to load tutorial requests');
+  async (params = {}) => {
+    return await submissionService.getTutorialRequests(params);
+  },
+  {
+    condition: (_, { getState }) => {
+      const state = getState();
+      const lastFetched = state.submission.tutorialRequestsPagination?.lastFetchedAt || 0;
+      const hasData = state.submission.tutorialRequests.length > 0;
+      if (!isListFetchStale(lastFetched, hasData)) {
+        return false;
+      }
     }
   }
 );
@@ -221,9 +235,19 @@ const submissionSlice = createSlice({
         state.submissions = action.payload;
         state.lastFetchedAt = Date.now();
       })
+      .addCase(fetchMySubmissions.rejected, (state, action) => {
+        if (action.payload === 'skip: already fresh') return;
+        state.error = action.payload;
+        state.success = false;
+      })
       // Teacher All Submissions
       .addCase(fetchAllSubmissionsForTeacher.fulfilled, (state, action) => {
         state.submissions = action.payload;
+        state.lastFetchedAt = Date.now();
+      })
+      .addCase(fetchAllSubmissionsForTeacher.rejected, (state, action) => {
+        if (action.payload === 'skip: already fresh') return;
+        state.error = action.payload;
       })
       // Status
       .addCase(fetchSubmissionStatus.pending, (state) => {
@@ -353,10 +377,12 @@ const submissionSlice = createSlice({
       .addCase(fetchTutorialRequests.fulfilled, (state, action) => {
         state.tutorialRequestsLoading = false;
         state.tutorialRequests = action.payload?.items || [];
-        state.tutorialRequestsPagination = action.payload?.pagination || null;
+        const pagination = action.payload?.pagination || null;
+        state.tutorialRequestsPagination = pagination ? { ...pagination, lastFetchedAt: Date.now() } : null;
       })
-      .addCase(fetchTutorialRequests.rejected, (state) => {
+      .addCase(fetchTutorialRequests.rejected, (state, action) => {
         state.tutorialRequestsLoading = false;
+        if (action.payload === 'skip: already fresh') return;
       })
       .addCase(approveTutorialMode.pending, (state) => {
         state.tutorialActionLoading = true;

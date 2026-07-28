@@ -109,6 +109,7 @@ class RouteMiddleware {
           req.firebaseUser = { email, uid, name };
       }
 
+      res.setHeader('X-Auth-Time', `${authMs}ms`);
       next();
     } catch (error) {
       console.error('[Auth] Internal Middleware Error:', error);
@@ -160,14 +161,21 @@ class RouteMiddleware {
     const startTime = Date.now();
     const requestId = `req_${startTime}_${Math.random().toString(36).substr(2, 5)}`;
     req.requestId = requestId;
+    req.startTime = startTime;
 
-    // Override res.json to log response status
+    // Intercept response finish/header setting to log timing
+    res.on('finish', () => {
+      const responseTime = Date.now() - startTime;
+      if (res.statusCode >= 400 || responseTime > 50) {
+        console.log(`[HTTP] ${req.method} ${req.originalUrl} - ${res.statusCode} (${responseTime}ms)`);
+      }
+    });
+
     const originalJson = res.json;
     res.json = function(data) {
       const responseTime = Date.now() - startTime;
-      res.setHeader('X-Response-Time', `${responseTime}ms`);
-      if (res.statusCode >= 400 || responseTime > 50) {
-        console.log(`[HTTP] ${req.method} ${req.originalUrl} - ${res.statusCode} (${responseTime}ms)`);
+      if (!res.headersSent) {
+        res.setHeader('X-Response-Time', `${responseTime}ms`);
       }
       return originalJson.call(this, data);
     };

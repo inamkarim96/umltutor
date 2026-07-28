@@ -8,14 +8,18 @@ const EMPTY_ARRAY = [];
 
 export const fetchClasses = createAsyncThunk(
   'classroom/fetchClasses',
-  async (role, { rejectWithValue }) => {
-    try {
-      if (role === 'STUDENT') {
-        return await classroomService.getJoinedClasses();
+  async (role) => {
+    if (role === 'STUDENT') {
+      return await classroomService.getJoinedClasses();
+    }
+    return await classroomService.getClasses();
+  },
+  {
+    condition: (role, { getState }) => {
+      const state = getState();
+      if (!isListFetchStale(state.classroom.lastFetchedAt, state.classroom.classes.length > 0)) {
+        return false;
       }
-      return await classroomService.getClasses();
-    } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch classes');
     }
   }
 );

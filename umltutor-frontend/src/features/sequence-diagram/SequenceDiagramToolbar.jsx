@@ -1,97 +1,137 @@
 import React from 'react';
-import { 
-    Plus, 
-    Trash2, 
-    RotateCcw, 
-    ArrowRight, 
-    ArrowLeft, 
-    PlusCircle, 
-    XCircle,
-    User
-} from 'lucide-react';
 
-const SequenceDiagramToolbar = ({ 
-    onAddLifeline, 
+const CallMessageIcon = () => (
+    <svg width="28" height="14" viewBox="0 0 28 14" className="shrink-0">
+        <line x1="0" y1="7" x2="18" y2="7" stroke="currentColor" strokeWidth={2} />
+        <polygon points="28,7 18,2 18,12" fill="currentColor" />
+    </svg>
+);
+
+const ReturnMessageIcon = () => (
+    <svg width="28" height="14" viewBox="0 0 28 14" className="shrink-0">
+        <line x1="10" y1="7" x2="28" y2="7" stroke="currentColor" strokeWidth={2} strokeDasharray="4 3" />
+        <polyline points="10,2 0,7 10,12" fill="none" stroke="currentColor" strokeWidth={2} />
+    </svg>
+);
+
+const SelfMessageIcon = () => (
+    <svg width="28" height="20" viewBox="0 0 28 20" className="shrink-0">
+        <path d="M 14 2 Q 24 2, 24 8 L 24 12 Q 24 18, 14 18" fill="none" stroke="currentColor" strokeWidth={2} />
+        <polygon points="14,18 18,15 18,21" fill="currentColor" />
+    </svg>
+);
+
+const ActivationIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" className="shrink-0">
+        <rect x="2" y="4" width="4" height="12" fill="currentColor" />
+    </svg>
+);
+
+const SequenceDiagramToolbar = ({
     onAddActor,
-    onDelete, 
+    onAddSystem,
+    onAddObject,
+    onAddLifeline,
+    onDelete,
     onClear,
-    activeMessageType,
-    onMessageTypeChange 
+    hasSelection = false,
+    activeMessageType = 'sync',
+    onMessageTypeChange,
+    onAddActivation,
+    isReadOnly = false
 }) => {
-    const messageTypes = [
-        { id: 'sync', label: 'Sync', icon: ArrowRight, desc: 'Solid + Filled Arrow' },
-        { id: 'async', label: 'Async', icon: ArrowRight, desc: 'Solid + Open Arrow' },
-        { id: 'reply', label: 'Reply', icon: ArrowLeft, desc: 'Dashed + Open Arrow' },
-        { id: 'create', label: 'Create', icon: PlusCircle, desc: 'Dashed + <<create>>' },
-        { id: 'delete', label: 'Delete', icon: XCircle, desc: 'Arrow + X' },
-    ];
+    if (isReadOnly) return null;
+
+    const handleAddObject = onAddObject || onAddLifeline;
 
     return (
-        <div className="absolute top-4 left-4 z-50 flex flex-col gap-3">
-            {/* Primary Actions */}
-            <div className="flex flex-col bg-white rounded-lg shadow-xl border border-black/5 p-2 gap-2">
-                <button
-                    onClick={onAddLifeline}
-                    className="p-3 bg-accent hover:bg-indigo-700 text-white rounded-xl transition-all shadow-md group relative"
-                    title="Add Lifeline"
-                >
-                    <Plus size={20} />
-                    <span className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity">
-                        Add Lifeline
-                    </span>
-                </button>
-                <button
-                    onClick={onAddActor}
-                    className="p-3 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl transition-all group relative"
-                    title="Add Actor"
-                >
-                    <User size={20} />
-                    <span className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity">
-                        Add Actor
-                    </span>
-                </button>
-                <div className="h-px bg-surface-3 mx-1" />
+        <div className="absolute top-20 right-4 flex flex-col gap-3 p-3 bg-white rounded-lg shadow-hover z-20 border border-black/10 w-56 max-h-[calc(100vh-120px)] overflow-y-auto">
+            <div>
+                <div className="flex items-center justify-between mb-2 text-muted">
+                    <div className="text-xs font-bold font-body uppercase tracking-wider">Lifelines</div>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <button
+                        onClick={onAddActor}
+                        className="flex items-center gap-2 px-3 py-2 text-sm bg-surface-3 hover:bg-blue-50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        👤 Actor
+                    </button>
+                    {onAddSystem && (
+                        <button
+                            onClick={onAddSystem}
+                            className="flex items-center gap-2 px-3 py-2 text-sm bg-surface-3 hover:bg-status-green/10 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                            🖥️ System
+                        </button>
+                    )}
+                    <button
+                        onClick={handleAddObject}
+                        className="flex items-center gap-2 px-3 py-2 text-sm bg-surface-3 hover:bg-purple-50 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                        📦 Object
+                    </button>
+                </div>
+            </div>
+
+            <div className="h-px bg-gray-200" />
+
+            <div>
+                <div className="text-xs font-bold font-body text-muted mb-2 uppercase tracking-wider">Messages</div>
+                <div className="grid grid-cols-2 gap-1 mb-2">
+                    <button
+                        onClick={() => onMessageTypeChange('sync')}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeMessageType === 'sync' ? 'bg-blue-100 text-blue-700 font-bold' : 'bg-surface-3 hover:bg-surface-3'}`}
+                    >
+                        <CallMessageIcon /> Call
+                    </button>
+                    <button
+                        onClick={() => onMessageTypeChange('reply')}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-red-500 ${activeMessageType === 'reply' ? 'bg-red-100 text-red-700 font-bold' : 'bg-surface-3 hover:bg-surface-3'}`}
+                    >
+                        <ReturnMessageIcon /> Return
+                    </button>
+                    <button
+                        onClick={() => onMessageTypeChange('self')}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${activeMessageType === 'self' ? 'bg-purple-100 text-purple-700 font-bold' : 'bg-surface-3 hover:bg-surface-3'}`}
+                    >
+                        <SelfMessageIcon /> Self
+                    </button>
+                </div>
+                {onAddActivation && (
+                    <button
+                        onClick={onAddActivation}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-orange-500 ${activeMessageType === 'activation' ? 'bg-orange-100 text-orange-700 font-bold' : 'bg-surface-3 hover:bg-orange-50'}`}
+                    >
+                        <ActivationIcon /> Activation Bar
+                    </button>
+                )}
+            </div>
+
+            {/* Delete Option */}
+            <div className="h-px bg-gray-200" />
+            <div>
                 <button
                     onClick={onDelete}
-                    className="p-3 bg-white hover:bg-status-red/10 text-gray-400 hover:text-status-red rounded-xl transition-all group relative"
-                    title="Delete Selected"
+                    disabled={!hasSelection}
+                    className={`w-full py-2 text-sm rounded focus:outline-none focus:ring-2 transition-colors ${hasSelection
+                        ? 'bg-status-red/10 text-red-700 hover:bg-red-100 focus:ring-red-500 cursor-pointer font-bold'
+                        : 'bg-surface-3 text-gray-400 cursor-not-allowed'
+                        }`}
                 >
-                    <Trash2 size={20} />
-                </button>
-                <button
-                    onClick={onClear}
-                    className="p-3 bg-white hover:bg-amber-50 text-gray-400 hover:text-amber-600 rounded-xl transition-all group relative"
-                    title="Clear Canvas"
-                >
-                    <RotateCcw size={20} />
+                    ⌫ Delete
                 </button>
             </div>
 
-            {/* Message Types Selector */}
-            <div className="flex flex-col bg-white rounded-lg shadow-xl border border-black/5 p-2 gap-2">
-                <p className="text-[9px] font-extrabold font-heading text-gray-400 uppercase tracking-widest text-center mb-1">Messages</p>
-                {messageTypes.map((type) => {
-                    const Icon = type.icon;
-                    const isActive = activeMessageType === type.id;
-                    return (
-                        <button
-                            key={type.id}
-                            onClick={() => onMessageTypeChange(type.id)}
-                            className={`
-                                p-3 rounded-xl transition-all group relative
-                                ${isActive 
-                                    ? 'bg-accent/10 text-accent ring-2 ring-indigo-500/20' 
-                                    : 'text-gray-400 hover:bg-surface-3 hover:text-muted'}
-                            `}
-                            title={type.desc}
-                        >
-                            <Icon size={20} className={type.id === 'reply' ? 'rotate-180' : ''} />
-                            <span className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-[100]">
-                                {type.label}: {type.desc}
-                            </span>
-                        </button>
-                    );
-                })}
+            {/* Clear All Option */}
+            <div className="h-px bg-gray-200" />
+            <div>
+                <button
+                    onClick={onClear}
+                    className="w-full py-2 text-sm bg-orange-50 text-orange-700 rounded hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium"
+                >
+                    🗑️ Clear All
+                </button>
             </div>
         </div>
     );

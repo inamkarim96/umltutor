@@ -9,8 +9,22 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
 import { AppProvider } from './contexts/AppContext';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
+  isDev ? (
+    <StrictMode>
+      <Provider store={store}>
+        <AppProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </ThemeProvider>
+        </AppProvider>
+      </Provider>
+    </StrictMode>
+  ) : (
     <Provider store={store}>
       <AppProvider>
         <ThemeProvider>
@@ -20,5 +34,5 @@ createRoot(document.getElementById('root')).render(
         </ThemeProvider>
       </AppProvider>
     </Provider>
-  </StrictMode>
+  )
 );

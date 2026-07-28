@@ -52,6 +52,8 @@ model Class {
   assignments  Assignment[]
   announcements Announcement[]
   resources    Resource[]
+
+  @@index([teacherId])
 }
 
 model ClassStudent {
@@ -64,6 +66,7 @@ model ClassStudent {
   student   User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classId, studentId])
+  @@index([studentId])
 }
 
 model Assignment {
@@ -87,6 +90,8 @@ model Assignment {
 
   @@index([classId])
   @@index([createdBy])
+  @@index([dueDate])
+  @@index([classId, dueDate])
 }
 
 model Submission {
@@ -119,7 +124,10 @@ model Submission {
   @@index([assignmentId])
   @@index([studentId])
   @@index([status])
+  @@index([assignmentId, studentId, status])
   @@index([tutorialRequested, tutorialApproved, tutorialRejected])
+  @@index([submittedAt])
+  @@index([createdAt])
 }
 
 model UseCaseDiagram {
@@ -209,6 +217,7 @@ model Notification {
 
   @@index([userId])
   @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model Announcement {
@@ -225,6 +234,10 @@ model Announcement {
 
   class     Class @relation(fields: [classId], references: [id], onDelete: Cascade)
   author    User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([authorId])
+  @@index([createdAt])
 }
 
 model Resource {
@@ -240,5 +253,8 @@ model Resource {
 
   class       Class @relation(fields: [classId], references: [id], onDelete: Cascade)
   uploader    User  @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([uploadedBy])
 }
 

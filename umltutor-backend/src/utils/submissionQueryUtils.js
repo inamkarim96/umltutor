@@ -96,110 +96,22 @@ function artifactsOnlySelect() {
   return studentWorkSelect(false, false);
 }
 
-async function tryFindSubmission(repo, where, select) {
-  return repo.findFirst({ where, select });
-}
-
-/**
- * Load diagram relations in separate queries (never fails on missing Submission columns).
- */
-async function loadSubmissionArtifactsStaged(where) {
-  const base = await prisma.submission.findFirst({
+async function findSubmissionWithArtifacts(submissionRepository, where) {
+  // Simplified: just use the primary query with all artifacts included
+  const row = await submissionRepository.findUnique({
     where,
-    select: {
-      id: true,
-      assignmentId: true,
-      studentId: true,
-      status: true,
-      submittedAt: true,
-      createdAt: true,
-      updatedAt: true,
+    include: {
+      useCaseDiagram: { select: { data: true } },
+      useCaseDescriptions: { select: { relatedId: true, data: true } },
+      ssdDiagrams: { select: { relatedId: true, data: true } },
+      classDiagram: { select: { data: true } },
+      sequenceDiagrams: { select: { relatedId: true, data: true } },
+      evaluation: { select: { totalScore: true, remarks: true, validationReport: true } },
     },
   });
 
-  if (!base) return null;
-
-  const submissionId = base.id;
-
-  const [useCaseDiagram, useCaseDescriptions, ssdDiagrams, classDiagram, sequenceDiagrams, evaluation] =
-    await Promise.all([
-      prisma.useCaseDiagram.findUnique({ where: { submissionId } }).catch(() => null),
-      prisma.useCaseDescription.findMany({ where: { submissionId } }).catch(() => []),
-      prisma.sSDDiagram.findMany({ where: { submissionId } }).catch(() => []),
-      prisma.classDiagram.findUnique({ where: { submissionId } }).catch(() => null),
-      prisma.sequenceDiagram.findMany({ where: { submissionId } }).catch(() => []),
-      prisma.evaluation
-        .findUnique({
-          where: { submissionId },
-          select: { totalScore: true, remarks: true },
-        })
-        .catch(() => null),
-    ]);
-
-  let tutorialFields = {};
-  try {
-    const tutorialRow = await prisma.submission.findUnique({
-      where: { id: submissionId },
-      select: {
-        tutorialRequested: true,
-        tutorialApproved: true,
-        tutorialRejected: true,
-        tutorialRequestedAt: true,
-        tutorialReviewedAt: true,
-        tutorialRejectionReason: true,
-      },
-    });
-    if (tutorialRow) tutorialFields = tutorialRow;
-  } catch {
-    /* optional columns missing — defaults applied below */
-  }
-
-  return withTutorialFieldDefaults({
-    ...base,
-    ...tutorialFields,
-    useCaseDiagram,
-    useCaseDescriptions,
-    ssdDiagrams,
-    classDiagram,
-    sequenceDiagrams,
-    evaluation,
-  });
-}
-
-async function findSubmissionWithArtifacts(submissionRepository, where) {
-  const attempts = [
-    () => tryFindSubmission(submissionRepository, where, studentWorkSelect(true, true)),
-    () => tryFindSubmission(submissionRepository, where, studentWorkSelect(true, false)),
-    () => tryFindSubmission(submissionRepository, where, artifactsOnlySelect()),
-  ];
-
-  let lastError = null;
-  for (const attempt of attempts) {
-    try {
-      const row = await attempt();
-      if (row) return withTutorialFieldDefaults(row);
-    } catch (err) {
-      lastError = err;
-      if (isMissingSubmissionColumnError(err)) {
-        console.warn("[Submission] Select retry:", err.message);
-      }
-    }
-  }
-
-  try {
-    const staged = await loadSubmissionArtifactsStaged(where);
-    if (staged) {
-      console.info(
-        `[Submission] Loaded artifacts via staged queries for assignment=${where.assignmentId} student=${where.studentId}`
-      );
-      return staged;
-    }
-    return null;
-  } catch (err) {
-    console.error("[Submission] Staged artifact load failed:", err.message);
-    if (lastError) throw lastError;
-    throw err;
-  }
+  if (row) return withTutorialFieldDefaults(row);
+  return null;
 }
 
 async function findSubmissionStatus(submissionRepository, where, { includeReport = false } = {}) {
@@ -252,19 +164,12 @@ async function findSubmissionDetailById(submissionId) {
   const id = Number(submissionId);
   if (!id || Number.isNaN(id)) return null;
 
-  const staged = await loadSubmissionArtifactsStaged({ id });
-  if (!staged) return null;
-
-  const [student, assignment, evaluation] = await Promise.all([
-    prisma.user
-      .findUnique({
-        where: { id: staged.studentId },
-        select: { id: true, email: true, firstName: true, lastName: true },
-      })
-      .catch(() => null),
-    prisma.assignment
-      .findUnique({
-        where: { id: staged.assignmentId },
+  // Single query with all relations instead of multiple staged queries
+  const submission = await prisma.submission.findUnique({
+    where: { id },
+    include: {
+      student: { select: { id: true, email: true, firstName: true, lastName: true } },
+      assignment: {
         select: {
           id: true,
           title: true,
@@ -274,20 +179,21 @@ async function findSubmissionDetailById(submissionId) {
           textContent: true,
           class: { select: { teacherId: true, name: true } },
         },
-      })
-      .catch(() => null),
-    prisma.evaluation
-      .findUnique({
-        where: { submissionId: id },
-      })
-      .catch(() => null),
-  ]);
+      },
+      useCaseDiagram: { select: { data: true } },
+      useCaseDescriptions: { select: { relatedId: true, data: true } },
+      ssdDiagrams: { select: { relatedId: true, data: true } },
+      classDiagram: { select: { data: true } },
+      sequenceDiagrams: { select: { relatedId: true, data: true } },
+      evaluation: true,
+    },
+  });
+
+  if (!submission) return null;
 
   return withTutorialFieldDefaults({
-    ...staged,
-    student,
-    assignment,
-    evaluation,
+    ...submission,
+    evaluation: submission.evaluation || null,
   });
 }
 
@@ -316,7 +222,7 @@ async function findTutorialRequestsForTeacher(teacherId, { status = "all", pageN
     return where;
   };
 
-  const baseInclude = {
+  const include = {
     student: { select: { id: true, firstName: true, lastName: true, email: true } },
     assignment: { select: { id: true, title: true, dueDate: true } },
     useCaseDiagram: { select: { data: true } },
@@ -324,101 +230,29 @@ async function findTutorialRequestsForTeacher(teacherId, { status = "all", pageN
     ssdDiagrams: { select: { id: true } },
   };
 
-  // Production DB may not have ClassDiagram / SequenceDiagram tables yet
-  const includeVariants = [
-    {
-      ...baseInclude,
-      classDiagram: { select: { data: true } },
-      sequenceDiagrams: { select: { id: true } },
-    },
-    baseInclude,
-  ];
+  const where = buildWhere(true);
+  const orderBy = [{ tutorialRequestedAt: "desc" }, { submittedAt: "desc" }];
 
-  const whereAttempts = [
-    {
-      where: buildWhere(true),
-      orderBy: [{ tutorialRequestedAt: "desc" }, { submittedAt: "desc" }],
-    },
-    {
-      where: buildWhere(false),
-      orderBy: [{ submittedAt: "desc" }],
-    },
-    {
-      where: { assignment: { createdBy: tid }, tutorialRequested: true },
-      orderBy: [{ submittedAt: "desc" }],
-    },
-    {
-      where: {
-        assignment: { createdBy: tid },
-        status: { in: ["submitted", "graded"] },
-      },
-      orderBy: [{ submittedAt: "desc" }],
-      filterInMemory: true,
-    },
-  ];
+  // Single query with count
+  const [rows, total] = await Promise.all([
+    prisma.submission.findMany({
+      where,
+      include,
+      orderBy,
+      skip,
+      take: limitNum,
+    }),
+    prisma.submission.count({ where }),
+  ]);
 
-  let lastError = null;
-  for (const attempt of whereAttempts) {
-    for (const include of includeVariants) {
-      try {
-        let rows = await prisma.submission.findMany({
-          where: attempt.where,
-          include,
-          orderBy: attempt.orderBy,
-          skip: attempt.filterInMemory ? 0 : skip,
-          take: attempt.filterInMemory ? Math.min(200, limitNum * 10) : limitNum,
-        });
-        rows = rows.map(withTutorialFieldDefaults);
-
-        if (attempt.filterInMemory) {
-          rows = rows.filter((s) => {
-            const st = s.tutorialApproved
-              ? "approved"
-              : s.tutorialRejected
-                ? "rejected"
-                : s.tutorialRequested
-                  ? "pending"
-                  : "none";
-            if (status === "pending") return st === "pending";
-            if (status === "approved") return st === "approved";
-            if (status === "rejected") return st === "rejected";
-            return st !== "none";
-          });
-          const total = rows.length;
-          rows = rows.slice(skip, skip + limitNum);
-          return {
-            rows,
-            pagination: {
-              page: pageNum,
-              limit: limitNum,
-              total,
-              totalPages: Math.ceil(total / limitNum) || 1,
-            },
-          };
-        }
-
-        const total = await prisma.submission.count({ where: attempt.where });
-        return {
-          rows,
-          pagination: {
-            page: pageNum,
-            limit: limitNum,
-            total,
-            totalPages: Math.ceil(total / limitNum) || 1,
-          },
-        };
-      } catch (err) {
-        lastError = err;
-        if (!isMissingTableOrColumnError(err)) throw err;
-        console.warn("[Submission] Tutorial requests query retry:", err.message);
-      }
-    }
-  }
-
-  console.warn("[Submission] Tutorial requests unavailable — returning empty list");
   return {
-    rows: [],
-    pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 1 },
+    rows: rows.map(withTutorialFieldDefaults),
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum) || 1,
+    },
   };
 }
 
@@ -490,7 +324,6 @@ module.exports = {
   withTutorialFieldDefaults,
   findSubmissionStatus,
   findSubmissionWithArtifacts,
-  loadSubmissionArtifactsStaged,
   findSubmissionDetailById,
   findTutorialRequestsForTeacher,
   updateSubmissionTutorialFields,
