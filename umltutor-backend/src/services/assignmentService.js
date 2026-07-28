@@ -134,13 +134,14 @@ class AssignmentService {
     // Invalidate cache
     serviceCache.invalidatePrefix(`assignments:teacher:${data.teacherId}`);
     serviceCache.invalidatePrefix('assignments:class:');
+    serviceCache.invalidatePrefix('assignments:student:');
     
     return assignment;
   }
 
   async getAssignmentDefinitions(teacherId, status) {
     const cacheKey = `assignments:teacher:${teacherId}:${status || 'all'}`;
-    return serviceCache.cached(cacheKey, 300, async () => {
+    return serviceCache.cached(cacheKey, 60, async () => {
       // Optimized query with only necessary fields
       const assignments = await prisma.assignment.findMany({
         where: { createdBy: Number(teacherId) },
@@ -164,7 +165,7 @@ class AssignmentService {
 
   async getClassAssignments(classId, userId, role) {
     const cacheKey = `assignments:class:${classId}:${role || 'all'}`;
-    return serviceCache.cached(cacheKey, 180, async () => {
+    return serviceCache.cached(cacheKey, 60, async () => {
       // Optimized query with conditional select based on role
       const assignments = await prisma.assignment.findMany({
         where: { classId: Number(classId) },
@@ -298,7 +299,14 @@ class AssignmentService {
             assignmentFileUrl: true,
             assignmentFileName: true,
             assignmentFileType: true,
-            class: { select: { id: true, name: true } },
+            class: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                teacher: { select: { id: true, firstName: true, lastName: true } },
+              },
+            },
           },
         });
       } catch (err) {
@@ -310,13 +318,26 @@ class AssignmentService {
       }
       if (!assignment) throw new NotFoundError('Assignment');
 
+      // Run submission fetch and student info fetch in PARALLEL — student info
+      // does not depend on submission result so both can start at the same time.
       let submission = null;
+      let studentInfo = null;
       let submissionLoadWarning = null;
-      try {
-        submission = await findSubmissionWithArtifacts(submissionRepository, {
+
+      const [submissionResult, studentResult] = await Promise.allSettled([
+        findSubmissionWithArtifacts(submissionRepository, {
           assignmentId: assignmentIdNum,
           studentId: studentIdNum,
-        });
+        }),
+        prisma.user.findUnique({
+          where: { id: studentIdNum },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        }),
+      ]);
+
+      // Process submission result
+      if (submissionResult.status === 'fulfilled') {
+        submission = submissionResult.value;
         if (!submission) {
           submissionLoadWarning = 'No previous saved work found. You can start drawing below.';
         } else {
@@ -326,15 +347,21 @@ class AssignmentService {
               'No diagram data was saved yet. Your assignment is submitted but diagrams are empty.';
           }
         }
-      } catch (dbErr) {
+      } else {
         console.error(
           `[AssignmentService] GET assignment=${assignmentIdNum} student=${studentIdNum} — submission load failed:`,
-          dbErr.message,
-          dbErr.code || '',
-          dbErr.stack
+          submissionResult.reason?.message,
+          submissionResult.reason?.code || '',
         );
         submissionLoadWarning =
           'Saved work could not be loaded. You can continue with a blank workspace or retry later.';
+      }
+
+      // Process student info result (non-critical — just log a warning on failure)
+      if (studentResult.status === 'fulfilled') {
+        studentInfo = studentResult.value;
+      } else {
+        console.warn(`[AssignmentService] Failed to lookup student ${studentIdNum}:`, studentResult.reason?.message);
       }
 
       const payload = {
@@ -342,11 +369,16 @@ class AssignmentService {
         deadline: assignment.dueDate?.toISOString() ?? null,
         submission: this._leanSubmissionForClient(submission),
         artifacts: this._extractArtifactsFromSubmission(submission),
+        student: studentInfo,
         ...(submissionLoadWarning ? { submissionLoadWarning } : {}),
       };
 
+      // FIX: Previously the cache was fully invalidated when a student had no saved work yet,
+      // meaning every workspace load for new students bypassed the cache and hit the DB cold.
+      // Now we cache with a short 30-second TTL for the empty-workspace case — enough to avoid
+      // repeated hammering while still being fresh enough to reflect a first save quickly.
       if (submissionLoadWarning && !this._submissionHasArtifactData(submission)) {
-        serviceCache.invalidate(cacheKey);
+        serviceCache.memSet(cacheKey, payload, 30_000); // 30s short-lived cache for empty workspace
       }
 
       return payload;

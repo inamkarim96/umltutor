@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import {
     selectClasses
@@ -30,7 +30,10 @@ import {
 } from 'lucide-react';
 
 const AssignmentSubmissions = () => {
-    const { titleSlug } = useParams();
+    // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
+    const titleSlug = window.location.pathname
+        .split('/')
+        .find((segment, i, arr) => arr[i - 1] === 'assignments' && segment !== 'submitted' && segment !== 'pending' && segment !== 'reviewed' && segment.length > 0);
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const user = useAppSelector(selectUser);

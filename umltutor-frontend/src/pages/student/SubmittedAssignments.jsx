@@ -23,13 +23,12 @@ const SubmittedAssignments = () => {
     }, [dispatch]);
 
     const submittedAssignments = allAssignments.filter(assignment => {
-        const submission = mySubmissions.find(s => s.assignmentId === assignment.id);
-        const status = submission?.status?.toLowerCase();
+        const status = (mySubmissions.find(s => s.assignmentId === assignment.id)?.status || assignment.status || '').toLowerCase();
         
         if (isReviewedMode) {
-            return submission && (status === 'graded' || status === 'completed');
+            return status === 'graded' || status === 'completed';
         } else {
-            return submission && status === 'submitted';
+            return status === 'submitted';
         }
     });
 
@@ -110,10 +109,10 @@ const SubmittedAssignments = () => {
                                             </div>
                                         </div>
                                         
-                                        {submission?.score !== null && submission?.score !== undefined ? (
+                                        {((submission || assignment)?.score != null) ? (
                                             <div className="text-right">
                                                 <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1 italic">Grade</p>
-                                                <p className="text-2xl font-extrabold font-heading text-accent bg-accent/10 px-4 py-1 rounded-full">{submission.score}%</p>
+                                                <p className="text-2xl font-extrabold font-heading text-accent bg-accent/10 px-4 py-1 rounded-full">{(submission || assignment)?.score}%</p>
                                             </div>
                                         ) : (
                                             <div className="text-right">

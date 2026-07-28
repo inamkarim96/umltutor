@@ -23,6 +23,8 @@ export const fetchWorkflowProgressLogic = async (assignmentId) => {
                     useCaseDiagramData: progress?.useCaseDiagramData ?? safeParse(submission.useCaseDiagram),
                     descriptions: progress?.descriptions ?? safeParse(submission.useCaseDescription),
                     sequenceDiagramData: progress?.sequenceDiagramData ?? safeParse(submission.systemSequenceDiagram),
+                    classDiagramData: progress?.classDiagramData ?? safeParse(submission.classDiagram),
+                    sequenceData: progress?.sequenceData ?? safeParse(submission.sequenceDiagram),
                 };
             }
         } catch (e) {
@@ -62,6 +64,8 @@ export const submitAssignmentLogic = async (assignmentId, workflowProgress) => {
                 diagramData: workflowProgress.useCaseDiagramData,
                 descriptions: workflowProgress.descriptions,
                 ssdData: workflowProgress.sequenceDiagramData,
+                classDiagramData: workflowProgress.classDiagramData,
+                sequenceData: workflowProgress.sequenceData,
             }),
         });
         return response;

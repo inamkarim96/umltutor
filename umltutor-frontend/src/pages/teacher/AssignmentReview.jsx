@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { resolveResourceUrl } from '../../utils/urlHelper';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import {
     selectStudents
@@ -20,7 +20,10 @@ import { checkConsistency } from '../../features/checking/ConsistencyChecker';
 import { ClipboardCheck, AlertTriangle, CheckCircle2, Info, ArrowLeft, BookOpen, Download, Eye, FileText, Database, X } from 'lucide-react';
 
 const AssignmentReview = () => {
-    const { titleSlug } = useParams();
+    // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
+    const titleSlug = window.location.pathname
+        .split('/')
+        .find((segment, i, arr) => arr[i - 1] === 'assignments' && segment !== 'submitted' && segment !== 'pending' && segment !== 'reviewed' && segment.length > 0);
     const location = useLocation();
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
@@ -278,9 +281,12 @@ const AssignmentReview = () => {
                     <div className="bg-white rounded-3xl shadow-xl border border-black/10 flex flex-col min-h-[500px]">
                         <div className="p-4 border-b border-gray-50 flex justify-between items-center">
                             <span className="text-xs font-extrabold font-heading text-gray-400 uppercase tracking-widest">UML Design Preview</span>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                                 <span className="px-2 py-1 bg-accent/10 text-accent text-[10px] font-bold font-body rounded">USE CASE</span>
+                                <span className="px-2 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold font-body rounded">DESCRIPTION</span>
                                 <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold font-body rounded">SSD</span>
+                                <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold font-body rounded">CLASS</span>
+                                <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold font-body rounded">SEQUENCE</span>
                             </div>
                         </div>
                         <div className="flex-1 flex items-center justify-center bg-[#fafafa] p-12">
@@ -308,11 +314,13 @@ const AssignmentReview = () => {
                             </div>
 
                             {/* Section Scores Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                                 {[
                                     { label: 'Diagram', score: submission.useCaseScore },
                                     { label: 'Description', score: submission.descriptionScore },
                                     { label: 'SSD', score: submission.ssdScore },
+                                    { label: 'Class Diagram', score: submission.classDiagramScore },
+                                    { label: 'Sequence Diagram', score: submission.sequenceDiagramScore },
                                     { label: 'Consistency', score: submission.consistencyScore }
                                 ].map((sec, idx) => (
                                     <div key={idx} className="bg-white p-4 rounded-lg border border-black/5 shadow-card">

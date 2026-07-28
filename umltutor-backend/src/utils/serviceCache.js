@@ -8,6 +8,13 @@ const DEFAULT_MEM_TTL_MS = Number(process.env.CACHE_L1_TTL_MS) || 120_000;
 /** In-flight loaders — parallel requests share one DB call. */
 const inflight = new Map();
 
+/**
+ * Track recently invalidated keys so that a stale Redis read (fire-and-forget
+ * on deletion) doesn't re-populate memory with old data. Entries live 500ms.
+ */
+const recentlyInvalidated = new Map();
+const RECENTLY_INVALIDATED_MS = 500;
+
 function memGet(key) {
   const hit = memory.get(key);
   if (!hit || Date.now() - hit.ts > hit.ttl) {
@@ -36,8 +43,9 @@ async function cached(key, ttlSeconds, loader, memTtlMs = DEFAULT_MEM_TTL_MS) {
 
   const promise = (async () => {
     if (!cacheService.isMemoryOnly()) {
+      const wasInvalidated = recentlyInvalidated.has(key);
       const redisHit = await cacheService.get(key);
-      if (redisHit !== null) {
+      if (redisHit !== null && !wasInvalidated) {
         memSet(key, redisHit, memTtlMs);
         return redisHit;
       }
@@ -57,6 +65,9 @@ async function cached(key, ttlSeconds, loader, memTtlMs = DEFAULT_MEM_TTL_MS) {
 
 function invalidate(key) {
   memDel(key);
+  recentlyInvalidated.set(key, Date.now());
+  // Schedule cleanup of stale entries
+  setTimeout(() => recentlyInvalidated.delete(key), RECENTLY_INVALIDATED_MS);
   cacheService.del(key);
 }
 

@@ -131,6 +131,9 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   const [isTutorialValidating, setIsTutorialValidating] = useState(false);
   const [showTutorialComplete, setShowTutorialComplete] = useState(false);
 
+  const fetchedFullReportRef = useRef(null);
+  const activeSectionRef = useRef(activeSection);
+
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const isCheckingActive = useAppSelector(selectIsCheckingActive);
@@ -154,10 +157,6 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
     effectivelyReadOnly = true;
   }
 
-  useEffect(() => {
-    // Submission status tracking effect
-  }, [currentSubmission?.status, isSubmitted, currentMode]);
-
   const tutorialStep = useAppSelector(selectTutorialStep);
   const tutorialCompletedSteps = useAppSelector(selectTutorialCompletedSteps);
   const tutorialValidationByStep = useAppSelector(selectTutorialValidationByStep);
@@ -170,7 +169,11 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
 
   const tutorialModel = useAppSelector(selectTutorialModel);
   const developmentModel = useAppSelector(selectDevelopmentModel);
-  const model = currentMode === 'tutorial' ? tutorialModel : developmentModel;
+  const model = useMemo(() => currentMode === 'tutorial' ? tutorialModel : developmentModel, [currentMode, tutorialModel, developmentModel]);
+  const modelRef = useRef(model);
+
+  useEffect(() => { modelRef.current = model; }, [model]);
+  useEffect(() => { activeSectionRef.current = activeSection; }, [activeSection]);
 
   const errorToast = useErrorToast();
   const successToast = useSuccessToast();
@@ -187,10 +190,13 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   const isStudentWork = window.location.pathname.includes('/student/assignments/') && window.location.pathname.includes('/work');
   const titleSlug = window.location.pathname.split('/').find((segment, i, arr) => arr[i - 1] === 'assignments');
   const isStudent = user?.role === 'STUDENT';
-  const assignmentId =
-    assignmentIdProp ||
-    model?.id ||
-    assignments.find((a) => a.title?.toLowerCase().replace(/\s+/g, '-') === titleSlug)?.id;
+  const assignmentId = useMemo(
+    () =>
+      assignmentIdProp ||
+      model?.id ||
+      assignments.find((a) => a.title?.toLowerCase().replace(/\s+/g, '-') === titleSlug)?.id,
+    [assignmentIdProp, model, assignments, titleSlug]
+  );
 
   // Use both the assignments list and the specific detail from Redux
   const assignmentDetail = useAppSelector(selectAssignmentDetail);
@@ -230,16 +236,18 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           return;
         }
         if (isStudentWork && assignmentId) {
+          const currentModel = modelRef.current;
+          const currentSection = activeSectionRef.current;
           await dispatch(
             submitAssignmentData({
               assignmentId,
-              data: buildSavePayload(model, {
+              data: buildSavePayload(currentModel, {
                 status: 'draft',
-                section: activeSection,
+                section: currentSection,
                 ...(showTutorialUI
                   ? {
                       tutorialProgress: {
-                        currentStep: activeSection,
+                        currentStep: currentSection,
                         completedSteps: tutorialCompletedSteps,
                       },
                     }
@@ -271,8 +279,6 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
       isStudentWork,
       assignmentId,
       dispatch,
-      model,
-      activeSection,
       successToast,
       errorToast,
       showTutorialUI,
@@ -319,6 +325,38 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   const isGraded = currentSubmission?.status?.toLowerCase() === 'graded' || currentSubmission?.status?.toLowerCase() === 'completed';
   const hasReport = isGraded || !!currentSubmission?.fullReport;
 
+  // Workflow stage determination
+  const workflowStages = [
+    { id: 'usecase', label: 'Use Case Diagram' },
+    { id: 'development', label: 'Development' },
+    { id: 'editorial', label: 'Editorial' },
+    { id: 'completed', label: 'Completed' },
+  ];
+  const currentStage = useMemo(() => {
+    if (isGraded) return 'completed';
+    if (isSubmitted && currentSubmission?.tutorialApproved) return 'editorial';
+    if (isSubmitted) return 'editorial';
+    if (activeSection !== 'usecase') return 'development';
+    return 'usecase';
+  }, [isGraded, isSubmitted, currentSubmission?.tutorialApproved, activeSection]);
+  const getStageStatus = (stageId) => {
+    const stageOrder = ['usecase', 'development', 'editorial', 'completed'];
+    const currentIdx = stageOrder.indexOf(currentStage);
+    const stageIdx = stageOrder.indexOf(stageId);
+    if (stageIdx < currentIdx) return 'completed';
+    if (stageIdx === currentIdx) return 'active';
+    return 'locked';
+  };
+
+  const submissionStatusLabel = useMemo(() => {
+    if (!currentSubmission) return 'Not Started';
+    const s = currentSubmission.status?.toLowerCase();
+    if (s === 'graded') return 'Graded';
+    if (s === 'submitted') return 'Submitted';
+    if (s === 'draft') return 'Draft';
+    return 'Not Started';
+  }, [currentSubmission]);
+
   // Automatically enable checking mode for students if graded or has report (only once)
   const autoOpenedRef = useRef(false);
   useEffect(() => {
@@ -336,6 +374,8 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   // Fetch full report only when graded (lightweight status loaded by WorkspacePage)
   useEffect(() => {
     if (isStudentWork && assignmentId && currentSubmission?.status === 'graded' && !currentSubmission?.fullReport) {
+      if (fetchedFullReportRef.current === assignmentId) return;
+      fetchedFullReportRef.current = assignmentId;
       dispatch(fetchSubmissionStatus({ assignmentId, includeReport: true }));
     }
   }, [isStudentWork, assignmentId, currentSubmission?.status, currentSubmission?.fullReport, dispatch]);
@@ -849,6 +889,71 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           )}
         </div>
       </div>
+
+      {/* Workspace Info Bar */} 
+      {isStudentWork && (
+        <div className="bg-white border-b border-black/5 px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[11px] font-medium text-gray-500 z-30">
+          <span className="flex items-center gap-1.5">
+            <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Class</span>
+            <span className="text-ink font-bold">{model?.className || assignmentDetails?.class?.name || '—'}</span>
+          </span>
+          { (model?.classCode || assignmentDetails?.class?.code) && (
+            <span className="flex items-center gap-1.5">
+              <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Batch</span>
+              <span className="text-ink font-bold">{model?.classCode || assignmentDetails?.class?.code}</span>
+            </span>
+          )}
+          <span className="flex items-center gap-1.5">
+            <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Role</span>
+            <span className="text-ink font-bold capitalize">{user?.role || 'Student'}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Status</span>
+            <span className={`font-bold capitalize ${
+              submissionStatusLabel === 'Graded' ? 'text-status-green' :
+              submissionStatusLabel === 'Submitted' ? 'text-accent' :
+              submissionStatusLabel === 'Draft' ? 'text-amber-600' : 'text-gray-400'
+            }`}>{submissionStatusLabel}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Stage</span>
+            <span className="text-ink font-bold capitalize">{workflowStages.find(s => s.id === currentStage)?.label || currentStage}</span>
+          </span>
+        </div>
+      )}
+
+      {/* Workflow Stage Pipeline */}
+      {isStudentWork && (
+        <div className="bg-surface-3/60 border-b border-black/5 px-6 py-3 z-30">
+          <div className="max-w-[1600px] mx-auto flex items-center gap-0">
+            {workflowStages.map((stage, idx) => {
+              const stageStatus = getStageStatus(stage.id);
+              return (
+                <React.Fragment key={stage.id}>
+                  {idx > 0 && (
+                    <div className={`flex-1 h-0.5 mx-1 ${
+                      stageStatus === 'locked' ? 'bg-gray-200' : 'bg-accent/30'
+                    }`} />
+                  )}
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold font-heading uppercase tracking-widest whitespace-nowrap transition-all ${
+                    stageStatus === 'active'
+                      ? 'bg-accent/10 text-accent border border-accent/20 shadow-sm'
+                      : stageStatus === 'completed'
+                        ? 'bg-status-green/10 text-status-green border border-emerald-100'
+                        : 'bg-white/50 text-gray-300 border border-transparent'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      stageStatus === 'active' ? 'bg-accent animate-pulse' :
+                      stageStatus === 'completed' ? 'bg-status-green' : 'bg-gray-300'
+                    }`} />
+                    {stage.label}
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {isSubmitted && currentMode !== 'tutorial' && (
         <div

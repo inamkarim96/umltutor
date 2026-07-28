@@ -96,15 +96,20 @@ export const useUMLModel = (assignmentId) => {
         }
     }, [assignmentId]);
 
-    // Effect to refetch only when target ID doesn't match current state
+    // Effect to refetch only when target ID doesn't match current state.
+    // IMPORTANT: `isLoading` (React state) is intentionally NOT in the dependency array.
+    // Including it caused an infinite loop: loadModel() sets isLoading=true (re-triggers
+    // effect) → loadModel() sets isLoading=false (re-triggers effect again) → repeat.
+    // Instead we use `loadingRef.current` (a ref, not state) as the guard — it is already
+    // maintained inside loadModel() and does not cause re-renders when it changes.
     useEffect(() => {
         const currentModelId = model?.id?.toString();
         const targetId = assignmentId?.toString();
 
-        if (targetId && currentModelId !== targetId && !isLoading) {
+        if (targetId && currentModelId !== targetId && !loadingRef.current) {
             loadModel();
         }
-    }, [assignmentId, mode, loadModel, model?.id, isLoading]);
+    }, [assignmentId, mode, loadModel, model?.id]); // isLoading intentionally omitted
 
     return {
         model,

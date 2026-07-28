@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { resolveResourceUrl } from '../../utils/urlHelper';
 
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { ArrowLeft, Mail, Clock, BookOpen, User, Plus, Minus, CheckCircle, FileText, Database, Download, X, Eye } from 'lucide-react';
 
@@ -19,12 +19,20 @@ import { UseCaseDescriptionEditor } from '../description';
 
 import { SSDDiagramEditor } from '../ssd';
 
+import { ClassDiagramEditor } from '../class-diagram';
+
+import { SequenceDiagramEditor } from '../sequence-diagram';
+
 import { CheckingModePanel } from '../checking';
 import { useSuccessToast } from '../../components/ui/Toast';
 
 const SubmissionDetail = () => {
   const successToast = useSuccessToast();
-  const { submissionId } = useParams();
+  // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
+  // URL is /teacher/submissions/:submissionId or /teacher/submissions/:name/:user/:submissionId
+  // In both cases the submissionId is the last path segment.
+  const pathSegments = window.location.pathname.split('/').filter(Boolean);
+  const submissionId = pathSegments[pathSegments.length - 1];
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
@@ -40,6 +48,8 @@ const SubmissionDetail = () => {
   const [savingRemarks, setSavingRemarks] = useState(false);
   const [localUseCaseHighlights, setLocalUseCaseHighlights] = useState([]);
   const [localSSDHighlights, setLocalSSDHighlights] = useState([]);
+  const [localClassDiagramHighlights, setLocalClassDiagramHighlights] = useState([]);
+  const [localSequenceHighlights, setLocalSequenceHighlights] = useState([]);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
 
@@ -69,9 +79,21 @@ const SubmissionDetail = () => {
               message: h.message,
               type: h.type
             }));
+            const cdHighlights = (validationReport.classDiagram?.highlights || []).map(h => ({
+              elementId: h.elementId,
+              message: h.message,
+              type: h.type
+            }));
+            const seqHighlights = (validationReport.sequenceDiagram?.highlights || []).map(h => ({
+              elementId: h.elementId,
+              message: h.message,
+              type: h.type
+            }));
 
             setLocalUseCaseHighlights(ucHighlights);
             setLocalSSDHighlights(sdHighlights);
+            setLocalClassDiagramHighlights(cdHighlights);
+            setLocalSequenceHighlights(seqHighlights);
           }
         }
       } catch (e) {
@@ -151,7 +173,9 @@ const SubmissionDetail = () => {
         const filteredOld = oldIssues.filter(i => {
           const isSameSection = (i.type === section || i.location === section ||
             (section === 'ssd' && i.type === 'consistency') ||
-            (section === 'usecase' && (i.location === 'diagram' || i.location === 'usecase' || i.type === 'diagram')));
+            (section === 'usecase' && (i.location === 'diagram' || i.location === 'usecase' || i.type === 'diagram')) ||
+            (section === 'class-diagram' && (i.location === 'class-diagram' || i.type === 'class-diagram' || i.type === 'consistency')) ||
+            (section === 'sequence-diagram' && (i.location === 'sequence-diagram' || i.type === 'sequence-diagram' || i.type === 'consistency')));
           const isSameTarget = targetId ? (i.relatedId === targetId || i.context?.useCaseId === targetId) : true;
           return !(isSameSection && isSameTarget);
         });
@@ -162,12 +186,16 @@ const SubmissionDetail = () => {
         if (section === 'usecase') next.useCaseDiagramReport = mergedReport;
         if (section === 'description') next.useCaseDescriptionReport = mergedReport;
         if (section === 'ssd') next.sequenceDiagramReport = mergedReport;
+        if (section === 'class-diagram') next.classDiagramReport = mergedReport;
+        if (section === 'sequence-diagram') next.sequenceDiagramReport = mergedReport;
         next.issues = mergedIssues;
       } else {
         // Fallback for first run
         if (section === 'usecase') next.useCaseDiagramReport = newReport;
         if (section === 'description') next.useCaseDescriptionReport = newReport;
         if (section === 'ssd') next.sequenceDiagramReport = newReport;
+        if (section === 'class-diagram') next.classDiagramReport = newReport;
+        if (section === 'sequence-diagram') next.sequenceDiagramReport = newReport;
         if (newReport?.issues) next.issues = newReport.issues;
       }
 
@@ -192,12 +220,16 @@ const SubmissionDetail = () => {
     const diagram = safeParse(artifacts.useCaseDiagram || submission?.useCaseDiagram || submission?.diagramData, { nodes: [], edges: [] });
     const descriptions = safeParse(artifacts.useCaseDescription || submission?.useCaseDescription || submission?.descriptions, {});
     const ssds = safeParse(artifacts.systemSequenceDiagram || submission?.systemSequenceDiagram || submission?.ssdData, {});
+    const classDiagram = safeParse(artifacts.classDiagram || submission?.classDiagram || submission?.classDiagramData, { nodes: [], edges: [] });
+    const sequenceDiagrams = safeParse(artifacts.sequenceDiagram || submission?.sequenceDiagram || submission?.sequenceData, {});
 
     return {
       id: `submission-${submissionId}`,
       diagram,
       descriptions,
-      ssds
+      ssds,
+      classDiagram,
+      sequenceDiagrams
     };
   }, [submissionId, submission]);
 
@@ -542,6 +574,72 @@ const SubmissionDetail = () => {
                   return [...filtered, ...h];
                 });
                 handleLocalReportUpdate('ssd', r, tid);
+              }) : undefined}
+            />
+          </div>
+
+          {/* Class Diagram */}
+          <div className="mt-10">
+            <div className="bg-white rounded-lg border border-black/5 shadow-card overflow-hidden">
+              <div className="p-8 border-b border-gray-50 bg-surface-3/30">
+                <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-[0.2em]">Section</p>
+                <h3 className="text-xl font-extrabold font-heading text-ink">Class Diagram</h3>
+              </div>
+              <div className="flex flex-col lg:flex-row w-full gap-8 h-auto lg:h-[700px] p-8">
+                <div className="w-full lg:w-[70%] lg:flex-none min-w-0 h-[500px] lg:h-full border border-slate-100 rounded-lg overflow-hidden bg-slate-50/30 shadow-inner">
+                  <ClassDiagramEditor
+                    key={submission?.id || 'empty-cd'}
+                    initialData={modelPayload.classDiagram}
+                    isReadOnly
+                    embedded
+                    highlights={localClassDiagramHighlights}
+                  />
+                </div>
+                <div className="w-full lg:w-[30%] min-w-[320px] flex-shrink-0 animate-in slide-in-from-right-4 duration-500 flex flex-col h-[500px] lg:h-full">
+                  <div className="flex-1 overflow-hidden w-full rounded-lg border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-slate-50/50">
+                    <CheckingModePanel
+                      activeSection="class-diagram"
+                      modelOverride={modelPayload}
+                      reportOverride={checkReport?.classDiagramReport || checkReport?.classDiagram || checkReport}
+                      onRunChecker={!isStudent ? handleRunCheck : undefined}
+                      onLocalReport={!isStudent ? ((r) => {
+                        const h = (r?.issues || []).filter(i => i.context?.useCaseId).map(i => ({
+                          elementId: i.context.useCaseId,
+                          message: i.message,
+                          type: i.severity === 'error' ? 'error' : 'warning'
+                        }));
+                        setLocalClassDiagramHighlights(h);
+                        handleLocalReportUpdate('class-diagram', r);
+                      }) : undefined}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sequence Diagram */}
+          <div className="mt-10">
+            <SequenceDiagramEditor
+              key={submission?.id || 'empty-seq'}
+              assignmentId={submissionId}
+              isReadOnly
+              isCheckingActive={true}
+              reportOverride={checkReport?.sequenceDiagramReport || checkReport?.sequenceDiagram || checkReport}
+              onRunChecker={!isStudent ? handleRunCheck : undefined}
+              modelOverride={modelPayload}
+              highlights={localSequenceHighlights}
+              onLocalReport={!isStudent ? ((r, tid) => {
+                const h = (r?.issues || []).filter(i => i.context?.useCaseId).map(i => ({
+                  elementId: i.context.useCaseId,
+                  message: i.message,
+                  type: i.severity === 'error' ? 'error' : 'warning'
+                }));
+                setLocalSequenceHighlights(prev => {
+                  const filtered = (prev || []).filter(item => tid ? item.elementId !== tid : false);
+                  return [...filtered, ...h];
+                });
+                handleLocalReportUpdate('sequence-diagram', r, tid);
               }) : undefined}
             />
           </div>

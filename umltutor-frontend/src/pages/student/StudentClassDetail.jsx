@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import {
     selectClasses,
@@ -26,7 +26,10 @@ import AnnouncementBoard from '../../features/teacher/components/AnnouncementBoa
 import FileBrowser from '../../features/teacher/components/FileBrowser';
 
 const StudentClassDetail = () => {
-    const { name } = useParams();
+    // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
+    const name = window.location.pathname
+        .split('/')
+        .find((segment, i, arr) => arr[i - 1] === 'classes' && segment.length > 0);
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const allClasses = useAppSelector(selectClasses);
@@ -45,7 +48,9 @@ const StudentClassDetail = () => {
     }, [dispatch, allClasses.length]);
 
     const currentClass = useAppSelector(state =>
-        state.classroom.classes.find(c => c.name.toLowerCase().replace(/\s+/g, '-') === name)
+        name
+            ? state.classroom.classes.find(c => c.name.toLowerCase().replace(/\s+/g, '-') === name)
+            : undefined
     );
 
     const classId = currentClass?.id;
@@ -191,7 +196,7 @@ const StudentClassDetail = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                                 {classAssignments.map(asgn => {
                                     const submission = mySubmissions.find(s => s.assignmentId === asgn.id);
-                                    const status = submission?.status?.toLowerCase();
+                                    const status = (submission?.status || asgn.status || '').toLowerCase();
                                     const isSubmitted = status === 'submitted' || status === 'graded';
                                     const isOverdue = asgn.deadline && new Date(asgn.deadline) < new Date() && !isSubmitted;
 

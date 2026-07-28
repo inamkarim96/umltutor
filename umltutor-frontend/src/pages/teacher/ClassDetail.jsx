@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import {
     fetchClasses,
@@ -43,7 +43,11 @@ import {
 } from 'lucide-react';
 
 const ClassDetail = () => {
-    const { className } = useParams();
+    // NOTE: The app uses a custom router (manual pushState + matchPath) with no <Route>
+    // components, so useParams() always returns {} here. Parse from the URL directly.
+    const className = window.location.pathname
+        .split('/')
+        .find((segment, i, arr) => arr[i - 1] === 'classes' && segment.length > 0);
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const classes = useAppSelector(selectClasses);
@@ -51,10 +55,11 @@ const ClassDetail = () => {
     const isLoading = useAppSelector(selectClassroomLoading);
     const user = useAppSelector(selectUser);
 
-    // Find class by Name Slug
-    const targetClass = classes.find(c =>
-        c.name.toLowerCase().replace(/\s+/g, '-') === className.toLowerCase()
-    );
+    const targetClass = className
+        ? classes.find(c =>
+              c.name?.toLowerCase().replace(/\s+/g, '-') === className.toLowerCase()
+          )
+        : undefined;
     const classId = targetClass?.id;
     const classAssignments = classId ? assignmentsMap.filter(a => a.classId === classId) : [];
     const [enrolledStudents, setEnrolledStudents] = useState([]);

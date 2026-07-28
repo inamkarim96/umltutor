@@ -20,8 +20,8 @@ const PendingAssignments = () => {
 
     const pendingAssignments = allAssignments.filter(assignment => {
         const submission = mySubmissions.find(s => s.assignmentId === assignment.id);
-        const status = submission?.status?.toLowerCase();
-        return !submission || (status === 'draft' || status === 'pending');
+        const status = (submission?.status || assignment.status || '').toLowerCase();
+        return status !== 'submitted' && status !== 'graded';
     });
 
     return (

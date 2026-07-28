@@ -37,8 +37,8 @@ const StudentDashboard = () => {
 
     const pendingAssignments = myAssignmentsFromMyClasses.filter(a => {
         const sub = mySubmissions.find(s => s.assignmentId === a.id);
-        const status = sub?.status?.toLowerCase();
-        return !sub || status === 'draft' || status === 'pending';
+        const status = (sub?.status || a.status || '').toLowerCase();
+        return status !== 'submitted' && status !== 'graded';
     });
 
     const submittedCount = mySubmissions.filter(s => s.status?.toLowerCase() === 'submitted').length;

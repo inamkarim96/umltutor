@@ -127,7 +127,7 @@ const SubmitAssignment = ({ assignment }) => {
                         </div>
                         <div className="text-sm">
                             <p className="font-extrabold font-heading text-blue-900 uppercase tracking-tighter">Diagrams Included</p>
-                            <p className="text-blue-600 font-bold font-body opacity-80 uppercase tracking-widest text-[10px] mt-0.5">Your Use Case and SSD work will be attached</p>
+                            <p className="text-blue-600 font-bold font-body opacity-80 uppercase tracking-widest text-[10px] mt-0.5">Your Use Case, Description, SSD, Class &amp; Sequence diagrams will be attached</p>
                         </div>
                     </div>
 

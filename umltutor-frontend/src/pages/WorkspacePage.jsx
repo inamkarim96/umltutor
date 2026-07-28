@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { setMode, selectCurrentMode } from '../features/modes';
 import ModeAwareEditor from '../components/shared/ModeAwareEditor';
@@ -26,7 +26,12 @@ const WorkspacePage = ({ mode }) => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const currentMode = useAppSelector(selectCurrentMode);
-    const { titleSlug } = useParams();
+    // NOTE: The app uses a custom router (manual pushState + matchPath) with no <Route>
+    // components, so React Router's useParams() always returns {} here.
+    // We parse the slug directly from the URL — the same pattern used in ModeAwareEditor.jsx.
+    const titleSlug = window.location.pathname
+        .split('/')
+        .find((segment, i, arr) => arr[i - 1] === 'assignments' && segment !== 'submitted' && segment !== 'pending' && segment !== 'reviewed');
 
     const assignments = useAppSelector(selectAllAssignments) || [];
     const isAssignmentLoading = useAppSelector(selectAssignmentLoading);
@@ -37,10 +42,22 @@ const WorkspacePage = ({ mode }) => {
         const found = assignments.find(
             (asgn) => asgn.title?.toLowerCase().replace(/\s+/g, '-') === titleSlug
         );
-        return found?.id || titleSlug;
+        return found?.id || null;
     }, [assignments, titleSlug]);
 
     const { error, isLoading: isModelLoading, refresh: refreshModel } = useUMLModel(assignmentId);
+
+    // Guard ref: tracks which assignmentId we have already fetched submission status for.
+    // This prevents fetchSubmissionStatus from being dispatched multiple times when the
+    // `assignments` array gets a new reference (which happens on every Redux state update).
+    const submissionFetchedRef = useRef(null);
+
+    // Reset the guard whenever we navigate to a different assignment.
+    useEffect(() => {
+        if (submissionFetchedRef.current !== assignmentId) {
+            submissionFetchedRef.current = null;
+        }
+    }, [assignmentId]);
 
     useEffect(() => {
         if (!titleSlug || isAssignmentLoading) return;
@@ -48,14 +65,22 @@ const WorkspacePage = ({ mode }) => {
             dispatch(fetchAllAssignments('STUDENT'));
             return;
         }
-        if (!assignmentId) return;
-        const found = assignments.find((a) => a.id === assignmentId);
-        if (!found) {
-            dispatch(fetchAssignmentById({ id: assignmentId, role: 'STUDENT' }));
-        } else {
-            dispatch(fetchSubmissionStatus({ assignmentId, includeReport: true }));
+        if (assignmentId) {
+            const found = assignments.find((a) => a.id === assignmentId);
+            if (found) {
+                // Only dispatch once per assignmentId — guard against repeated fetches
+                // caused by Redux returning a new `assignments` array reference on every update.
+                if (submissionFetchedRef.current !== assignmentId) {
+                    submissionFetchedRef.current = assignmentId;
+                    // Fetch lightweight status only — no report on initial load.
+                    // ModeAwareEditor fetches the full report lazily when status === 'graded'.
+                    dispatch(fetchSubmissionStatus(assignmentId));
+                }
+            } else {
+                dispatch(fetchAssignmentById({ id: assignmentId, role: 'STUDENT' }));
+            }
         }
-    }, [dispatch, titleSlug, assignments, isAssignmentLoading, assignmentId]);
+    }, [dispatch, titleSlug, assignments.length, isAssignmentLoading, assignmentId]);
 
     const submissions = useAppSelector(selectSubmissions) || [];
     const currentSubmission = useAppSelector(selectCurrentSubmission);
@@ -151,7 +176,8 @@ const WorkspacePage = ({ mode }) => {
                 </div>
             </div>
 
-            {error && (
+            {/* Hide non-critical warnings on student side — students don't need "no saved work" noise */}
+            {error && !window.location.pathname.includes('/student/') && (
                 <div
                     className="bg-amber-600 text-white text-xs py-3 px-4 text-center font-bold font-body shadow-sm z-40 relative flex flex-wrap items-center justify-center gap-3"
                     role="alert"

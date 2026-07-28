@@ -53,14 +53,21 @@ class SubmissionService {
     return submission;
   }
 
-  _invalidateSubmissionCaches(assignmentId, studentId) {
+  _invalidateSubmissionCaches(assignmentId, studentId, teacherId) {
     const aid = Number(assignmentId);
     const sid = Number(studentId);
+    const tid = teacherId ? Number(teacherId) : null;
     serviceCache.invalidate(`assignments:student:${sid}:list`);
     serviceCache.invalidate(`assignment:student:${sid}:${aid}`);
     serviceCache.invalidate(`submission:status:${aid}:${sid}`);
     serviceCache.invalidate(`submission:status:${aid}:${sid}:report`);
     serviceCache.invalidate(`submissions:student:${sid}`);
+    // Invalidate teacher caches so the dashboard/submissions list reflects changes
+    if (tid) {
+      serviceCache.invalidate(`submissions:assignment:${aid}:teacher:${tid}`);
+      serviceCache.invalidatePrefix(`submissions:teacher:${tid}:`);
+    }
+    serviceCache.invalidatePrefix(`submissions:assignment:${aid}:teacher:`);
   }
 
   /**
@@ -92,7 +99,7 @@ class SubmissionService {
       data.sequenceDiagram !== '{}' &&
       data.sequenceDiagram !== 'null');
 
-    const overallCompleted = isUseCaseDiagramComplete && isUseCaseDescriptionComplete && isSSDComplete && isClassDiagramComplete;
+    const overallCompleted = isUseCaseDiagramComplete && isUseCaseDescriptionComplete && isSSDComplete && isClassDiagramComplete && isSequenceDiagramComplete;
 
     return {
       isUseCaseDiagramComplete,
@@ -291,7 +298,7 @@ class SubmissionService {
       });
     }
 
-    this._invalidateSubmissionCaches(assignmentId, studentId);
+    this._invalidateSubmissionCaches(assignmentId, studentId, assignment.createdBy);
 
     return result.lean ? this._toLeanSubmission(result.submission) : result.submission;
   }
@@ -557,9 +564,9 @@ class SubmissionService {
   async saveTeacherRemarks(submissionId, teacherId, { remarks, score }) {
     if (!submissionId || isNaN(submissionId)) throw new Error('Invalid submission ID');
 
-    await this._assertTeacherOwnsSubmission(submissionId, teacherId);
+    const subInfo = await this._assertTeacherOwnsSubmission(submissionId, teacherId);
 
-    return await submissionRepository.transaction(async (tx) => {
+    const result = await submissionRepository.transaction(async (tx) => {
       await tx.evaluation.upsert({
         where: { submissionId: Number(submissionId) },
         update: {
@@ -576,11 +583,20 @@ class SubmissionService {
         }
       });
 
-      return await tx.submission.update({
+      const updated = await tx.submission.update({
         where: { id: Number(submissionId) },
         data: { status: 'graded' }
       });
+
+      return updated;
     });
+
+    // Invalidate student caches so they see the updated grade/status
+    if (subInfo?.studentId && subInfo?.assignmentId) {
+      this._invalidateSubmissionCaches(subInfo.assignmentId, subInfo.studentId, teacherId);
+    }
+
+    return result;
   }
 
   async saveFeedbackForTeacher(submissionId, teacherId, { report, remarks, score, isDraft = false }) {
@@ -633,6 +649,11 @@ class SubmissionService {
       } catch (err) {
         console.error('Failed to send notification:', err);
       }
+    }
+
+    // Invalidate student caches so they see the grade/feedback
+    if (submission?.studentId && submission?.assignmentId) {
+      this._invalidateSubmissionCaches(submission.assignmentId, submission.studentId, teacherId);
     }
 
     return feedback;
@@ -1016,6 +1037,10 @@ class SubmissionService {
 
     serviceCache.invalidatePrefix(`submissions:teacher:`);
     serviceCache.invalidatePrefix(`tutorial:requests:`);
+    // Invalidate student's status cache so they see the updated tutorial request flag
+    if (submission.assignmentId && submission.studentId) {
+      this._invalidateSubmissionCaches(submission.assignmentId, submission.studentId);
+    }
 
     const teacherIdNotify = submission.assignment?.createdBy;
     if (teacherIdNotify && submission.assignment?.title) {
@@ -1057,7 +1082,9 @@ class SubmissionService {
 
     serviceCache.invalidatePrefix(`submissions:teacher:`);
     serviceCache.invalidatePrefix(`tutorial:requests:`);
-    serviceCache.invalidate(`submission:status:${submission.assignmentId}:${submission.studentId}`);
+    if (submission.assignmentId && submission.studentId) {
+      this._invalidateSubmissionCaches(submission.assignmentId, submission.studentId);
+    }
 
     notificationService.createNotification({
       userId: submission.studentId,
@@ -1102,7 +1129,9 @@ class SubmissionService {
 
     serviceCache.invalidatePrefix(`submissions:teacher:`);
     serviceCache.invalidatePrefix(`tutorial:requests:`);
-    serviceCache.invalidate(`submission:status:${submission.assignmentId}:${submission.studentId}`);
+    if (submission.assignmentId && submission.studentId) {
+      this._invalidateSubmissionCaches(submission.assignmentId, submission.studentId);
+    }
 
     notificationService.createNotification({
       userId: submission.studentId,

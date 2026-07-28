@@ -78,7 +78,7 @@ const StudentAssignmentsList = () => {
                     {filteredAssignments.length > 0 ? (
                         filteredAssignments.map(asgn => {
                             const submission = mySubmissions.find(s => s.assignmentId === asgn.id);
-                            const status = submission?.status?.toLowerCase();
+                            const status = (submission?.status || asgn.status || '').toLowerCase();
                             const isSubmitted = status === 'submitted' || status === 'graded';
                             const isOverdue = asgn.deadline && new Date(asgn.deadline) < new Date() && !isSubmitted;
 

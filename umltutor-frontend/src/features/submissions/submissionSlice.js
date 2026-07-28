@@ -191,7 +191,7 @@ const submissionSlice = createSlice({
           const merged = {
             ...(state.currentSubmission || {}),
             id: payload.id ?? state.currentSubmission?.id,
-            assignmentId: meta?.assignmentId ?? state.currentSubmission?.assignmentId,
+            assignmentId: Number(meta?.assignmentId ?? state.currentSubmission?.assignmentId),
             status: payload.status ?? state.currentSubmission?.status,
             submittedAt: payload.submittedAt ?? state.currentSubmission?.submittedAt,
             tutorialRequested: payload.tutorialRequested ?? state.currentSubmission?.tutorialRequested,
