@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const StatisticsCard = ({ label, value, note, icon, color, path }) => {
+const StatisticsCard = React.memo(({ label, value, note, icon, color, path }) => {
     const navigate = useNavigate();
 
     return (
@@ -16,6 +16,6 @@ const StatisticsCard = ({ label, value, note, icon, color, path }) => {
             <ArrowRight size={16} className="sdb-stat-arrow" />
         </button>
     );
-};
+});
 
 export default StatisticsCard;

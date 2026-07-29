@@ -33,7 +33,7 @@ const STATUS_FILTERS = [
   { id: 'rejected', label: 'Rejected' },
 ];
 
-const StatusBadge = ({ status }) => {
+const StatusBadge = React.memo(({ status }) => {
   const styles = {
     pending: 'bg-amber-50 text-amber-700 border-amber-200',
     approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -51,9 +51,9 @@ const StatusBadge = ({ status }) => {
       {labels[status] || status}
     </span>
   );
-};
+});
 
-const TutorialRequestsPanel = ({ compact = false, showHeader = true }) => {
+const TutorialRequestsPanel = React.memo(({ compact = false, showHeader = true }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const successToast = useSuccessToast();
@@ -136,11 +136,10 @@ const TutorialRequestsPanel = ({ compact = false, showHeader = true }) => {
                   key={f.id}
                   type="button"
                   onClick={() => { setStatusFilter(f.id); setPage(1); }}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest transition-all border ${
-                    statusFilter === f.id
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest transition-all border ${statusFilter === f.id
                       ? 'bg-accent text-white border-accent'
                       : 'bg-white text-muted border-black/10 hover:border-accent/30'
-                  }`}
+                    }`}
                 >
                   {f.label}
                 </button>
@@ -370,6 +369,6 @@ const TutorialRequestsPanel = ({ compact = false, showHeader = true }) => {
       )}
     </div>
   );
-};
+});
 
 export default TutorialRequestsPanel;

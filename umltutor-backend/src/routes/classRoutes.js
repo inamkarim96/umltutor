@@ -16,12 +16,18 @@ const router = _express.Router.call(void 0, );
 router.use(_routeMiddleware.requestLogger);
 router.use(_routeMiddleware.authenticate);
 
+// Cache-Control for read-heavy endpoints
+const cacheGet = (req, res, next) => {
+  if (req.method === 'GET') res.set('Cache-Control', 'private, max-age=60');
+  next();
+};
+
 /**
  * @route GET /api/classes
  * @desc Get all classes for the teacher
  * @access Teacher
  */
-router.get('/', _routeMiddleware.authorize('TEACHER'), _classController.getClasses);
+router.get('/', cacheGet, _routeMiddleware.authorize('TEACHER'), _classController.getClasses);
 
 /**
  * @route POST /api/classes
@@ -35,14 +41,14 @@ router.post('/', _routeMiddleware.authorize('TEACHER'), _classController.createC
  * @desc Get classes the current user is enrolled in (student dashboard)
  * @access Authenticated (students see their classes)
  */
-router.get('/my', _classController.getJoinedClasses);
+router.get('/my', cacheGet, _classController.getJoinedClasses);
 
 /**
  * @route GET /api/classes/:classId
  * @desc Get specific class details
  * @access Teacher (Class Owner) or Enrolled Student
  */
-router.get('/:classId', _classController.getClass);
+router.get('/:classId', cacheGet, _classController.getClass);
 
 /**
  * @route PUT /api/classes/:classId
@@ -70,7 +76,7 @@ router.delete('/:classId/students/:studentId', _routeMiddleware.authorize('TEACH
  * @desc Get students in a class
  * @access Teacher (Class Owner) or Enrolled Student
  */
-router.get('/:classId/students', _classController.getEnrolledStudents);
+router.get('/:classId/students', cacheGet, _classController.getEnrolledStudents);
 
 /**
  * @route POST /api/classes/:classId/students
@@ -91,20 +97,20 @@ router.post('/:classId/assignments', _routeMiddleware.authorize('TEACHER'), _fil
  * @desc Get assignments for a class
  * @access Teacher (Class Owner) or Enrolled Student
  */
-router.get('/:classId/assignments', _assignmentController.getClassAssignments);
+router.get('/:classId/assignments', cacheGet, _assignmentController.getClassAssignments);
 
 /**
  * @route GET /api/classes/:classId/analytics
  * @desc Get analytics for a class
  * @access Teacher (Class Owner)
  */
-router.get('/:classId/analytics', _routeMiddleware.authorize('TEACHER'), _classController.getClassAnalytics);
+router.get('/:classId/analytics', cacheGet, _routeMiddleware.authorize('TEACHER'), _classController.getClassAnalytics);
 
 /**
  * @route GET /api/classes/:classId/announcements
  * @desc Get class announcements
  */
-router.get('/:classId/announcements', _announcementController.getAnnouncements);
+router.get('/:classId/announcements', cacheGet, _announcementController.getAnnouncements);
 
 /**
  * @route POST /api/classes/:classId/announcements
@@ -123,7 +129,7 @@ router.patch('/announcements/:id', _announcementController.updateAnnouncement);
  * @route GET /api/classes/:classId/resources
  * @desc Get class resources
  */
-router.get('/:classId/resources', _resourceController.getResources);
+router.get('/:classId/resources', cacheGet, _resourceController.getResources);
 
 /**
  * @route POST /api/classes/:classId/resources

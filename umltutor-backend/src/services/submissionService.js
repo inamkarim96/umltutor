@@ -379,6 +379,12 @@ class SubmissionService {
   }
 
   async getSubmissionDetailWithRole(submissionId, userId, role) {
+    const normalizedRole = role.toLowerCase();
+    const cacheKey = `submission:detail:${submissionId}:${userId}:${normalizedRole}`;
+    return serviceCache.cached(cacheKey, 30, () => this._loadSubmissionDetailWithRole(submissionId, userId, normalizedRole));
+  }
+
+  async _loadSubmissionDetailWithRole(submissionId, userId, normalizedRole) {
     if (!submissionId || isNaN(submissionId)) {
       const error = new Error('Invalid submission ID');
       error.status = 400;
@@ -397,7 +403,6 @@ class SubmissionService {
       throw new NotFoundError('Submission');
     }
 
-    const normalizedRole = role.toLowerCase();
     if (normalizedRole === 'teacher') {
       const ownerTeacherId = submission.assignment?.createdBy || submission.assignment?.class?.teacherId;
       if (ownerTeacherId !== Number(userId)) {

@@ -16,19 +16,25 @@ const router = express.Router();
 router.use(routeMiddleware.requestLogger);
 router.use(routeMiddleware.authenticate);
 
+// Cache-Control for read-heavy endpoints
+const cacheGet = (req, res, next) => {
+  if (req.method === 'GET') res.set('Cache-Control', 'private, max-age=60');
+  next();
+};
+
 // --- SEARCH ROUTES ---
-router.get('/search', studentController.searchStudents);
+router.get('/search', cacheGet, studentController.searchStudents);
 
 // --- CLASS ROUTES (Student) ---
-router.get('/classes', routeMiddleware.authorize('STUDENT'), classController.getJoinedClasses);
+router.get('/classes', cacheGet, routeMiddleware.authorize('STUDENT'), classController.getJoinedClasses);
 router.post('/classes/join', routeMiddleware.authorize('STUDENT'), classController.joinClass);
 
 // --- ASSIGNMENT ROUTES (Student) ---
-router.get('/assignments', assignmentController.getStudentAssignments);
-router.get('/assignments/:id', assignmentController.getStudentAssignment);
+router.get('/assignments', cacheGet, assignmentController.getStudentAssignments);
+router.get('/assignments/:id', cacheGet, assignmentController.getStudentAssignment);
 
 // --- NOTIFICATION ROUTES (Student) ---
-router.get('/notifications', routeMiddleware.authorize('STUDENT'), notificationController.getNotifications);
+router.get('/notifications', cacheGet, routeMiddleware.authorize('STUDENT'), notificationController.getNotifications);
 router.patch('/notifications/:id/read', routeMiddleware.authorize('STUDENT'), notificationController.markAsRead);
 router.post('/notifications/read-all', routeMiddleware.authorize('STUDENT'), notificationController.markAllAsRead);
 

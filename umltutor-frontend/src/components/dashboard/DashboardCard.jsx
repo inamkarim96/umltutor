@@ -1,14 +1,14 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 
-const DashboardCard = ({ 
-    title, 
-    subtitle, 
-    icon, 
-    actionLabel, 
-    onActionClick, 
-    className = '', 
-    children 
+const DashboardCard = React.memo(({
+    title,
+    subtitle,
+    icon,
+    actionLabel,
+    onActionClick,
+    className = '',
+    children
 }) => {
     return (
         <div className={`sdb-card ${className}`}>
@@ -29,6 +29,6 @@ const DashboardCard = ({
             {children}
         </div>
     );
-};
+});
 
 export default DashboardCard;
