@@ -105,6 +105,12 @@ const TeacherDashboard = () => {
         return acc;
     }, {});
 
+    const now = Date.now();
+    const activeAssignments = assignments.filter(a => {
+        if (!a.deadline) return true;
+        return new Date(a.deadline) >= now;
+    });
+
     const pendingReview = submissions.filter(s => {
         const status = s?.status?.toLowerCase();
         return status === 'submitted';
@@ -144,7 +150,7 @@ const TeacherDashboard = () => {
         },
         {
             label: 'Active Assignments',
-            value: assignments.length,
+            value: activeAssignments.length,
             note: 'Across all classes',
             icon: <Clock size={20} />,
             color: 'amber',
@@ -313,7 +319,7 @@ const TeacherDashboard = () => {
                         onActionClick={() => navigate('/teacher/assignments')}
                     >
                         <div className="sdb-class-list">
-                            {assignments.slice(0, 4).map(asgn => (
+                            {activeAssignments.slice(0, 4).map(asgn => (
                                 <div key={asgn.id} className="sdb-class-row" onClick={() => navigate(`/teacher/assignments/${asgn.title?.toLowerCase().replace(/\s+/g, '-')}`)}>
                                     <div className="sdb-class-avatar" style={{ background: 'var(--surface-3)', color: 'var(--accent)' }}>{asgn.title?.charAt(0)}</div>
                                     <div className="sdb-class-info">
