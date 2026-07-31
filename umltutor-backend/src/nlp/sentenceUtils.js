@@ -157,6 +157,7 @@ function parseScenarioStep(stepText, availableActors = []) {
   result.isReturn = (result.actor === 'System') || retWords.some((w) => Array.from(RETURN_KEYWORDS).includes(w));
 
   const words = (result.action || '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/[^a-zA-Z0-9\s]/g, ' ')
     .split(/\s+/)
     .filter((w) => w.length > 1);

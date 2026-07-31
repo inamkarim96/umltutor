@@ -2,6 +2,7 @@
 var _validators = require('../utils/validators');
 var _errors = require('../utils/errors');
 var _checkingEngine = require('../services/checkingEngine');
+var _suggestionEngine = require('../services/suggestionEngine');
 
 /**
  * Check UML model for validation and scoring
@@ -13,6 +14,10 @@ const checkModel = (0, _errors.asyncHandler)(async (req, res) => {
 
   // Perform validation using the CheckingEngine service
   const result = _checkingEngine.CheckingEngine.checkModel(validatedData);
+
+  // Attach concrete repair suggestions to the result
+  const suggestions = _suggestionEngine.SuggestionEngine.generateSuggestions(result);
+  result.suggestions = suggestions;
 
   // Send success response
   (0, _errors.sendSuccess)(res, result);

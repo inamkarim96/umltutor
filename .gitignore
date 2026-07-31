@@ -38,6 +38,7 @@ temp/
 *.swo
 *~
 
+
 # OS
 .DS_Store
 Thumbs.db
@@ -62,3 +63,4 @@ prisma/migrations/
 # Test artifacts
 test-results/
 playwright-report/
+umltutor-backend/src/tests/

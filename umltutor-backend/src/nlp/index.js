@@ -3,11 +3,13 @@
 const constants = require('./constants');
 const similarity = require('./similarity');
 const sentenceUtils = require('./sentenceUtils');
+const semanticService = require('./semanticService');
 
 module.exports = {
   ...constants,
   ...similarity,
   ...sentenceUtils,
+  ...semanticService,
   constants,
   similarity: {
     ...similarity,
@@ -20,4 +22,5 @@ module.exports = {
     extractKeywords: similarity.extractKeywords,
   },
   sentenceUtils,
+  semanticService,
 };

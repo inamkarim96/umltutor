@@ -77,11 +77,17 @@ const CheckingModePanel = ({
         };
         const targetLocations = sectionLocationMap[activeSection] || [activeSection];
 
-        // Ensure we are only looking at issues for this section
+        // Ensure we are only looking at issues for this section.
+        // IMPORTANT: 'diagram' must match ONLY the use case diagram location, not
+        // 'class-diagram' or 'sequence-diagram'. So fuzzy substring matching is
+        // disabled for the ambiguous 'diagram' target (exact match only).
         let filteredIssues = (sectionData.issues || []).filter(i => {
             const loc = (i.location || '').toLowerCase();
             const id = (i.id || '').toLowerCase();
-            return targetLocations.some(tl => loc.includes(tl)) || id.includes(activeSection);
+            const matchesLocation = targetLocations.some(tl =>
+                loc === tl || (tl !== 'diagram' && loc.includes(tl))
+            );
+            return matchesLocation || id.includes(activeSection);
         });
 
         // Filter by useCaseId if applicable (e.g. for individual SSDs)

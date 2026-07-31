@@ -11,6 +11,9 @@ const {
 const {
     validateSentence, classifySystemStep, suggestFromSentence, parseScenarioStep,
 } = require('../nlp/sentenceUtils');
+const {
+    semanticProcessor,
+} = require('../nlp/semanticService');
 
 class CheckingEngine {
 
@@ -65,6 +68,11 @@ class CheckingEngine {
             this.validateSSDs(model.ssds, issues, diagramAnalysis, model.descriptions, targetId);
         }
 
+        // 3b. Description <-> SSD semantic alignment (Step 2 -> Step 3)
+        if (!section || section === 'ssd') {
+            this.validateDescriptionSSDSemantics(model.descriptions, model.ssds, issues, diagramAnalysis, targetId);
+        }
+
         // 4. Class Diagram Validation (Step 4)
         if (!section || section === 'class-diagram') {
             this.validateClassDiagram(
@@ -74,6 +82,11 @@ class CheckingEngine {
                 model.descriptions,
                 model.ssds
             );
+        }
+
+        // 4b. SSD <-> Class semantic responsibility (Step 3 -> Step 4)
+        if (!section || section === 'class-diagram') {
+            this.validateSSDClassResponsibility(model.classDiagram, model.ssds, issues, diagramAnalysis);
         }
 
         // 5. Sequence Diagram Validation (Step 5)
@@ -87,6 +100,11 @@ class CheckingEngine {
                 model.classDiagram,
                 targetId
             );
+        }
+
+        // 5b. Sequence <-> Class receiver ownership semantics (Step 5 -> Step 4)
+        if (!section || section === 'sequence-diagram') {
+            this.validateSequenceClassOwnership(model.sequenceDiagrams, model.classDiagram, issues, diagramAnalysis);
         }
 
         // 6. Duplicate element detection (across all diagram types)
@@ -104,6 +122,11 @@ class CheckingEngine {
             this.validateDescriptionsAdvanced(model.descriptions, issues, diagramAnalysis, targetId);
         }
 
+        // 8b. Orphan description detection (descriptions not linked to any use case)
+        if (!section || section === 'description') {
+            this.validateOrphanDescriptions(model.descriptions, issues, diagramAnalysis);
+        }
+
         // 9. Sequence diagram structure validation (call/return pairing, duplicate lifelines)
         if (!section || section === 'sequence-diagram') {
             this.validateSequenceDiagramStructure(model.sequenceDiagrams, model.classDiagram, issues, diagramAnalysis);
@@ -112,6 +135,11 @@ class CheckingEngine {
         // Global mapping consistency across steps 2–5
         if (!section) {
             this.validateGlobalMapping(model, issues, diagramAnalysis);
+        }
+
+        // 10. Full semantic traceability across all 5 artifacts
+        if (!section) {
+            this.validateTraceability(model, issues, diagramAnalysis);
         }
 
         // Calculate summary efficiently
@@ -182,6 +210,17 @@ class CheckingEngine {
      */
     static getNodeLabel(nodeId, labels, fallback = 'Unnamed') {
         return labels.get(nodeId) || fallback;
+    }
+
+    /**
+     * Resolve a human-readable Use Case name for error messages.
+     * Priority: use case diagram label → description useCaseName → readable fallback.
+     */
+    static getUseCaseName(ucId, useCaseLabels, descriptions = {}) {
+        const rawLabel = useCaseLabels.get(ucId);
+        const descLabel = (descriptions || {})[ucId]?.useCaseName;
+        const cleaned = (rawLabel || '').trim();
+        return cleaned || (descLabel || '').trim() || 'this Use Case';
     }
 
 
@@ -374,9 +413,7 @@ class CheckingEngine {
     static validateDescriptions(descriptions, issues, analysis, targetId = null) {
         if (!descriptions) return;
 
-        const { useCases, actorLabels, useCaseLabels } = analysis;
-
-        // Build a fallback name-to-description map for stale relatedId handling
+        const { useCases, actorLabels, useCaseLabels, edges } = analysis;
         const descriptionByName = new Map();
         Object.entries(descriptions).forEach(([key, desc]) => {
             if (desc && desc.useCaseName) {
@@ -434,15 +471,30 @@ class CheckingEngine {
                 const descName = normalizeName(desc.useCaseName);
                 const diagramLabel = normalizeName(nodeLabel);
                 if (descName !== diagramLabel && descName !== 'unnamed' && diagramLabel !== 'unnamed') {
-                    issues.push({
-                        type: 'consistency',
-                        severity: 'warning',
-                        code: 'USE_CASE_NAME_MISMATCH',
-                        message: `Description name "${desc.useCaseName}" does not match diagram name "${nodeLabel}".`,
-                        relatedId: node.id,
-                        location: 'description',
-                        context: { suggestion: 'Ensure the use case name in the description matches the diagram.' }
-                    });
+                    const semantic = evaluateFunctionMatch(desc.useCaseName, nodeLabel);
+                    if (semantic.matchType === 'STRONG' || semantic.matchType === 'EXACT') {
+                        // Semantically equivalent (synonyms / word order) — acceptable, no error
+                    } else if (semantic.matchType === 'PARTIAL') {
+                        issues.push({
+                            type: 'consistency',
+                            severity: 'warning',
+                            code: 'USE_CASE_NAME_MISMATCH',
+                            message: `Description name "${desc.useCaseName}" partially matches diagram name "${nodeLabel}" (confidence ${(semantic.score * 100).toFixed(0)}%).`,
+                            relatedId: node.id,
+                            location: 'description',
+                            context: { suggestion: 'Align the use case name in the description to match the diagram for full consistency.', confidence: semantic.score }
+                        });
+                    } else {
+                        issues.push({
+                            type: 'consistency',
+                            severity: 'warning',
+                            code: 'USE_CASE_NAME_MISMATCH',
+                            message: `Description name "${desc.useCaseName}" does not match diagram name "${nodeLabel}".`,
+                            relatedId: node.id,
+                            location: 'description',
+                            context: { suggestion: 'Ensure the use case name in the description matches the diagram.', confidence: semantic.score }
+                        });
+                    }
                 }
             }
 
@@ -465,6 +517,19 @@ class CheckingEngine {
                 const availableActors = Array.from(actorLabels.values()).map(v => normalizeName(v));
 
                 if (!availableActors.includes(primaryActorNorm)) {
+                    // Find the closest matching actor name to give a targeted suggestion
+                    let closest = null;
+                    let bestScore = 0;
+                    for (const actorName of availableActors) {
+                        const score = fuzzyMatch(primaryActorNorm, actorName);
+                        if (score > bestScore) {
+                            bestScore = score;
+                            closest = actorName;
+                        }
+                    }
+                    const originalClosest = closest
+                        ? Array.from(actorLabels.values()).find(v => normalizeName(v) === closest)
+                        : null;
                     issues.push({
                         type: 'consistency',
                         severity: 'error',
@@ -473,8 +538,34 @@ class CheckingEngine {
                         relatedId: node.id,
                         path: 'primaryActor',
                         location: 'description',
-                        context: { suggestion: 'Ensure Primary Actor name matches the one in the Use Case Diagram.' }
+                        context: {
+                            suggestion: originalClosest && bestScore >= 0.6
+                                ? `Did you mean "${originalClosest}"? Ensure the Primary Actor name matches the one in the Use Case Diagram.`
+                                : 'Ensure Primary Actor name matches the one in the Use Case Diagram.'
+                        }
                     });
+                } else {
+                    // Find the actor node matching the primary actor name
+                    const actorNode = analysis.actors.find((a) => {
+                        const label = actorLabels.get(a.id) || '';
+                        return normalizeName(label) === primaryActorNorm;
+                    });
+                    const actorConnected = actorNode && edges.some(
+                        (e) => (e.source === node.id && e.target === actorNode.id) ||
+                               (e.target === node.id && e.source === actorNode.id)
+                    );
+                    if (actorNode && !actorConnected) {
+                        issues.push({
+                            type: 'consistency',
+                            severity: 'warning',
+                            code: 'PRIMARY_ACTOR_NOT_CONNECTED',
+                            message: `Primary Actor "${desc.primaryActor}" is not connected to Use Case "${nodeLabel}" in the diagram.`,
+                            relatedId: node.id,
+                            path: 'primaryActor',
+                            location: 'description',
+                            context: { suggestion: 'Draw an association line between the primary actor and this use case in the Use Case Diagram.' }
+                        });
+                    }
                 }
             }
 
@@ -572,6 +663,16 @@ class CheckingEngine {
                                 context: { suggestion: `Step ${idx + 1}: Write a clear and complete sentence.` }
                             });
                         }
+                    } else {
+                        issues.push({
+                            type: 'description',
+                            severity: 'warning',
+                            code: 'EMPTY_MAIN_FLOW_STEP',
+                            message: `Step ${idx + 1} in "${nodeLabel}" is empty.`,
+                            relatedId: node.id,
+                            location: 'description',
+                            context: { suggestion: `Step ${idx + 1}: Describe the action, e.g., "Student enters PIN."` }
+                        });
                     }
                 });
             }
@@ -591,9 +692,7 @@ class CheckingEngine {
 
             // Resolve a human-readable name for this Use Case in error messages:
             // Priority: useCaseLabels (from diagram) → description.useCaseName → 'this Use Case'
-            const rawLabel = useCaseLabels.get(nodeId);
-            const descLabel = descriptions && descriptions[nodeId] && descriptions[nodeId].useCaseName;
-            const ucName = rawLabel || descLabel || 'this Use Case';
+            const ucName = this.getUseCaseName(nodeId, useCaseLabels, descriptions);
 
             if (!ssdRawData) return;
 
@@ -981,6 +1080,100 @@ class CheckingEngine {
     }
 
     /**
+     * Description <-> SSD semantic alignment (Step 2 -> Step 3).
+     * Uses the centralized semantic processor to detect main-flow steps
+     * that have no semantically matching SSD message, and SSD messages
+     * that do not semantically correspond to any main-flow step.
+     */
+    static validateDescriptionSSDSemantics(descriptions, ssds, issues, analysis, targetId = null) {
+        if (!descriptions || !ssds) return;
+
+        const { useCaseLabels } = analysis;
+        const sortedUCs = [...(analysis.useCases || [])].sort((a, b) => {
+            const posA = a.position || { x: 0, y: 0 };
+            const posB = b.position || { x: 0, y: 0 };
+            return (posA.y - posB.y) || (posA.x - posB.x);
+        });
+
+        Object.entries(ssds).forEach(([ucId, rawSSD]) => {
+            if (targetId && ucId !== targetId) return;
+            const desc = descriptions[ucId];
+            if (!desc?.mainFlow?.length) return;
+
+            const ucLabel = useCaseLabels.get(ucId) || desc.useCaseName || ucId;
+            const { semanticData } = this.processSSDData(rawSSD);
+            if (!semanticData?.messages?.length) return;
+
+            const steps = desc.mainFlow.filter((s) => {
+                const t = (s.action || '').trim();
+                return t && !/^(if|else|then)\b/i.test(t);
+            });
+            if (steps.length === 0) return;
+
+            const stepSemantics = steps.map((s, i) =>
+                semanticProcessor.processDescriptionStep(s.action, ucId)
+            );
+            const messageSemantics = semanticData.messages.map((m) =>
+                semanticProcessor.processSSDMessage(m, ucId)
+            );
+
+            const stepMatches = semanticProcessor.findBestStepMessageMatch(stepSemantics, messageSemantics, {
+                threshold: 0.5
+            });
+
+            const matchedSteps = new Set();
+            const matchedMessages = new Set();
+            stepMatches.forEach((match) => {
+                matchedSteps.add(match.stepIndex);
+                matchedMessages.add(match.messageIndex);
+            });
+
+            steps.forEach((step, idx) => {
+                if (matchedSteps.has(idx)) return;
+                const stepText = (step.action || '').trim();
+                const stepNo = step.step || (idx + 1);
+                const sg = this.suggestFromSentence(stepText);
+                issues.push({
+                    type: 'consistency',
+                    severity: 'warning',
+                    code: 'SSD_SEMANTIC_MISSING_MESSAGE',
+                    message: `Step "${stepText}" in "${ucLabel}" has no semantically matching SSD message.`,
+                    relatedId: ucId,
+                    location: 'ssd',
+                    context: {
+                        stepNumber: `${stepNo}`,
+                        problem: `Step ${stepNo} ("${stepText}") cannot be semantically aligned with any message in SSD 3.${this._ucDisplayNumber(ucId, sortedUCs)}.`,
+                        suggestion: `Add a message named "${sg.nearestFunction}" to the SSD, or rename an existing message to match this step.`
+                    }
+                });
+            });
+
+            semanticData.messages.forEach((msg, idx) => {
+                if (matchedMessages.has(idx) || msg.isReturn) return;
+                const msgName = (msg.name || '').trim();
+                if (!msgName) return;
+                issues.push({
+                    type: 'consistency',
+                    severity: 'info',
+                    code: 'SSD_SEMANTIC_UNUSED_MESSAGE',
+                    message: `SSD message "${msgName}" in "${ucLabel}" does not semantically match any main-flow step.`,
+                    relatedId: ucId,
+                    location: 'ssd',
+                    context: {
+                        problem: `Message "${msgName}" has no corresponding semantic intent in the main scenario.`,
+                        suggestion: `Ensure "${msgName}" is intentional; consider removing it or adding a matching step.`
+                    }
+                });
+            });
+        });
+    }
+
+    static _ucDisplayNumber(ucId, sortedUCs) {
+        const idx = sortedUCs.findIndex((uc) => uc.id === ucId);
+        return idx !== -1 ? (idx + 1) : (String(ucId).split('-').pop());
+    }
+
+    /**
      * Inspect global mapping consistency between Step 2 and Step 3
      */
     static validateGlobalMapping(model, issues, analysis) {
@@ -1122,6 +1315,92 @@ class CheckingEngine {
         }
     }
 
+    /**
+     * Full semantic traceability across all 5 artifacts (UCD -> Description ->
+     * SSD -> Class -> Sequence). Uses the centralized semantic processor to
+     * build per-use-case coverage and reports gaps as TRACEABILITY_GAP issues.
+     */
+    static validateTraceability(model, issues, analysis) {
+        const descriptions = model.descriptions || {};
+        const ssds = model.ssds || {};
+        const classDiagram = model.classDiagram;
+        const sequenceDiagrams = model.sequenceDiagrams || {};
+        const { useCases, useCaseLabels, actorLabels } = analysis;
+
+        if (useCases.length === 0) return;
+
+        const actorLabelList = Array.from(actorLabels.values());
+
+        useCases.forEach((uc) => {
+            const ucId = uc.id;
+            const hasDesc = !!descriptions[ucId];
+            const hasSSD = !!ssds[ucId];
+            const hasSeq = !!sequenceDiagrams[ucId];
+            const hasClass = !!(classDiagram?.nodes?.length);
+
+            // Only build a traceability chain for use cases that have enough artifacts
+            const presentStages = [hasDesc, hasSSD, hasClass, hasSeq].filter(Boolean).length;
+            if (presentStages < 2) return;
+
+            const ucLabel = this.getUseCaseName(ucId, useCaseLabels, descriptions);
+            const stages = {
+                ucd: { label: ucLabel },
+                description: descriptions[ucId],
+                ssd: ssds[ucId],
+                class: classDiagram,
+                sequence: sequenceDiagrams[ucId]
+            };
+
+            const report = semanticProcessor.buildTraceabilityReport(ucId, stages, {
+                actorLabels: actorLabelList
+            });
+
+            report.gaps.forEach((gap) => {
+                // Chain links involving missing artifacts are handled elsewhere;
+                // only report gaps between stages that are actually present.
+                if (gap.fromStage === 'ucd') return;
+
+                const fromPresent = gap.fromStage === 'description' ? hasDesc
+                    : gap.fromStage === 'ssd' ? hasSSD
+                    : gap.fromStage === 'class' ? hasClass
+                    : gap.fromStage === 'sequence' ? hasSeq : false;
+                const toPresent = gap.toStage === 'description' ? hasDesc
+                    : gap.toStage === 'ssd' ? hasSSD
+                    : gap.toStage === 'class' ? hasClass
+                    : gap.toStage === 'sequence' ? hasSeq : false;
+
+                if (!fromPresent || !toPresent) return;
+
+                issues.push({
+                    type: 'consistency',
+                    severity: 'warning',
+                    code: 'TRACEABILITY_GAP',
+                    message: `Traceability gap in "${ucLabel}": semantic token "${gap.token}" from ${gap.fromStage} is not reflected in ${gap.toStage}.`,
+                    relatedId: ucId,
+                    location: gap.toStage,
+                    context: {
+                        suggestion: gap.suggestion,
+                        fromStage: gap.fromStage,
+                        toStage: gap.toStage
+                    }
+                });
+            });
+
+            const coverageRatio = report.coverage.coverageRatio;
+            if (coverageRatio < 0.5 && report.coverage.totalLinks > 0) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'info',
+                    code: 'TRACEABILITY_LOW',
+                    message: `Semantic traceability for "${ucLabel}" is low (${(coverageRatio * 100).toFixed(0)}%). Review naming consistency across artifacts.`,
+                    relatedId: ucId,
+                    location: 'description',
+                    context: { coverageRatio }
+                });
+            }
+        });
+    }
+
     static validateDuplicateElements(model, issues, analysis) {
         const { actors, useCases, actorLabels, useCaseLabels, nodes } = analysis;
 
@@ -1237,13 +1516,62 @@ class CheckingEngine {
         });
     }
 
+    /**
+     * Detect descriptions that are not linked to any use case in the diagram.
+     * A description is considered orphaned when its key matches no use case id
+     * AND its useCaseName matches no use case label.
+     */
+    static validateOrphanDescriptions(descriptions, issues, analysis) {
+        if (!descriptions) return;
+
+        const { useCases, useCaseLabels } = analysis;
+        const useCaseIds = new Set(useCases.map((uc) => uc.id));
+        const useCaseLabelsNorm = useCases.map((uc) => {
+            const label = useCaseLabels.get(uc.id) || '';
+            return { id: uc.id, labelNorm: normalizeName(label) };
+        }).filter((x) => x.labelNorm);
+
+        Object.entries(descriptions).forEach(([key, desc]) => {
+            if (!desc) return;
+
+            // Description keyed to an existing use case id is linked
+            if (useCaseIds.has(key)) return;
+
+            // Check if description name matches any use case label (name-based linkage)
+            const nameNorm = normalizeName(desc.useCaseName);
+            if (nameNorm) {
+                const matchedByName = useCaseLabelsNorm.some(
+                    (x) => x.labelNorm === nameNorm ||
+                           evaluateFunctionMatch(desc.useCaseName, useCaseLabels.get(x.id)).matchType !== 'NONE'
+                );
+                if (matchedByName) return;
+            }
+
+            // If the description uses a relatedId/useCaseId inside itself, check that too
+            const innerId = desc.useCaseId || desc.relatedId || desc.useCaseNodeId;
+            if (innerId && useCaseIds.has(innerId)) return;
+
+            issues.push({
+                type: 'consistency',
+                severity: 'warning',
+                code: 'DESCRIPTION_ORPHAN',
+                message: `Description "${desc.useCaseName || 'Unnamed'}" is not linked to any use case in the diagram.`,
+                relatedId: key,
+                location: 'description',
+                context: {
+                    suggestion: 'Remove this description or link it to the corresponding use case in the Use Case Diagram.'
+                }
+            });
+        });
+    }
+
     static validateSequenceDiagramStructure(sequenceDiagrams, classDiagram, issues, analysis) {
         if (!sequenceDiagrams) return;
 
         const { useCases, useCaseLabels } = analysis;
 
         useCases.forEach((uc) => {
-            const ucName = this.getNodeLabel(uc.id, useCaseLabels, uc.id);
+            const ucName = this.getUseCaseName(uc.id, useCaseLabels);
             const rawSeq = sequenceDiagrams[uc.id];
             if (!rawSeq) return;
 
@@ -1455,7 +1783,7 @@ class CheckingEngine {
         useCases.forEach((uc) => {
             const desc = (descriptions || {})[uc.id];
             if (!desc?.mainFlow?.length) return;
-            const ucName = this.getNodeLabel(uc.id, useCaseLabels, uc.id);
+            const ucName = this.getUseCaseName(uc.id, useCaseLabels, descriptions);
             const nouns = new Set();
             desc.mainFlow.forEach((step) => {
                 const words = (step.action || '').split(/\s+/);
@@ -1477,6 +1805,93 @@ class CheckingEngine {
                         relatedId: uc.id,
                         location: 'class-diagram'
                     });
+                }
+            });
+        });
+    }
+
+    /**
+     * SSD <-> Class semantic responsibility (Step 3 -> Step 4).
+     * For each SSD message, extract the semantic object noun(s) and check
+     * whether a class with a matching semantic name exists. If the message's
+     * object maps to a distinct class (e.g. CreditCard) but the operation is
+     * currently owned by a different class, surface a responsibility hint.
+     */
+    static validateSSDClassResponsibility(classDiagram, ssds, issues, analysis) {
+        if (!classDiagram?.nodes?.length || !ssds) return;
+
+        const { useCaseLabels } = analysis;
+        const classes = (classDiagram.nodes || [])
+            .filter((n) => n.type === 'class' || n.type === 'interface')
+            .map((n) => ({ id: n.id, label: (n.data?.label || '').trim() }))
+            .filter((c) => c.label);
+
+        const classMethods = [];
+        classes.forEach((cls) => {
+            (classDiagram.nodes.find((n) => n.id === cls.id)?.data?.methods || []).forEach((raw) => {
+                const methodName = String(raw)
+                    .replace(/^[\+\-\#~]\s*/, '')
+                    .split('(')[0]
+                    .trim();
+                if (methodName) classMethods.push({ className: cls.label, methodName: methodName.toLowerCase() });
+            });
+        });
+
+        Object.entries(ssds).forEach(([ucId, rawSSD]) => {
+            const { semanticData } = this.processSSDData(rawSSD);
+            if (!semanticData?.messages?.length) return;
+            const ucLabel = useCaseLabels.get(ucId) || ucId;
+
+            semanticData.messages.forEach((msg) => {
+                if (msg.isReturn) return;
+                const msgName = (msg.name || '').trim();
+                if (!msgName) return;
+
+                const semantic = semanticProcessor.processSSDMessage(msg, ucId);
+                const verb = semantic.functionName
+                    ? semantic.functionName.split('(')[0].replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split(/\s+/)[0]
+                    : null;
+                const nouns = (semantic.semanticKeywords || [])
+                    .map((k) => String(k).toLowerCase())
+                    .filter((k) => k !== verb);
+
+                if (nouns.length === 0) return;
+
+                // Which classes semantically match the message's object noun(s)?
+                const candidateClasses = classes.filter((cls) => {
+                    const clsLower = cls.label.toLowerCase();
+                    return nouns.some((noun) => this.fuzzyIncludes(clsLower, noun));
+                });
+                if (candidateClasses.length === 0) return;
+
+                // Which class currently owns the best-matching operation?
+                const cleanMsg = msgName.split('(')[0].trim();
+                let bestOwner = null;
+                let bestScore = 0;
+                classMethods.forEach((m) => {
+                    const evalRes = evaluateFunctionMatch(cleanMsg, m.methodName);
+                    if (evalRes.score > bestScore) {
+                        bestScore = evalRes.score;
+                        bestOwner = m.className;
+                    }
+                });
+
+                if (bestOwner && bestScore >= 0.45) {
+                    const isInCandidate = candidateClasses.some((c) => c.label.toLowerCase() === bestOwner.toLowerCase());
+                    if (!isInCandidate) {
+                        const suggestedClass = candidateClasses[0].label;
+                        issues.push({
+                            type: 'consistency',
+                            severity: 'info',
+                            code: 'CLASS_RESPONSIBILITY_MISMATCH',
+                            message: `Operation "${cleanMsg}()" in "${ucLabel}" is owned by "${bestOwner}", but semantically relates to class "${suggestedClass}".`,
+                            relatedId: ucId,
+                            location: 'class-diagram',
+                            context: {
+                                suggestion: `Consider moving "${cleanMsg}()" to "${suggestedClass}" for stronger domain alignment.`
+                            }
+                        });
+                    }
                 }
             });
         });
@@ -1551,7 +1966,7 @@ class CheckingEngine {
             const ucId = uc.id;
             if (targetId && ucId !== targetId) return;
 
-            const ucName = this.getNodeLabel(ucId, useCaseLabels, ucId);
+            const ucName = this.getUseCaseName(ucId, useCaseLabels, descriptions);
             const desc = (descriptions || {})[ucId];
             const rawSeq = sequenceDiagrams[ucId];
 
@@ -1777,6 +2192,79 @@ class CheckingEngine {
                 message: `Extra sequence message "${msg.name}" in "${ucName}" is not directly mapped to the Main Success Scenario steps.`,
                 relatedId: ucId,
                 location: 'sequence-diagram'
+            });
+        });
+    }
+
+    /**
+     * Sequence <-> Class receiver ownership semantics (Step 5 -> Step 4).
+     * For each non-return message targeting an object lifeline, the operation
+     * should be owned by the class that the receiver lifeline maps to.
+     */
+    static validateSequenceClassOwnership(sequenceDiagrams, classDiagram, issues, analysis) {
+        if (!sequenceDiagrams || !classDiagram?.nodes?.length) return;
+
+        const { useCases, useCaseLabels } = analysis;
+        const classModel = this.extractClassDiagramModel(classDiagram);
+        if (classModel.methods.length === 0) return;
+
+        useCases.forEach((uc) => {
+            const rawSeq = sequenceDiagrams[uc.id];
+            if (!rawSeq) return;
+
+            const { semanticData } = this.processSequenceData(rawSeq);
+            if (!semanticData?.lifelines?.length || !semanticData?.messages?.length) return;
+
+            const ucName = this.getUseCaseName(uc.id, useCaseLabels);
+            const lifelineMap = new Map(semanticData.lifelines.map((l) => [l.id, l]));
+
+            semanticData.messages.forEach((msg) => {
+                if (msg.isReturn) return;
+                const msgName = (msg.name || '').trim();
+                if (!msgName) return;
+
+                const receiver = lifelineMap.get(msg.toLifelineId);
+                if (!receiver || receiver.type === 'actor') return;
+
+                const receiverClassName = this.parseLifelineClassName(receiver.label);
+                if (!receiverClassName || receiverClassName.toLowerCase() === 'unknown') return;
+
+                const cleanMsg = msgName.split('(')[0].trim();
+                if (!cleanMsg || cleanMsg.length <= 2) return;
+
+                // Find the best-matching class operation for this message
+                let bestMethod = null;
+                let bestScore = 0;
+                classModel.methods.forEach((m) => {
+                    const evalRes = evaluateFunctionMatch(cleanMsg, m.methodName);
+                    if (evalRes.score > bestScore) {
+                        bestScore = evalRes.score;
+                        bestMethod = m;
+                    }
+                });
+
+                if (!bestMethod || bestScore < 0.45) return;
+
+                // Does the receiver class semantically match the operation's owner?
+                const receiverLower = receiverClassName.toLowerCase();
+                const ownerLower = bestMethod.className.toLowerCase();
+                const semanticallyOwned = receiverLower === ownerLower ||
+                    this.fuzzyIncludes(receiverClassName, bestMethod.className);
+
+                if (!semanticallyOwned) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'SEQUENCE_OPERATION_RECEIVER_MISMATCH',
+                        message: `Sequence message "${msgName}" in "${ucName}" targets lifeline "${receiver.label}", but the matching operation "${bestMethod.methodName}()" is owned by class "${bestMethod.className}".`,
+                        relatedId: uc.id,
+                        location: 'sequence-diagram',
+                        context: {
+                            suggestion: `Move "${cleanMsg}()" to "${receiverClassName}" or change the message receiver to "${bestMethod.className}".`,
+                            confidence: bestScore
+                        }
+                    });
+                }
             });
         });
     }

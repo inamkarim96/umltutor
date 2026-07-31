@@ -102,6 +102,28 @@ function areSynonyms(wordA, wordB) {
   return false;
 }
 
+/**
+ * Detect whether two function/sentence strings match via a phrasal verb,
+ * e.g. "sign in" vs "login", "check out" vs "checkout", "log in" vs "login".
+ * Scans the full raw text (before stop-word removal) for multi-word verbs.
+ */
+function checkPhrasalVerbMatch(funcA, funcB) {
+  const a = (funcA || '').toLowerCase();
+  const b = (funcB || '').toLowerCase();
+  if (!a || !b) return false;
+
+  const partsA = a.split(/\s+/);
+  const partsB = b.split(/\s+/);
+
+  const twoWordA = partsA.slice(0, 2).join(' ');
+  const twoWordB = partsB.slice(0, 2).join(' ');
+
+  if (areSynonyms(twoWordA, twoWordB)) return true;
+  if (areSynonyms(twoWordA, partsB[0])) return true;
+  if (areSynonyms(partsA[0], twoWordB)) return true;
+  return false;
+}
+
 function evaluateFunctionMatch(funcA, funcB) {
   const cleanA = (funcA || '').split('(')[0].trim();
   const cleanB = (funcB || '').split('(')[0].trim();
@@ -136,12 +158,21 @@ function evaluateFunctionMatch(funcA, funcB) {
   const verbB = keywordsB[0];
   const verbMatch = areSynonyms(verbA, verbB);
 
+  // Phrasal verb detection: "sign in" == "login", "check out" == "checkout"
+  // Operates on the raw normalized text so stop-word removal doesn't hide
+  // multi-word verbs such as "sign in".
+  const phrasalMatch = checkPhrasalVerbMatch(cleanA, cleanB);
+
   const objA = keywordsA.slice(1).join(' ');
   const objB = keywordsB.slice(1).join(' ');
   const objMatch = objA && objB ? (objA === objB || fuzzyIncludes(objA, objB)) : true;
 
   if (verbMatch && objMatch) {
     return { score: 0.88, matchType: 'STRONG', reason: 'Verb synonym and object match' };
+  }
+
+  if (phrasalMatch && objMatch) {
+    return { score: 0.88, matchType: 'STRONG', reason: 'Phrasal verb synonym and object match' };
   }
 
   let matchedCount = 0;
@@ -182,4 +213,5 @@ module.exports = {
   lemmatizeToken,
   areSynonyms,
   evaluateFunctionMatch,
+  checkPhrasalVerbMatch,
 };
