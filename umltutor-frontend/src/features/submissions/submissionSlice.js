@@ -329,7 +329,9 @@ const submissionSlice = createSlice({
       })
       // Grade
       .addCase(gradeSubmission.fulfilled, (state, action) => {
-        const updated = action.payload;
+        const payload = action.payload;
+        const updated = payload?.updated || payload;
+        if (!updated) return;
         // Update in lists if present
         if (state.currentSubmission?.id === updated.id) {
           state.currentSubmission = { ...state.currentSubmission, ...updated };
@@ -345,7 +347,8 @@ const submissionSlice = createSlice({
       })
       // Validation Report
       .addCase(saveValidationReport.fulfilled, (state, action) => {
-        const updated = action.payload;
+        const payload = action.payload;
+        const updated = payload?.updated || payload;
         if (!updated) return;
         // Update in lists if present
         if (state.currentSubmission?.id === updated.id) {
