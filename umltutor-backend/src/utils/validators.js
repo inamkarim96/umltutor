@@ -68,7 +68,9 @@ const umlModelSchema = _zod.z.object({
   }).optional(),
   descriptions: _zod.z.record(_zod.z.any()).optional(),
   ssds: _zod.z.record(_zod.z.any()).optional(),
-}); exports.umlModelSchema = umlModelSchema;
+  classDiagram: _zod.z.any().optional(),
+  sequenceDiagrams: _zod.z.record(_zod.z.any()).optional(),
+}).passthrough(); exports.umlModelSchema = umlModelSchema;
 
 /**
  * Submission validation schemas

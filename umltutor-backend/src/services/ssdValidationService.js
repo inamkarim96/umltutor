@@ -2,19 +2,32 @@
 
 // UML System Sequence Diagram Validation Rules
 const validateSSDSemantics = (semanticData) => {
-  const errors = [];
+  const structuredErrors = [];
 
   // 1. Validate participants
   const participants = semanticData.lifelines || [];
   const systemParticipants = participants.filter((p) => p.type === 'system');
   const actorParticipants = participants.filter((p) => p.type === 'actor');
+  const objectParticipants = participants.filter((p) => p.type === 'object' || (p.type !== 'system' && p.type !== 'actor'));
 
-  if (systemParticipants.length === 0 && _optionalChain([semanticData, 'access', _ => _.lifelines, 'optionalAccess', _2 => _2.some, 'call', _3 => _3((p) => p.type === 'object')]) === false) {
-    errors.push('Exactly one System participant is typically required for an SSD');
+  if (objectParticipants.length > 0) {
+    objectParticipants.forEach((p) => {
+      structuredErrors.push({
+        code: 'SSD_OBJECT_NOT_ALLOWED',
+        message: `Object lifeline "${p.label || p.name || 'Object'}" is not allowed in a System Sequence Diagram. SSDs can ONLY contain Actor and System lifelines. Internal objects belong in Step 5 (Detailed Sequence Diagram).`,
+        type: 'ssd',
+        severity: 'error',
+        relatedId: p.id
+      });
+    });
+  }
+
+  if (systemParticipants.length === 0) {
+    structuredErrors.push({ code: 'SSD_SYSTEM_MISSING', message: 'Exactly one System participant is required for an SSD', type: 'ssd', severity: 'error' });
   }
 
   if (actorParticipants.length === 0) {
-    errors.push('At least one Actor participant is required');
+    structuredErrors.push({ code: 'SSD_ACTOR_MISSING', message: 'At least one Actor participant is required for an SSD', type: 'ssd', severity: 'error' });
   }
 
   // 2. Validate messages
@@ -32,43 +45,46 @@ const validateSSDSemantics = (semanticData) => {
     const receiverExists = participants.some((p) => p.id === message.toLifelineId);
 
     if (!senderExists) {
-      errors.push(`Message ${messageIndex}: Sender participant not found`);
+      structuredErrors.push({ code: 'SSD_SENDER_NOT_FOUND', message: `Message ${messageIndex}: Sender participant not found`, type: 'ssd', severity: 'error', relatedId: message.id });
     }
 
     if (!receiverExists) {
-      errors.push(`Message ${messageIndex}: Receiver participant not found`);
+      structuredErrors.push({ code: 'SSD_RECEIVER_NOT_FOUND', message: `Message ${messageIndex}: Receiver participant not found`, type: 'ssd', severity: 'error', relatedId: message.id });
     }
 
-    // Note: Return message reference validation removed — not required for student-facing SSD tool
     const sender = participants.find((p) => p.id === message.fromLifelineId);
     const receiver = participants.find((p) => p.id === message.toLifelineId);
 
     if (!sender || !receiver) {
-      errors.push(`Message ${messageIndex}: Sender or Receiver participant not found`);
+      if (senderExists || receiverExists) {
+        structuredErrors.push({ code: 'SSD_PARTICIPANT_MISMATCH', message: `Message ${messageIndex}: Sender or Receiver participant not found`, type: 'ssd', severity: 'error', relatedId: message.id });
+      }
       continue;
     }
 
-    // Self-loops (sender === receiver) are allowed — they represent valid internal system operations
-    // e.g. "System calculates total price"
+    // Self-loops (sender === receiver or message.type === 'self') are allowed — they represent valid internal system operations
+    const isSelfLoop = message.type === 'self' || sender.id === receiver.id;
 
     const isSystemSender = sender.type === 'system' || sender.type === 'object';
     const isSystemReceiver = receiver.type === 'system' || receiver.type === 'object';
 
     // Validate SSD-specific flow rules (UML Standard)
-    if (message.type === 'synchronous' && !message.isReturn) {
-      if (sender.type !== 'actor' || !isSystemReceiver) {
-        errors.push(`Message ${messageIndex}: Synchronous messages in SSD should go from Actor to System`);
-      }
-    } else if (message.type === 'return' || message.isReturn) {
-      if (!isSystemSender || receiver.type !== 'actor') {
-        errors.push(`Message ${messageIndex}: Return messages in SSD should go from System to Actor`);
+    if (!isSelfLoop) {
+      if (message.type === 'synchronous' && !message.isReturn) {
+        if (sender.type !== 'actor' || !isSystemReceiver) {
+          structuredErrors.push({ code: 'SSD_MESSAGE_DIRECTION', message: `Message ${messageIndex}: Synchronous messages in SSD should go from Actor to System`, type: 'ssd', severity: 'error', relatedId: message.id });
+        }
+      } else if (message.type === 'return' || message.isReturn) {
+        if (!isSystemSender || receiver.type !== 'actor') {
+          structuredErrors.push({ code: 'SSD_RETURN_DIRECTION', message: `Message ${messageIndex}: Return messages in SSD should go from System to Actor`, type: 'ssd', severity: 'error', relatedId: message.id });
+        }
       }
     }
 
     // Validate create/delete messages
     if (message.type === 'create' || message.type === 'delete') {
       if (receiver.type === 'actor') {
-        errors.push(`Message ${messageIndex}: Actors cannot be created or deleted`);
+        structuredErrors.push({ code: 'SSD_CREATE_DELETE_ACTOR', message: `Message ${messageIndex}: Actors cannot be created or deleted`, type: 'ssd', severity: 'error', relatedId: message.id });
       }
     }
   }
@@ -76,8 +92,9 @@ const validateSSDSemantics = (semanticData) => {
   // Note: Activation bar validation removed — activation bars are visual aids, not validated semantically
 
   return {
-    isValid: errors.length === 0,
-    errors
+    isValid: structuredErrors.length === 0,
+    errors: structuredErrors.map((e) => e.message),
+    structuredErrors
   };
 }; exports.validateSSDSemantics = validateSSDSemantics;
 

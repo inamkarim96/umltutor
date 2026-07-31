@@ -88,17 +88,14 @@ const SSDToolbar = ({
                         🖥️ System
                     </button>
                     <button
-                        onClick={onAddObject}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                onAddObject();
-                            }
+                        onClick={() => {
+                            alert("Objects are not allowed in System Sequence Diagrams (Step 3). System Sequence Diagrams model interactions between Actors and the System ONLY. Internal Object entities belong in Step 5 (Sequence Diagram).");
                         }}
                         tabIndex={0}
-                        className="flex items-center gap-2 px-3 py-2 text-sm bg-surface-3 hover:bg-purple-50 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        title="Objects belong in Step 5 (Sequence Diagram)"
+                        className="flex items-center gap-2 px-3 py-2 text-sm bg-surface-3 opacity-60 cursor-not-allowed rounded"
                     >
-                        📦 Object
+                        📦 Object (Step 5 only)
                     </button>
                 </div>
             </div>

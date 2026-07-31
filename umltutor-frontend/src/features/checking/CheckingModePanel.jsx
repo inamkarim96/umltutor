@@ -7,6 +7,7 @@ import { selectUser } from '../../features/auth';
 import { validateUseCaseName, validateActorName, validateSentence } from './grammarRules';
 import { useSuccessToast, useErrorToast } from '../../components/ui/Toast';
 import { checkConsistency } from './ConsistencyChecker';
+import { normalizeName } from '../../nlp/similarity';
 import { Plus, Minus, RotateCcw } from 'lucide-react';
 
 
@@ -55,12 +56,16 @@ const CheckingModePanel = ({
     const processReportSection = useCallback((rep) => {
         if (!rep) return null;
 
+        const isFlatReport = Array.isArray(rep.issues);
+
         let sectionData = rep;
-        if (activeSection === 'usecase') sectionData = rep.useCaseDiagram || rep;
-        else if (activeSection === 'description') sectionData = rep.useCaseDescription || rep;
-        else if (activeSection === 'ssd') sectionData = rep.systemSequence || rep;
-        else if (activeSection === 'class-diagram') sectionData = rep.classDiagram || rep;
-        else if (activeSection === 'sequence-diagram') sectionData = rep.sequenceDiagram || rep;
+        if (!isFlatReport) {
+            if (activeSection === 'usecase') sectionData = rep.useCaseDiagram || rep;
+            else if (activeSection === 'description') sectionData = rep.useCaseDescription || rep;
+            else if (activeSection === 'ssd') sectionData = rep.systemSequence || rep;
+            else if (activeSection === 'class-diagram') sectionData = rep.classDiagram || rep;
+            else if (activeSection === 'sequence-diagram') sectionData = rep.sequenceDiagram || rep;
+        }
 
         // Map activeSection to potential location labels
         const sectionLocationMap = {
@@ -87,13 +92,13 @@ const CheckingModePanel = ({
                 if (issueUseCaseId) {
                     return issueUseCaseId === useCaseId || issueUseCaseId.toLowerCase() === idLower;
                 }
-                
+
                 // Fallback checks for specific ID patterns if context is missing
                 const hasMatch = (i.id && i.id.toLowerCase().includes(idLower)) ||
-                                 (typeof i.problem === 'string' && i.problem.toLowerCase().includes(idLower));
-                
-                // If it doesn't have an explicit use case ID, assume it's a general issue, unless it matched
-                return hasMatch || !issueUseCaseId;
+                    (typeof i.problem === 'string' && i.problem.toLowerCase().includes(idLower));
+
+                // If it doesn't have an explicit use case ID, assume it's a general issue
+                return hasMatch;
             });
         }
 
@@ -420,8 +425,15 @@ const CheckingModePanel = ({
             });
 
         } else if (activeSection === 'description') {
-            // Dynamic Use Case Description validation
-            const descriptions = model.descriptions ?? {};
+            let descriptions = model.descriptions ?? {};
+            if (Array.isArray(descriptions)) {
+                descriptions = {};
+                model.descriptions.forEach((desc, idx) => {
+                    if (desc && desc.useCaseNodeId) {
+                        descriptions[desc.useCaseNodeId] = desc;
+                    }
+                });
+            }
             const diagramUseCases = model.diagram?.nodes?.filter(n => n.type === 'usecase') || [];
 
             if (Object.keys(descriptions).length === 0 && diagramUseCases.length > 0) {
@@ -445,20 +457,71 @@ const CheckingModePanel = ({
                 });
             }
 
-            if (targetUseCaseId && !descriptions[targetUseCaseId]) {
-                issues.push({
-                    id: `description-not-found-${targetUseCaseId}`,
-                    code: 'DESCRIPTION_NOT_FOUND',
-                    severity: 'error',
-                    location: 'description',
-                    message: `Use Case Description not found.`,
-                    context: { useCaseId: targetUseCaseId }
-                });
-                report.score = 0;
-            } else {
-                Object.entries(descriptions).forEach(([useCaseId, description]) => {
-                    // If targetUseCaseId is provided, skip others
-                    if (targetUseCaseId && useCaseId !== targetUseCaseId) return;
+            // Build name-based fallback map for stale relatedId handling
+            const descriptionByName = new Map();
+            Object.entries(descriptions).forEach(([key, desc]) => {
+                if (desc && desc.useCaseName) {
+                    const n = normalizeName(desc.useCaseName);
+                    if (n) descriptionByName.set(n, { key, desc });
+                }
+            });
+
+            // If targetUseCaseId provided, check both ID and name fallback
+            if (targetUseCaseId) {
+                let desc = descriptions[targetUseCaseId];
+                if (!desc) {
+                    const useCaseNode = model.diagram?.nodes?.find(n => n.id === targetUseCaseId);
+                    if (useCaseNode) {
+                        const nodeNameNorm = normalizeName(useCaseNode.data?.label || '');
+                        if (nodeNameNorm && descriptionByName.has(nodeNameNorm)) {
+                            desc = descriptionByName.get(nodeNameNorm).desc;
+                            descriptions[targetUseCaseId] = desc;
+                        }
+                    }
+                }
+                if (!desc) {
+                    issues.push({
+                        id: `description-not-found-${targetUseCaseId}`,
+                        code: 'DESCRIPTION_NOT_FOUND',
+                        severity: 'error',
+                        location: 'description',
+                        message: `Use Case Description not found.`,
+                        context: { useCaseId: targetUseCaseId }
+                    });
+                    report.score = 0;
+                }
+            }
+
+            // Validate each use case by iterating diagram nodes (not descriptions keys)
+            const useCaseNodes = model.diagram?.nodes?.filter(n => n.type === 'usecase') || [];
+            useCaseNodes.forEach((node) => {
+                const useCaseId = node.id;
+                if (targetUseCaseId && useCaseId !== targetUseCaseId) return;
+
+                // Try ID lookup, then name fallback
+                let description = descriptions[useCaseId];
+                if (!description) {
+                    const nodeNameNorm = normalizeName(node.data?.label || '');
+                    if (nodeNameNorm && descriptionByName.has(nodeNameNorm)) {
+                        description = descriptionByName.get(nodeNameNorm).desc;
+                        descriptions[useCaseId] = description;
+                    }
+                }
+
+                if (!description) {
+                    if (!targetUseCaseId || useCaseId === targetUseCaseId) {
+                        issues.push({
+                            id: `description-not-found-${useCaseId}`,
+                            code: 'DESCRIPTION_NOT_FOUND',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Use Case Description not found for "${node.data?.label || 'Unnamed'}".`,
+                            context: { useCaseId, suggestion: 'Add a description for this use case.' }
+                        });
+                        report.score -= 30;
+                    }
+                    return;
+                }
 
                     // Check Title/Use Case Name
                     if (!description.useCaseName || description.useCaseName.trim() === '') {
@@ -475,10 +538,27 @@ const CheckingModePanel = ({
                         passes.push(`Title defined: ${description.useCaseName}`);
                     }
 
+                    // Cross-verify useCaseName matches diagram label
+                    if (description.useCaseName && description.useCaseName.trim()) {
+                        const descLabel = normalizeName(description.useCaseName);
+                        const diagramNode = model.diagram?.nodes?.find(n => n.id === useCaseId);
+                        const diagramLabel = normalizeName(diagramNode?.data?.label || '');
+                        if (descLabel !== diagramLabel && descLabel !== 'unnamed' && diagramLabel !== 'unnamed') {
+                            issues.push({
+                                id: `usecase-name-mismatch-${useCaseId}`,
+                                code: 'USE_CASE_NAME_MISMATCH',
+                                severity: 'warning',
+                                location: 'description',
+                                message: `Description name "${description.useCaseName}" does not match diagram name "${diagramNode?.data?.label || ''}".`,
+                                context: { useCaseId, suggestion: 'Ensure the use case name in the description matches the diagram.' }
+                            });
+                            report.score -= 5;
+                        }
+                    }
+
                     // Check primary actor
                     const isNotSetActor = !description.primaryActor ||
-                        description.primaryActor.trim() === '' ||
-                        description.primaryActor.toLowerCase() === 'not set';
+                        (typeof description.primaryActor === 'string' && (description.primaryActor.trim() === '' || normalizeName(description.primaryActor) === 'not set'));
 
                     if (isNotSetActor) {
                         issues.push({
@@ -491,7 +571,6 @@ const CheckingModePanel = ({
                         });
                         report.score -= 20;
                     } else {
-                        // Check if selected actor is connected to this use case in the diagram
                         const edges = model.diagram?.edges || [];
                         const nodes = model.diagram?.nodes || [];
 
@@ -501,12 +580,12 @@ const CheckingModePanel = ({
 
                         const connectedActors = nodes
                             .filter(n => n.type === 'actor' && neighborIds.includes(n.id))
-                            .map(n => (n.data?.label || '').trim());
+                            .map(n => (n.data?.label || ''));
 
-                        const connectedActorLabelsLower = connectedActors.map(l => l.toLowerCase());
-                        const selectedActorLower = description.primaryActor.trim().toLowerCase();
+                        const connectedActorNorm = connectedActors.map(l => normalizeName(l));
+                        const selectedActorNorm = normalizeName(description.primaryActor);
 
-                        if (connectedActorLabelsLower.length > 0 && !connectedActorLabelsLower.includes(selectedActorLower)) {
+                        if (connectedActorNorm.length > 0 && !connectedActorNorm.includes(selectedActorNorm)) {
                             issues.push({
                                 id: `invalid-primary-actor-${useCaseId}`,
                                 code: 'INVALID_PRIMARY_ACTOR',
@@ -519,8 +598,7 @@ const CheckingModePanel = ({
                                 }
                             });
                             report.score -= 10;
-                        } else if (connectedActorLabelsLower.length === 0 && selectedActorLower !== '' && selectedActorLower !== 'not set') {
-                            // Edge case: if no actors are connected but they entered one
+                        } else if (connectedActorNorm.length === 0 && selectedActorNorm !== '' && selectedActorNorm !== 'not set') {
                             issues.push({
                                 id: `invalid-primary-actor-${useCaseId}`,
                                 code: 'INVALID_PRIMARY_ACTOR',
@@ -529,19 +607,20 @@ const CheckingModePanel = ({
                                 message: `Primary Actor "${description.primaryActor}" cannot be validated because no actors are connected to this Use Case in the diagram.`,
                                 context: {
                                     useCaseId,
-                                    suggestion: `Connect an Actor to this Use Case in the Use Case Diagram first.`
+                                    suggestion: 'Connect an Actor to this Use Case in the Use Case Diagram first.'
                                 }
                             });
                             report.score -= 10;
-                        } else if (selectedActorLower !== '') {
+                        } else if (selectedActorNorm !== '') {
                             passes.push(`Primary actor defined: ${description.primaryActor}`);
                         }
                     }
 
-                    // Check preconditions
-                    const isNoPre = !description.preconditions ||
-                        description.preconditions.trim() === '' ||
-                        description.preconditions.toLowerCase() === 'none';
+                    // Check preconditions — accept string or array
+                    let preValue = description.preconditions;
+                    if (Array.isArray(preValue)) preValue = preValue.join(' ');
+                    const preStr = (typeof preValue === 'string' ? preValue : '').trim();
+                    const isNoPre = !preStr || normalizeName(preStr) === 'none';
 
                     if (isNoPre) {
                         issues.push({
@@ -554,7 +633,7 @@ const CheckingModePanel = ({
                         });
                         report.score -= 15;
                     } else {
-                        const validation = validateSentence(description.preconditions);
+                        const validation = validateSentence(preStr);
                         if (!validation.isValid) {
                             issues.push({
                                 id: `invalid-preconditions-${useCaseId}`,
@@ -570,10 +649,11 @@ const CheckingModePanel = ({
                         }
                     }
 
-                    // Check postconditions
-                    const isNoPost = !description.postconditions ||
-                        description.postconditions.trim() === '' ||
-                        description.postconditions.toLowerCase() === 'none';
+                    // Check postconditions — accept string or array
+                    let postValue = description.postconditions;
+                    if (Array.isArray(postValue)) postValue = postValue.join(' ');
+                    const postStr = (typeof postValue === 'string' ? postValue : '').trim();
+                    const isNoPost = !postStr || normalizeName(postStr) === 'none';
 
                     if (isNoPost) {
                         issues.push({
@@ -586,7 +666,7 @@ const CheckingModePanel = ({
                         });
                         report.score -= 15;
                     } else {
-                        const validation = validateSentence(description.postconditions);
+                        const validation = validateSentence(postStr);
                         if (!validation.isValid) {
                             issues.push({
                                 id: `invalid-postconditions-${useCaseId}`,
@@ -603,7 +683,12 @@ const CheckingModePanel = ({
                     }
 
                     // Check main flow
-                    if (!description.mainFlow || description.mainFlow.length === 0) {
+                    const hasMainFlow = description.mainFlow && description.mainFlow.length > 0 && description.mainFlow.some(step => {
+                        const text = step.action || (typeof step === 'string' ? step : null);
+                        return text && text.trim().length > 0;
+                    });
+
+                    if (!hasMainFlow) {
                         issues.push({
                             id: `no-main-flow-${useCaseId}`,
                             code: 'NO_MAIN_FLOW',
@@ -617,7 +702,8 @@ const CheckingModePanel = ({
                         passes.push(`Main flow defined`);
                         // Check each step is not empty
                         description.mainFlow.forEach((step, index) => {
-                            if (!step.action || step.action.trim() === '') {
+                            const stepText = step.action || (typeof step === 'string' ? step : '');
+                            if (!stepText || stepText.trim() === '') {
                                 issues.push({
                                     id: `empty-main-flow-step-${useCaseId}-${index}`,
                                     code: 'EMPTY_MAIN_FLOW_STEP',
@@ -629,7 +715,7 @@ const CheckingModePanel = ({
                                 report.score -= 5;
                             } else {
                                 // Check if step content is a proper sentence
-                                const validation = validateSentence(step.action);
+                                const validation = validateSentence(stepText);
                                 if (!validation.isValid) {
                                     issues.push({
                                         id: `invalid-main-flow-step-${useCaseId}-${index}`,
@@ -684,7 +770,6 @@ const CheckingModePanel = ({
                         });
                     }
                 });
-            }
 
         } else if (activeSection === 'ssd') {
             // Dynamic SSD validation
@@ -724,6 +809,11 @@ const CheckingModePanel = ({
                 // If targetUseCaseId is provided, skip others
                 if (targetUseCaseId && useCaseId !== targetUseCaseId) return;
 
+                // Resolve a human-readable Use Case name for error messages
+                const useCaseNode = model.diagram?.nodes?.find(n => n.id === useCaseId);
+                const descriptionName = model.descriptions?.[useCaseId]?.useCaseName;
+                const ucName = useCaseNode?.data?.label || descriptionName || 'this Use Case';
+
                 // Normalize SSD data structure
                 let ssd = rawSsd;
                 if (ssd && ssd.semanticData) ssd = ssd.semanticData;
@@ -739,7 +829,7 @@ const CheckingModePanel = ({
                         code: 'SSD_NOT_FOUND',
                         severity: 'error',
                         location: 'ssd',
-                        message: `System Sequence Diagram is not found.`,
+                        message: `System Sequence Diagram for "${ucName}" is not found.`,
                         context: { useCaseId }
                     });
                     report.score = 0;
@@ -750,12 +840,29 @@ const CheckingModePanel = ({
                         code: 'INCOMPLETE_SSD',
                         severity: 'error',
                         location: 'ssd',
-                        message: `SSD is incomplete.`,
+                        message: `SSD for "${ucName}" is incomplete — add both an Actor and a System lifeline.`,
                         context: { useCaseId }
                     });
                     report.score = 0;
                 } else {
                     passes.push(`SSD has ${ssd.lifelines.length} lifelines`);
+                }
+
+                // Check for forbidden Object lifelines in SSD (Step 3 allows Actor & System ONLY)
+                const objectLifelines = ssd.lifelines.filter(l => l.type === 'object' || (l.type !== 'actor' && l.type !== 'system'));
+                if (objectLifelines.length > 0) {
+                    objectLifelines.forEach(obj => {
+                        const objName = obj.label || obj.name || 'Object';
+                        issues.push({
+                            id: `ssd-object-not-allowed-${useCaseId}-${obj.id || objName}`,
+                            code: 'SSD_OBJECT_NOT_ALLOWED',
+                            severity: 'error',
+                            location: 'ssd',
+                            message: `Object lifeline "${objName}" is not allowed in the System Sequence Diagram for "${ucName}".`,
+                            context: { useCaseId, suggestion: `Remove the "${objName}" Object lifeline from SSD "${ucName}". System Sequence Diagrams (Step 3) can ONLY contain Actor and System lifelines. Internal objects belong in Step 5 (Detailed Sequence Diagram).` }
+                        });
+                        report.score -= 25;
+                    });
                 }
 
                 // Check for messages
@@ -891,26 +998,39 @@ const CheckingModePanel = ({
             }
 
             entries.forEach(([ucId, raw]) => {
+                const useCaseNode = model.diagram?.nodes?.find(n => n.id === ucId);
+                const descriptionName = model.descriptions?.[ucId]?.useCaseName;
+                const ucName = useCaseNode?.data?.label || descriptionName || 'this Use Case';
+
                 if (!raw) {
                     issues.push({
                         id: `seq-missing-${ucId}`,
                         code: 'SEQUENCE_DIAGRAM_MISSING',
                         severity: 'error',
                         location: 'sequence-diagram',
-                        message: 'Sequence Diagram not found for this use case.',
+                        message: `Sequence Diagram for "${ucName}" is not found.`,
                         context: { useCaseId: ucId },
                     });
                     return;
                 }
-                const nodes = raw.nodes || [];
-                const edges = raw.edges || [];
+
+                let nodes = raw.nodes || [];
+                let edges = raw.edges || [];
+
+                if (nodes.length === 0 && (raw.lifelines || raw.semanticData?.lifelines)) {
+                    nodes = raw.lifelines || raw.semanticData?.lifelines || [];
+                }
+                if (edges.length === 0 && (raw.messages || raw.semanticData?.messages)) {
+                    edges = raw.messages || raw.semanticData?.messages || [];
+                }
+
                 if (nodes.length < 2) {
                     issues.push({
                         id: `seq-incomplete-${ucId}`,
                         code: 'SEQUENCE_INCOMPLETE',
                         severity: 'error',
                         location: 'sequence-diagram',
-                        message: 'Sequence Diagram needs at least two lifelines.',
+                        message: `Sequence Diagram for "${ucName}" needs at least two lifelines.`,
                         context: { useCaseId: ucId },
                     });
                     report.score -= 15;
@@ -921,12 +1041,12 @@ const CheckingModePanel = ({
                         code: 'SEQUENCE_NO_MESSAGES',
                         severity: 'error',
                         location: 'sequence-diagram',
-                        message: 'Sequence Diagram has no messages.',
+                        message: `Sequence Diagram for "${ucName}" has no messages.`,
                         context: { useCaseId: ucId },
                     });
                     report.score -= 15;
                 } else {
-                    passes.push(`Sequence diagram has ${edges.length} message(s)`);
+                    passes.push(`Sequence diagram for "${ucName}" has ${edges.length} message(s)`);
                 }
 
                 const desc = model.descriptions?.[ucId];
@@ -1098,7 +1218,7 @@ const CheckingModePanel = ({
                 {activeSection === 'description' && (
                     <div className="space-y-1">
                         {(() => {
-                            const missingDescIssue = issues.find(i => (i.code === 'DESCRIPTION_NOT_FOUND' || i.code === 'NO_DESCRIPTIONS') && i.severity === 'error');
+                            const missingDescIssue = issues.find(i => i.code === 'DESCRIPTION_NOT_FOUND' || i.code === 'NO_DESCRIPTIONS' || i.code === 'NO_USE_CASE_DESCRIPTION');
                             if (missingDescIssue) {
                                 return (
                                     <>
@@ -1108,11 +1228,11 @@ const CheckingModePanel = ({
                                 );
                             }
 
-                            const hasNoTitle = issues.some(i => i.code === 'NO_TITLE' && i.severity === 'error');
-                            const hasNoActor = issues.some(i => (i.code === 'NO_PRIMARY_ACTOR' || i.code === 'INVALID_PRIMARY_ACTOR') && i.severity === 'error');
-                            const hasNoPre = issues.some(i => (i.code === 'NO_PRECONDITIONS' || i.code === 'INVALID_PRECONDITIONS') && i.severity === 'error');
-                            const hasNoPost = issues.some(i => (i.code === 'NO_POSTCONDITIONS' || i.code === 'INVALID_POSTCONDITIONS') && i.severity === 'error');
-                            const hasNoFlow = issues.some(i => (i.code === 'NO_MAIN_FLOW' || i.code === 'EMPTY_MAIN_FLOW_STEP') && i.severity === 'error');
+                            const hasNoTitle = issues.some(i => i.code === 'NO_TITLE');
+                            const hasNoActor = issues.some(i => i.code === 'NO_PRIMARY_ACTOR' || i.code === 'INVALID_PRIMARY_ACTOR');
+                            const hasNoPre = issues.some(i => i.code === 'NO_PRECONDITIONS' || i.code === 'INVALID_PRECONDITIONS');
+                            const hasNoPost = issues.some(i => i.code === 'NO_POSTCONDITIONS' || i.code === 'INVALID_POSTCONDITIONS');
+                            const hasNoFlow = issues.some(i => i.code === 'NO_MAIN_FLOW' || i.code === 'EMPTY_MAIN_FLOW_STEP');
 
                             return (
                                 <>

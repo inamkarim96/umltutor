@@ -112,26 +112,32 @@ class SubmissionService {
   }
 
   _extractArtifacts(submission) {
+    const safeParse = (val) => {
+      if (!val) return val;
+      if (typeof val === 'object') return val;
+      try { return JSON.parse(val); } catch { return val; }
+    };
+
     const descriptions = {};
     (submission?.useCaseDescriptions || []).forEach(d => {
-      descriptions[d.relatedId] = d.data;
+      descriptions[d.relatedId] = safeParse(d.data);
     });
 
     const ssds = {};
     (submission?.ssdDiagrams || []).forEach(s => {
-      ssds[s.relatedId] = s.data;
+      ssds[s.relatedId] = safeParse(s.data);
     });
 
     const sequenceDiagrams = {};
     (submission?.sequenceDiagrams || []).forEach(s => {
-      sequenceDiagrams[s.relatedId] = s.data;
+      sequenceDiagrams[s.relatedId] = safeParse(s.data);
     });
 
     return {
-      useCaseDiagram: submission?.useCaseDiagram?.data || '',
+      useCaseDiagram: safeParse(submission?.useCaseDiagram?.data) || '',
       useCaseDescriptions: descriptions,
       ssdDiagrams: ssds,
-      classDiagram: submission?.classDiagram?.data || '',
+      classDiagram: safeParse(submission?.classDiagram?.data) || '',
       sequenceDiagrams: sequenceDiagrams,
     };
   }
@@ -457,15 +463,16 @@ class SubmissionService {
         }
       }
     });
-    
+
     if (!submission) {
       return null;
     }
-    
+
     return this.getSubmissionDetailWithRole(submission.id, studentId, 'student');
   }
 
   async runCheckForTeacher(submissionId, teacherId, { section, targetId } = {}) {
+    serviceCache.invalidatePrefix(`submission:detail:${submissionId}:`);
     const detail = await this.getSubmissionDetailWithRole(submissionId, teacherId, 'teacher');
 
     const model = {
@@ -485,12 +492,12 @@ class SubmissionService {
 
     if ((section || targetId) && existingReport && Array.isArray(existingReport.issues)) {
       const oldIssues = existingReport.issues;
-      
+
       // Filter out existing issues that are "owned" by this specific check scope
       const filteredOldIssues = oldIssues.filter(i => {
         // If we have both section and targetId (e.g. description 2.1)
         if (section && targetId) {
-          const isSameSection = (i.type === section || i.location === section || 
+          const isSameSection = (i.type === section || i.location === section ||
             (section === 'ssd' && i.type === 'consistency' && i.location === 'ssd') ||
             (section === 'sequence-diagram' && (i.location === 'sequence-diagram' || (i.type === 'consistency' && i.location === 'sequence-diagram'))) ||
             (section === 'class-diagram' && (i.location === 'class-diagram' || i.type === 'class-diagram')) ||
@@ -500,11 +507,11 @@ class SubmissionService {
         }
         // If we only have section (e.g. all SSDs)
         if (section && !targetId) {
-          return !(i.type === section || i.location === section || 
-                   (section === 'ssd' && i.type === 'consistency' && i.location === 'ssd') ||
-                   (section === 'sequence-diagram' && (i.location === 'sequence-diagram' || (i.type === 'consistency' && i.location === 'sequence-diagram'))) ||
-                   (section === 'class-diagram' && (i.location === 'class-diagram' || i.type === 'class-diagram')) ||
-                   (section === 'usecase' && (i.location === 'diagram' || i.location === 'usecase' || i.type === 'diagram')));
+          return !(i.type === section || i.location === section ||
+            (section === 'ssd' && i.type === 'consistency' && i.location === 'ssd') ||
+            (section === 'sequence-diagram' && (i.location === 'sequence-diagram' || (i.type === 'consistency' && i.location === 'sequence-diagram'))) ||
+            (section === 'class-diagram' && (i.location === 'class-diagram' || i.type === 'class-diagram')) ||
+            (section === 'usecase' && (i.location === 'diagram' || i.location === 'usecase' || i.type === 'diagram')));
         }
         // If we only have targetId (e.g. searching for a specific use case across all models)
         if (!section && targetId) {
@@ -517,9 +524,9 @@ class SubmissionService {
       finalIssues = [...filteredOldIssues, ...result.issues];
     }
 
-    const byType = (issues, type) => (issues || []).filter((i) => 
-      i.type === type || 
-      i.location === type || 
+    const byType = (issues, type) => (issues || []).filter((i) =>
+      i.type === type ||
+      i.location === type ||
       (type === 'consistency' && i.type === 'consistency') ||
       (type === 'ssd' && i.location === 'ssd') ||
       (type === 'description' && i.location === 'description')
@@ -861,33 +868,33 @@ class SubmissionService {
   async getSubmissionReceipt(id, userId) {
     // Slimmed select — only the fields needed for the receipt (saves a 3-level deep join)
     const submission = await submissionRepository.findFirst({
-        where: { id: Number(id) },
-        select: {
-            id: true,
-            studentId: true,
-            status: true,
-            submittedAt: true,
-            assignment: {
-                select: { title: true, createdBy: true }
-            },
-            student: {
-                select: { firstName: true, lastName: true }
-            }
+      where: { id: Number(id) },
+      select: {
+        id: true,
+        studentId: true,
+        status: true,
+        submittedAt: true,
+        assignment: {
+          select: { title: true, createdBy: true }
+        },
+        student: {
+          select: { firstName: true, lastName: true }
         }
+      }
     });
 
     if (!submission) throw new NotFoundError('Submission not found');
     if (submission.studentId !== Number(userId) && submission.assignment.createdBy !== Number(userId)) {
-        throw new AuthorizationError('Access denied');
+      throw new AuthorizationError('Access denied');
     }
 
     return {
-        receiptId: `REC-${submission.id}-${Date.now().toString().slice(-4)}`,
-        submissionId: submission.id,
-        assignmentTitle: submission.assignment.title,
-        submittedAt: submission.submittedAt,
-        status: submission.status,
-        studentName: `${submission.student.firstName} ${submission.student.lastName}`
+      receiptId: `REC-${submission.id}-${Date.now().toString().slice(-4)}`,
+      submissionId: submission.id,
+      assignmentTitle: submission.assignment.title,
+      submittedAt: submission.submittedAt,
+      status: submission.status,
+      studentName: `${submission.student.firstName} ${submission.student.lastName}`
     };
   }
 
@@ -963,9 +970,9 @@ class SubmissionService {
         remarks: s.evaluation?.remarks ?? null,
         assignment: s.assignment
           ? {
-              ...s.assignment,
-              deadline: s.assignment.dueDate ? s.assignment.dueDate.toISOString() : null,
-            }
+            ...s.assignment,
+            deadline: s.assignment.dueDate ? s.assignment.dueDate.toISOString() : null,
+          }
           : null,
       }));
     });
@@ -1000,14 +1007,16 @@ class SubmissionService {
       canApprove: approvalCheck.canApprove,
       approvalBlockReason: approvalCheck.message,
       diagramPreview: submission.useCaseDiagram
-        ? { hasDiagram: true, nodeCount: (() => {
+        ? {
+          hasDiagram: true, nodeCount: (() => {
             try {
               const d = typeof submission.useCaseDiagram.data === 'string'
                 ? JSON.parse(submission.useCaseDiagram.data)
                 : submission.useCaseDiagram.data;
               return Array.isArray(d?.nodes) ? d.nodes.length : 0;
             } catch { return 0; }
-          })() }
+          })()
+        }
         : { hasDiagram: false, nodeCount: 0 },
     };
   }
@@ -1055,7 +1064,7 @@ class SubmissionService {
         message: `A student requested Tutorial Mode for "${submission.assignment.title}".`,
         type: 'TUTORIAL_REQUESTED',
         relatedId: String(submission.id),
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     return {
@@ -1097,7 +1106,7 @@ class SubmissionService {
       message: `Your Tutorial Mode request for "${submission.assignment.title}" was approved.`,
       type: 'TUTORIAL_APPROVED',
       relatedId: String(submission.id),
-    }).catch(() => {});
+    }).catch(() => { });
 
     return {
       ...updated,
@@ -1146,7 +1155,7 @@ class SubmissionService {
         : `Your Tutorial Mode request for "${submission.assignment.title}" was declined.`,
       type: 'TUTORIAL_REJECTED',
       relatedId: String(submission.id),
-    }).catch(() => {});
+    }).catch(() => { });
 
     return {
       ...updated,

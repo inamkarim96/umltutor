@@ -1,4 +1,5 @@
 import { STOP_WORDS, VERB_DICTIONARY } from './grammarRules';
+import { normalizeName } from '../../nlp/similarity';
 
 /**
  * Consistency Checking Engine — Keyword-based matching between
@@ -231,8 +232,8 @@ export const checkConsistency = (scenarioSteps, ssdMessages, actors = [], primar
                     });
                 } else if (!parsed.isReturn && isSystemSender) {
                     results.push({
-                        type: 'warning',
-                        severity: 'warning',
+                        type: 'error',
+                        severity: 'error',
                         category: 'CONSISTENCY_ACTOR_MISMATCH',
                         message: 'Source Lifeline Mismatch',
                         stepNumber: stepNo,
@@ -299,8 +300,8 @@ export const checkConsistency = (scenarioSteps, ssdMessages, actors = [], primar
         if (!msg.raw) return;
 
         results.push({
-            type: 'warning',
-            severity: 'warning',
+            type: 'error',
+            severity: 'error',
             category: 'CONSISTENCY_EXTRA_MESSAGE',
             message: 'Extra SSD Message',
             stepNumber: '?',

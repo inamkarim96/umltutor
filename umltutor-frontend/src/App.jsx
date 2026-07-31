@@ -115,7 +115,7 @@ function matchRoute(pathname) {
 }
 
 function AppContent() {
-  const { authState } = useAuth();
+  const { authState, isLoading } = useAuth();
   const [pageInfo, setPageInfo] = useState(() => matchRoute(window.location.pathname));
   const { page, type } = pageInfo;
 
@@ -178,6 +178,15 @@ function AppContent() {
       case 'workspace': return <Suspense fallback={<PageLoader />}><WorkspacePage mode="development" /></Suspense>;
       default: return <NotFound />;
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="app-root">
+        <AnimatedPageBackground variant={bgVariant} />
+        <PageLoader />
+      </div>
+    );
   }
 
   return (
