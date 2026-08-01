@@ -16,7 +16,6 @@ import {
     runSubmissionCheck,
     approveTutorialMode
 } from '../../features/submissions';
-import { checkConsistency } from '../../features/checking/ConsistencyChecker';
 import { ClipboardCheck, AlertTriangle, CheckCircle2, Info, ArrowLeft, BookOpen, Download, Eye, FileText, Database, X } from 'lucide-react';
 
 const AssignmentReview = () => {

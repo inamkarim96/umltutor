@@ -152,6 +152,8 @@ const SubmissionDetail = () => {
 
       if (isDraft) {
         successToast("Grade, remarks and diagram reports have been saved successfully.");
+      } else {
+        successToast("Grade finalized. The student can now see their results.");
       }
     } catch (e) {
       setError(e?.message || 'Failed to save remarks');
@@ -483,6 +485,26 @@ const SubmissionDetail = () => {
                   ) : (
                     <>
                       Save Draft
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Finalize this grade and publish it to the student?')) {
+                      handleSaveRemarks(false);
+                    }
+                  }}
+                  disabled={savingRemarks}
+                  className="flex items-center gap-3 px-10 py-4 bg-emerald-600 text-white font-extrabold font-heading rounded-[1.25rem] hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 transition-all active:scale-95 text-sm uppercase tracking-widest disabled:opacity-50"
+                >
+                  {savingRemarks ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      Finalize & Grade
                     </>
                   )}
                 </button>

@@ -4,6 +4,14 @@ import { normalizeName } from '../../nlp/similarity';
 /**
  * Consistency Checking Engine — Keyword-based matching between
  * Use Case Description (Main Success Scenario) and System Sequence Diagram.
+ *
+ * FALLBACK-ONLY - NOT authoritative.
+ * The backend `/api/check` + `/api/submissions/:id/run-check` report is the
+ * authoritative consistency source (it runs the full rule engine, emitting
+ * the UCD-, SSD-, MAP-, CD- and SEQ- prefixed rule codes). This local engine
+ * exists solely as a no-backend fallback for tutorial and read-only preview
+ * modes, where the backend report is unavailable. Do not use its
+ * CONSISTENCY_* verdicts for grading or scoring.
  */
 
 // ─── Sentence Parser ──────────────────────────────────────────────────────────
@@ -139,6 +147,8 @@ const scoreKeywordMatch = (stepKeywords, msgKeywords) => {
 };
 
 // ─── Main Consistency Checker ─────────────────────────────────────────────────
+// FALLBACK-ONLY: local keyword-matching verdicts for tutorial/preview modes.
+// The backend run-check report is authoritative for grading and scoring.
 export const checkConsistency = (scenarioSteps, ssdMessages, actors = [], primaryActor = '') => {
     const results = [];
 

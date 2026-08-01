@@ -248,16 +248,12 @@ const submissionSchema = _zod.z.object({
         errors.push('Alternative flow must have a condition');
       }
 
-      if (!altFlow.flow || altFlow.flow.length === 0) {
-        errors.push(`Alternative flow "${altFlow.condition}" cannot be empty`);
+      if (!altFlow.response || altFlow.response.trim() === '') {
+        errors.push(`Alternative flow "${altFlow.condition || 'with missing condition'}" must have a system response`);
       }
 
-      // Check if alternative flow steps are not empty strings
-      if (altFlow.flow) {
-        const emptySteps = altFlow.flow.filter(step => !step || step.trim() === '');
-        if (emptySteps.length > 0) {
-          errors.push(`Alternative flow "${altFlow.condition}" contains empty steps`);
-        }
+      if (!altFlow.relatedStep || Number(altFlow.relatedStep) < 1) {
+        errors.push(`Alternative flow "${altFlow.condition || 'with missing condition'}" must reference a valid main-flow step`);
       }
     }
   }

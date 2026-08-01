@@ -371,9 +371,10 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
     autoOpenedRef.current = false;
   }, [assignmentId]);
 
-  // Fetch full report only when graded (lightweight status loaded by WorkspacePage)
+  // Fetch full report when the submission is submitted or graded (lightweight status loaded by WorkspacePage)
   useEffect(() => {
-    if (isStudentWork && assignmentId && currentSubmission?.status === 'graded' && !currentSubmission?.fullReport) {
+    const s = currentSubmission?.status?.toLowerCase();
+    if (isStudentWork && assignmentId && (s === 'graded' || s === 'submitted') && !currentSubmission?.fullReport) {
       if (fetchedFullReportRef.current === assignmentId) return;
       fetchedFullReportRef.current = assignmentId;
       dispatch(fetchSubmissionStatus({ assignmentId, includeReport: true }));

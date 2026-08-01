@@ -24,6 +24,10 @@ const validateSSDSemantics = (semanticData) => {
 
   if (systemParticipants.length === 0) {
     structuredErrors.push({ code: 'SSD_SYSTEM_MISSING', message: 'Exactly one System participant is required for an SSD', type: 'ssd', severity: 'error' });
+  } else if (systemParticipants.length > 1) {
+    systemParticipants.forEach((p) => {
+      structuredErrors.push({ code: 'SSD_MULTIPLE_SYSTEMS', message: `SSD contains ${systemParticipants.length} System lifelines; exactly one System participant is required`, type: 'ssd', severity: 'error', relatedId: p.id });
+    });
   }
 
   if (actorParticipants.length === 0) {
@@ -32,6 +36,19 @@ const validateSSDSemantics = (semanticData) => {
 
   // 2. Validate messages
   const messages = semanticData.messages || [];
+
+  // Check duplicate message names (normalized to ignore whitespace/case)
+  const seenNames = new Map();
+  messages.forEach((message) => {
+    const name = (message.name || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!name) return;
+    const previous = seenNames.get(name);
+    if (previous) {
+      structuredErrors.push({ code: 'SSD_DUPLICATE_MESSAGE', message: `Duplicate message name "${message.name}" appears multiple times in the SSD`, type: 'ssd', severity: 'warning', relatedId: message.id });
+    } else {
+      seenNames.set(name, message.id);
+    }
+  });
 
   // Check time ordering
   const sortedMessages = [...messages].sort((a, b) => (a.order || 0) - (b.order || 0));

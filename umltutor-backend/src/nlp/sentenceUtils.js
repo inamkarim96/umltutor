@@ -1,6 +1,7 @@
 "use strict";
 
-const { INTERNAL_VERBS, EXTERNAL_VERBS, STOP_WORDS, VERB_DICTIONARY, SSD_VERBS } = require('./constants');
+const { INTERNAL_VERBS, EXTERNAL_VERBS, STOP_WORDS, VERB_DICTIONARY, SSD_VERBS, RETURN_KEYWORDS } = require('./constants');
+const { lemmatizeToken } = require('./similarity');
 
 function validateSentence(text) {
   if (!text || typeof text !== 'string') {
@@ -44,7 +45,11 @@ function classifySystemStep(stepText) {
     if (EXTERNAL_VERBS.has(w)) return 'external';
   }
 
-  return 'external';
+  // Unclassified system processing is treated as an INTERNAL operation (self-loop),
+  // NOT as an external response. This avoids false positives where valid internal
+  // processing (e.g. "System handles the request") is wrongly flagged as needing
+  // a System → Actor return arrow.
+  return 'self';
 }
 
 function suggestFromSentence(sentence) {
@@ -114,6 +119,101 @@ function validateActorName(name) {
   return { isValid: true, error: null };
 }
 
+/**
+ * Parse a full class-diagram method signature such as
+ *   "+ validateCredentials(username: String, password: String): Boolean"
+ * into its structural components: visibility, name, parameters (name + type),
+ * and return type. Previously the engine discarded everything after the name,
+ * so parameter/return/visibility mismatches were invisible.
+ *
+ * Returns null for empty/meaningless signatures.
+ */
+function parseMethodSignature(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return null;
+
+  // Visibility prefix: + public, - private, # protected, ~ package
+  let visibility = null;
+  let body = str;
+  const visMatch = str.match(/^([+\-#~])\s*/);
+  if (visMatch) {
+    visibility = visMatch[1];
+    body = str.slice(visMatch[0].length).trim();
+  }
+
+  // Return type: "name(params): Type" — find the top-level colon (depth 0).
+  let returnType = null;
+  let namePart = body;
+  {
+    let depth = 0;
+    for (let i = 0; i < body.length; i++) {
+      const ch = body[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      else if (ch === ':' && depth === 0) {
+        namePart = body.slice(0, i).trim();
+        returnType = body.slice(i + 1).trim();
+        break;
+      }
+    }
+  }
+
+  if (!namePart) return null;
+
+  // Extract method name and the parenthesized parameter list.
+  const openParen = namePart.indexOf('(');
+  let name = namePart;
+  let paramsStr = '';
+  if (openParen !== -1) {
+    name = namePart.slice(0, openParen).trim();
+    const closeParen = namePart.lastIndexOf(')');
+    paramsStr = closeParen > openParen ? namePart.slice(openParen + 1, closeParen) : namePart.slice(openParen + 1);
+  }
+
+  if (!name) return null;
+
+  const parameters = (paramsStr ? paramsStr.split(',') : [])
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const colonIdx = p.indexOf(':');
+      if (colonIdx === -1) return { name: p, type: null };
+      return { name: p.slice(0, colonIdx).trim(), type: p.slice(colonIdx + 1).trim() || null };
+    });
+
+  return { visibility, name, parameters, returnType, raw: str };
+}
+
+/**
+ * Parse a class-diagram attribute such as "- id: int" or "+ price: BigDecimal"
+ * into { visibility, name, type }. Attribute names are free text (they may
+ * contain spaces), so only the trailing ": type" part is separated out.
+ * Returns null for empty/meaningless attributes.
+ */
+function parseClassAttribute(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return null;
+
+  let visibility = null;
+  let body = str;
+  const visMatch = str.match(/^([+\-#~])\s*/);
+  if (visMatch) {
+    visibility = visMatch[1];
+    body = str.slice(visMatch[0].length).trim();
+  }
+
+  const colonIdx = body.indexOf(':');
+  let name = body;
+  let type = null;
+  if (colonIdx !== -1) {
+    name = body.slice(0, colonIdx).trim();
+    type = body.slice(colonIdx + 1).trim() || null;
+  }
+
+  if (!name) return null;
+  return { visibility, name, type, raw: str };
+}
+
 function parseScenarioStep(stepText, availableActors = []) {
   const result = {
     subject: null,
@@ -131,8 +231,35 @@ function parseScenarioStep(stepText, availableActors = []) {
 
   const text = stepText.trim();
   const textLower = text.toLowerCase();
-  const { lemmatizeToken } = require('./similarity');
-  const { RETURN_KEYWORDS, STOP_WORDS, VERB_DICTIONARY } = require('./constants');
+
+  // Function-call message names, e.g. "submitPayment(payment)" or "enterLoginCredentials()".
+  // Parsed before actor detection so parameters never leak into the object words.
+  const funcCallMatch = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*$/.exec(text);
+  if (funcCallMatch) {
+    const baseName = funcCallMatch[1];
+    const paramsString = funcCallMatch[2] || '';
+    const parameters = paramsString.split(',').map(p => p.trim()).filter(Boolean);
+
+    const words = baseName
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 1);
+
+    const filteredWords = words.filter((w) => !STOP_WORDS.has(w));
+    result.keywords = filteredWords.map(lemmatizeToken);
+    result.messageName = baseName;
+    result.functionName = parameters.length > 0
+      ? `${baseName}(${parameters.join(', ')})`
+      : `${baseName}()`;
+    result.parameters = parameters;
+
+    if (filteredWords.length > 0) {
+      result.verb = lemmatizeToken(filteredWords[0].toLowerCase());
+      result.object = filteredWords.slice(1).map(lemmatizeToken).join(' ');
+    }
+    return result;
+  }
 
   for (const actor of availableActors) {
     if (actor && textLower.startsWith(actor.toLowerCase())) {
@@ -190,4 +317,6 @@ module.exports = {
   validateUseCaseName,
   validateActorName,
   parseScenarioStep,
+  parseMethodSignature,
+  parseClassAttribute,
 };

@@ -84,10 +84,10 @@ export const runSubmissionCheck = createAsyncThunk(
 
 export const gradeSubmission = createAsyncThunk(
   'submission/gradeSubmission',
-  async ({ submissionId, grade, feedback }, { rejectWithValue }) => {
+  async ({ submissionId, grade, feedback, remarks }, { rejectWithValue }) => {
     try {
       // Backend expects { score, remarks } or similar, but let's match the unified service
-      return await submissionService.gradeSubmission(submissionId, { score: grade, feedback });
+      return await submissionService.gradeSubmission(submissionId, { score: grade, feedback: feedback ?? remarks });
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to grade submission');
     }
@@ -222,7 +222,13 @@ const submissionSlice = createSlice({
           );
           if (idx !== -1) {
             state.submissions[idx] = { ...state.submissions[idx], ...merged };
+          } else if (merged.id) {
+            // First-time submission: surface it in the student's list right away
+            state.submissions.unshift(merged);
           }
+          // Force the next list fetch to run — the 30s stale-guard would otherwise
+          // skip it and leave the Submitted Work page looking empty.
+          state.lastFetchedAt = null;
         }
       })
       .addCase(submitAssignmentData.rejected, (state, action) => {

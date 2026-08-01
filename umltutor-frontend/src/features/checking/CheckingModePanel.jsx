@@ -242,7 +242,7 @@ const CheckingModePanel = ({
                         message: !sysLabel
                             ? 'System name is missing.'
                             : `System name "${sysLabel}" is not valid. A single generic word like "System" is not a proper system name.`,
-                        context: { suggestion: 'Please provide a valid system name that describes the system (e.g., "Online Shopping System", "Library Management System", "Student Portal").' }
+                        context: { suggestion: 'Please provide a valid system name that describes the system (e.g: "Student Portal").' }
                     });
                     report.score -= 10;
                 } else if (sysLabel.split(/\s+/).length < 2) {
@@ -253,7 +253,7 @@ const CheckingModePanel = ({
                         severity: 'warning',
                         location: 'diagram',
                         message: `System name "${sysLabel}" is too short. A descriptive system name should contain at least two words.`,
-                        context: { suggestion: 'Please provide a more descriptive system name (e.g., "Online Shopping System", "Banking Application").' }
+                        context: { suggestion: 'Please provide a more descriptive system name (e.g: "Student Portal").' }
                     });
                     report.score -= 5;
                 } else {
@@ -287,7 +287,7 @@ const CheckingModePanel = ({
                         severity: 'error',
                         location: 'diagram',
                         message: `Use Case has no name.`,
-                        context: { useCaseId: useCase.id, suggestion: 'Please provide a name for this Use Case. Use Case names must follow the format: Verb + Noun (e.g., "Submit Order", "View Profile", "Register Account").' }
+                        context: { useCaseId: useCase.id, suggestion: 'Please provide a name for this Use Case. Use Case names must follow the format: Verb + Noun (e.g: "Submit Order").' }
                     });
                     report.score -= 10;
                 } else {
@@ -300,7 +300,7 @@ const CheckingModePanel = ({
                             severity: 'error',
                             location: 'diagram',
                             message: `Invalid Use Case Name: "${useCase.data.label}". ${validation.error}`,
-                            context: { useCaseId: useCase.id, suggestion: 'Use Case names must follow the format: Verb + Noun (e.g., "Submit Order", "View Profile", "Register Account"). Start with a verb from the dictionary.' }
+                            context: { useCaseId: useCase.id, suggestion: 'Use Case names must follow the format: Verb + Noun (e.g: "Submit Order"). Start with a verb from the dictionary.' }
                         });
                         report.score -= 10;
                     }
@@ -529,253 +529,253 @@ const CheckingModePanel = ({
                     return;
                 }
 
-                    // Check Title/Use Case Name
-                    if (!description.useCaseName || description.useCaseName.trim() === '') {
+                // Check Title/Use Case Name
+                if (!description.useCaseName || description.useCaseName.trim() === '') {
+                    issues.push({
+                        id: `no-title-${useCaseId}`,
+                        code: 'NO_TITLE',
+                        severity: 'error',
+                        location: 'description',
+                        message: `Use Case title is missing.`,
+                        context: { useCaseId, suggestion: 'Add a name for the use case description' }
+                    });
+                    report.score -= 20;
+                } else {
+                    passes.push(`Title defined: ${description.useCaseName}`);
+                }
+
+                // Cross-verify useCaseName matches diagram label
+                if (description.useCaseName && description.useCaseName.trim()) {
+                    const descLabel = normalizeName(description.useCaseName);
+                    const diagramNode = model.diagram?.nodes?.find(n => n.id === useCaseId);
+                    const diagramLabel = normalizeName(diagramNode?.data?.label || '');
+                    if (descLabel !== diagramLabel && descLabel !== 'unnamed' && diagramLabel !== 'unnamed') {
                         issues.push({
-                            id: `no-title-${useCaseId}`,
-                            code: 'NO_TITLE',
+                            id: `usecase-name-mismatch-${useCaseId}`,
+                            code: 'USE_CASE_NAME_MISMATCH',
+                            severity: 'warning',
+                            location: 'description',
+                            message: `Description name "${description.useCaseName}" does not match diagram name "${diagramNode?.data?.label || ''}".`,
+                            context: { useCaseId, suggestion: 'Ensure the use case name in the description matches the diagram.' }
+                        });
+                        report.score -= 5;
+                    }
+                }
+
+                // Check primary actor
+                const isNotSetActor = !description.primaryActor ||
+                    (typeof description.primaryActor === 'string' && (description.primaryActor.trim() === '' || normalizeName(description.primaryActor) === 'not set'));
+
+                if (isNotSetActor) {
+                    issues.push({
+                        id: `no-primary-actor-${useCaseId}`,
+                        code: 'NO_PRIMARY_ACTOR',
+                        severity: 'error',
+                        location: 'description',
+                        message: `Primary actor not set, please set it.`,
+                        context: { useCaseId, suggestion: 'Please set up Primary Actor' }
+                    });
+                    report.score -= 20;
+                } else {
+                    const edges = model.diagram?.edges || [];
+                    const nodes = model.diagram?.nodes || [];
+
+                    const neighborIds = edges
+                        .filter(e => e.source === useCaseId || e.target === useCaseId)
+                        .map(e => e.source === useCaseId ? e.target : e.source);
+
+                    const connectedActors = nodes
+                        .filter(n => n.type === 'actor' && neighborIds.includes(n.id))
+                        .map(n => (n.data?.label || ''));
+
+                    const connectedActorNorm = connectedActors.map(l => normalizeName(l));
+                    const selectedActorNorm = normalizeName(description.primaryActor);
+
+                    if (connectedActorNorm.length > 0 && !connectedActorNorm.includes(selectedActorNorm)) {
+                        issues.push({
+                            id: `invalid-primary-actor-${useCaseId}`,
+                            code: 'INVALID_PRIMARY_ACTOR',
                             severity: 'error',
                             location: 'description',
-                            message: `Use Case title is missing.`,
-                            context: { useCaseId, suggestion: 'Add a name for the use case description' }
+                            message: `Primary Actor "${description.primaryActor}" is not connected to this Use Case in the diagram.`,
+                            context: {
+                                useCaseId,
+                                suggestion: `Ensure Primary Actor name matches the one in the Use Case Diagram. (Expected: ${connectedActors.join(' or ')})`
+                            }
                         });
-                        report.score -= 20;
-                    } else {
-                        passes.push(`Title defined: ${description.useCaseName}`);
+                        report.score -= 10;
+                    } else if (connectedActorNorm.length === 0 && selectedActorNorm !== '' && selectedActorNorm !== 'not set') {
+                        issues.push({
+                            id: `invalid-primary-actor-${useCaseId}`,
+                            code: 'INVALID_PRIMARY_ACTOR',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Primary Actor "${description.primaryActor}" cannot be validated because no actors are connected to this Use Case in the diagram.`,
+                            context: {
+                                useCaseId,
+                                suggestion: 'Connect an Actor to this Use Case in the Use Case Diagram first.'
+                            }
+                        });
+                        report.score -= 10;
+                    } else if (selectedActorNorm !== '') {
+                        passes.push(`Primary actor defined: ${description.primaryActor}`);
                     }
+                }
 
-                    // Cross-verify useCaseName matches diagram label
-                    if (description.useCaseName && description.useCaseName.trim()) {
-                        const descLabel = normalizeName(description.useCaseName);
-                        const diagramNode = model.diagram?.nodes?.find(n => n.id === useCaseId);
-                        const diagramLabel = normalizeName(diagramNode?.data?.label || '');
-                        if (descLabel !== diagramLabel && descLabel !== 'unnamed' && diagramLabel !== 'unnamed') {
+                // Check preconditions — accept string or array
+                let preValue = description.preconditions;
+                if (Array.isArray(preValue)) preValue = preValue.join(' ');
+                const preStr = (typeof preValue === 'string' ? preValue : '').trim();
+                const isNoPre = !preStr || normalizeName(preStr) === 'none';
+
+                if (isNoPre) {
+                    issues.push({
+                        id: `no-preconditions-${useCaseId}`,
+                        code: 'NO_PRECONDITIONS',
+                        severity: 'error',
+                        location: 'description',
+                        message: `Precondition missing, please define it.`,
+                        context: { useCaseId, suggestion: 'Please write Precondition' }
+                    });
+                    report.score -= 15;
+                } else {
+                    const validation = validateSentence(preStr);
+                    if (!validation.isValid) {
+                        issues.push({
+                            id: `invalid-preconditions-${useCaseId}`,
+                            code: 'INVALID_PRECONDITIONS',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Invalid Precondition: ${validation.error}`,
+                            context: { useCaseId, suggestion: 'Precondition: Write a proper sentence (e.g., "The user is logged in.").' }
+                        });
+                        report.score -= 10;
+                    } else {
+                        passes.push('Preconditions defined');
+                    }
+                }
+
+                // Check postconditions — accept string or array
+                let postValue = description.postconditions;
+                if (Array.isArray(postValue)) postValue = postValue.join(' ');
+                const postStr = (typeof postValue === 'string' ? postValue : '').trim();
+                const isNoPost = !postStr || normalizeName(postStr) === 'none';
+
+                if (isNoPost) {
+                    issues.push({
+                        id: `no-postconditions-${useCaseId}`,
+                        code: 'NO_POSTCONDITIONS',
+                        severity: 'error',
+                        location: 'description',
+                        message: `Postcondition missing, please define it.`,
+                        context: { useCaseId, suggestion: 'Please write Postcondition' }
+                    });
+                    report.score -= 15;
+                } else {
+                    const validation = validateSentence(postStr);
+                    if (!validation.isValid) {
+                        issues.push({
+                            id: `invalid-postconditions-${useCaseId}`,
+                            code: 'INVALID_POSTCONDITIONS',
+                            severity: 'error',
+                            location: 'description',
+                            message: `Invalid Postcondition: ${validation.error}`,
+                            context: { useCaseId, suggestion: 'Postcondition: Write a proper sentence (e.g., "The order is saved in the database.").' }
+                        });
+                        report.score -= 10;
+                    } else {
+                        passes.push('Postconditions defined');
+                    }
+                }
+
+                // Check main flow
+                const hasMainFlow = description.mainFlow && description.mainFlow.length > 0 && description.mainFlow.some(step => {
+                    const text = step.action || (typeof step === 'string' ? step : null);
+                    return text && text.trim().length > 0;
+                });
+
+                if (!hasMainFlow) {
+                    issues.push({
+                        id: `no-main-flow-${useCaseId}`,
+                        code: 'NO_MAIN_FLOW',
+                        severity: 'error',
+                        location: 'description',
+                        message: `Main success scenario is empty.`,
+                        context: { useCaseId, suggestion: 'Add at least one step to the main flow' }
+                    });
+                    report.score -= 30;
+                } else {
+                    passes.push(`Main flow defined`);
+                    // Check each step is not empty
+                    description.mainFlow.forEach((step, index) => {
+                        const stepText = step.action || (typeof step === 'string' ? step : '');
+                        if (!stepText || stepText.trim() === '') {
                             issues.push({
-                                id: `usecase-name-mismatch-${useCaseId}`,
-                                code: 'USE_CASE_NAME_MISMATCH',
-                                severity: 'warning',
+                                id: `empty-main-flow-step-${useCaseId}-${index}`,
+                                code: 'EMPTY_MAIN_FLOW_STEP',
+                                severity: 'error',
                                 location: 'description',
-                                message: `Description name "${description.useCaseName}" does not match diagram name "${diagramNode?.data?.label || ''}".`,
-                                context: { useCaseId, suggestion: 'Ensure the use case name in the description matches the diagram.' }
+                                message: `Main Success Scenario step ${index + 1} is empty.`,
+                                context: { useCaseId, stepIndex: index + 1, suggestion: `Fill in the action for step ${index + 1}` }
                             });
                             report.score -= 5;
-                        }
-                    }
-
-                    // Check primary actor
-                    const isNotSetActor = !description.primaryActor ||
-                        (typeof description.primaryActor === 'string' && (description.primaryActor.trim() === '' || normalizeName(description.primaryActor) === 'not set'));
-
-                    if (isNotSetActor) {
-                        issues.push({
-                            id: `no-primary-actor-${useCaseId}`,
-                            code: 'NO_PRIMARY_ACTOR',
-                            severity: 'error',
-                            location: 'description',
-                            message: `Primary actor not set, please set it.`,
-                            context: { useCaseId, suggestion: 'Please set up Primary Actor' }
-                        });
-                        report.score -= 20;
-                    } else {
-                        const edges = model.diagram?.edges || [];
-                        const nodes = model.diagram?.nodes || [];
-
-                        const neighborIds = edges
-                            .filter(e => e.source === useCaseId || e.target === useCaseId)
-                            .map(e => e.source === useCaseId ? e.target : e.source);
-
-                        const connectedActors = nodes
-                            .filter(n => n.type === 'actor' && neighborIds.includes(n.id))
-                            .map(n => (n.data?.label || ''));
-
-                        const connectedActorNorm = connectedActors.map(l => normalizeName(l));
-                        const selectedActorNorm = normalizeName(description.primaryActor);
-
-                        if (connectedActorNorm.length > 0 && !connectedActorNorm.includes(selectedActorNorm)) {
-                            issues.push({
-                                id: `invalid-primary-actor-${useCaseId}`,
-                                code: 'INVALID_PRIMARY_ACTOR',
-                                severity: 'error',
-                                location: 'description',
-                                message: `Primary Actor "${description.primaryActor}" is not connected to this Use Case in the diagram.`,
-                                context: {
-                                    useCaseId,
-                                    suggestion: `Ensure Primary Actor name matches the one in the Use Case Diagram. (Expected: ${connectedActors.join(' or ')})`
-                                }
-                            });
-                            report.score -= 10;
-                        } else if (connectedActorNorm.length === 0 && selectedActorNorm !== '' && selectedActorNorm !== 'not set') {
-                            issues.push({
-                                id: `invalid-primary-actor-${useCaseId}`,
-                                code: 'INVALID_PRIMARY_ACTOR',
-                                severity: 'error',
-                                location: 'description',
-                                message: `Primary Actor "${description.primaryActor}" cannot be validated because no actors are connected to this Use Case in the diagram.`,
-                                context: {
-                                    useCaseId,
-                                    suggestion: 'Connect an Actor to this Use Case in the Use Case Diagram first.'
-                                }
-                            });
-                            report.score -= 10;
-                        } else if (selectedActorNorm !== '') {
-                            passes.push(`Primary actor defined: ${description.primaryActor}`);
-                        }
-                    }
-
-                    // Check preconditions — accept string or array
-                    let preValue = description.preconditions;
-                    if (Array.isArray(preValue)) preValue = preValue.join(' ');
-                    const preStr = (typeof preValue === 'string' ? preValue : '').trim();
-                    const isNoPre = !preStr || normalizeName(preStr) === 'none';
-
-                    if (isNoPre) {
-                        issues.push({
-                            id: `no-preconditions-${useCaseId}`,
-                            code: 'NO_PRECONDITIONS',
-                            severity: 'error',
-                            location: 'description',
-                            message: `Precondition missing, please define it.`,
-                            context: { useCaseId, suggestion: 'Please write Precondition' }
-                        });
-                        report.score -= 15;
-                    } else {
-                        const validation = validateSentence(preStr);
-                        if (!validation.isValid) {
-                            issues.push({
-                                id: `invalid-preconditions-${useCaseId}`,
-                                code: 'INVALID_PRECONDITIONS',
-                                severity: 'error',
-                                location: 'description',
-                                message: `Invalid Precondition: ${validation.error}`,
-                                context: { useCaseId, suggestion: 'Precondition: Write a proper sentence (e.g., "The user is logged in.").' }
-                            });
-                            report.score -= 10;
                         } else {
-                            passes.push('Preconditions defined');
-                        }
-                    }
-
-                    // Check postconditions — accept string or array
-                    let postValue = description.postconditions;
-                    if (Array.isArray(postValue)) postValue = postValue.join(' ');
-                    const postStr = (typeof postValue === 'string' ? postValue : '').trim();
-                    const isNoPost = !postStr || normalizeName(postStr) === 'none';
-
-                    if (isNoPost) {
-                        issues.push({
-                            id: `no-postconditions-${useCaseId}`,
-                            code: 'NO_POSTCONDITIONS',
-                            severity: 'error',
-                            location: 'description',
-                            message: `Postcondition missing, please define it.`,
-                            context: { useCaseId, suggestion: 'Please write Postcondition' }
-                        });
-                        report.score -= 15;
-                    } else {
-                        const validation = validateSentence(postStr);
-                        if (!validation.isValid) {
-                            issues.push({
-                                id: `invalid-postconditions-${useCaseId}`,
-                                code: 'INVALID_POSTCONDITIONS',
-                                severity: 'error',
-                                location: 'description',
-                                message: `Invalid Postcondition: ${validation.error}`,
-                                context: { useCaseId, suggestion: 'Postcondition: Write a proper sentence (e.g., "The order is saved in the database.").' }
-                            });
-                            report.score -= 10;
-                        } else {
-                            passes.push('Postconditions defined');
-                        }
-                    }
-
-                    // Check main flow
-                    const hasMainFlow = description.mainFlow && description.mainFlow.length > 0 && description.mainFlow.some(step => {
-                        const text = step.action || (typeof step === 'string' ? step : null);
-                        return text && text.trim().length > 0;
-                    });
-
-                    if (!hasMainFlow) {
-                        issues.push({
-                            id: `no-main-flow-${useCaseId}`,
-                            code: 'NO_MAIN_FLOW',
-                            severity: 'error',
-                            location: 'description',
-                            message: `Main success scenario is empty.`,
-                            context: { useCaseId, suggestion: 'Add at least one step to the main flow' }
-                        });
-                        report.score -= 30;
-                    } else {
-                        passes.push(`Main flow defined`);
-                        // Check each step is not empty
-                        description.mainFlow.forEach((step, index) => {
-                            const stepText = step.action || (typeof step === 'string' ? step : '');
-                            if (!stepText || stepText.trim() === '') {
+                            // Check if step content is a proper sentence
+                            const validation = validateSentence(stepText);
+                            if (!validation.isValid) {
                                 issues.push({
-                                    id: `empty-main-flow-step-${useCaseId}-${index}`,
-                                    code: 'EMPTY_MAIN_FLOW_STEP',
+                                    id: `invalid-main-flow-step-${useCaseId}-${index}`,
+                                    code: 'INVALID_MAIN_FLOW_STEP',
                                     severity: 'error',
                                     location: 'description',
-                                    message: `Main Success Scenario step ${index + 1} is empty.`,
-                                    context: { useCaseId, stepIndex: index + 1, suggestion: `Fill in the action for step ${index + 1}` }
+                                    message: `Main Success Scenario step ${index + 1} is invalid: ${validation.error}`,
+                                    context: { useCaseId, stepIndex: index + 1, suggestion: `Step ${index + 1}: Write a clear and complete sentence.` }
                                 });
                                 report.score -= 5;
                             } else {
-                                // Check if step content is a proper sentence
-                                const validation = validateSentence(stepText);
-                                if (!validation.isValid) {
-                                    issues.push({
-                                        id: `invalid-main-flow-step-${useCaseId}-${index}`,
-                                        code: 'INVALID_MAIN_FLOW_STEP',
-                                        severity: 'error',
-                                        location: 'description',
-                                        message: `Main Success Scenario step ${index + 1} is invalid: ${validation.error}`,
-                                        context: { useCaseId, stepIndex: index + 1, suggestion: `Step ${index + 1}: Write a clear and complete sentence.` }
-                                    });
-                                    report.score -= 5;
-                                } else {
-                                    passes.push(`Step ${index + 1} content`);
-                                }
+                                passes.push(`Step ${index + 1} content`);
                             }
-                        });
-                    }
+                        }
+                    });
+                }
 
-                    // Check alternative flows - only if they exist
-                    if (description.alternativeFlows && description.alternativeFlows.length > 0) {
-                        description.alternativeFlows.forEach((altFlow, index) => {
-                            const hasCondition = altFlow.condition && altFlow.condition.trim() !== '';
-                            const hasResponse = altFlow.response && altFlow.response.trim() !== '';
+                // Check alternative flows - only if they exist
+                if (description.alternativeFlows && description.alternativeFlows.length > 0) {
+                    description.alternativeFlows.forEach((altFlow, index) => {
+                        const hasCondition = altFlow.condition && altFlow.condition.trim() !== '';
+                        const hasResponse = altFlow.response && altFlow.response.trim() !== '';
 
-                            // Skip completely empty optional rows
-                            if (!hasCondition && !hasResponse) return;
+                        // Skip completely empty optional rows
+                        if (!hasCondition && !hasResponse) return;
 
-                            if (!hasCondition) {
-                                issues.push({
-                                    id: `empty-alt-flow-condition-${useCaseId}-${index}`,
-                                    code: 'EMPTY_ALT_FLOW_CONDITION',
-                                    severity: 'error',
-                                    location: 'description',
-                                    message: `Alternative Flow ${index + 1} condition is empty.`,
-                                    context: { useCaseId, altFlowIndex: index + 1, suggestion: `Fill in the condition for alt flow ${index + 1}` }
-                                });
-                            } else {
-                                passes.push(`Alt Flow ${index + 1} condition`);
-                            }
+                        if (!hasCondition) {
+                            issues.push({
+                                id: `empty-alt-flow-condition-${useCaseId}-${index}`,
+                                code: 'EMPTY_ALT_FLOW_CONDITION',
+                                severity: 'error',
+                                location: 'description',
+                                message: `Alternative Flow ${index + 1} condition is empty.`,
+                                context: { useCaseId, altFlowIndex: index + 1, suggestion: `Fill in the condition for alt flow ${index + 1}` }
+                            });
+                        } else {
+                            passes.push(`Alt Flow ${index + 1} condition`);
+                        }
 
-                            if (!hasResponse) {
-                                issues.push({
-                                    id: `empty-alt-flow-response-${useCaseId}-${index}`,
-                                    code: 'EMPTY_ALT_FLOW_RESPONSE',
-                                    severity: 'error',
-                                    location: 'description',
-                                    message: `Alternative Flow ${index + 1} response is empty.`,
-                                    context: { useCaseId, altFlowIndex: index + 1, suggestion: `Fill in the response for alt flow ${index + 1}` }
-                                });
-                            } else {
-                                passes.push(`Alt Flow ${index + 1} response`);
-                            }
-                        });
-                    }
-                });
+                        if (!hasResponse) {
+                            issues.push({
+                                id: `empty-alt-flow-response-${useCaseId}-${index}`,
+                                code: 'EMPTY_ALT_FLOW_RESPONSE',
+                                severity: 'error',
+                                location: 'description',
+                                message: `Alternative Flow ${index + 1} response is empty.`,
+                                context: { useCaseId, altFlowIndex: index + 1, suggestion: `Fill in the response for alt flow ${index + 1}` }
+                            });
+                        } else {
+                            passes.push(`Alt Flow ${index + 1} response`);
+                        }
+                    });
+                }
+            });
 
         } else if (activeSection === 'ssd') {
             // Dynamic SSD validation

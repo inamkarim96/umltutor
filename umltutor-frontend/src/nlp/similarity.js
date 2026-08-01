@@ -57,16 +57,6 @@ export function fuzzyIncludes(haystack, needle) {
   return h.includes(n) || n.includes(h);
 }
 
-export function extractKeywords(text) {
-  const raw = (text || '').toLowerCase();
-  const words = raw
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter((w) => w.length > 1);
-  return words.filter((w) => !STOP_WORDS.has(w));
-}
-
 export function normalizeName(name) {
   return (name || '')
     .trim()

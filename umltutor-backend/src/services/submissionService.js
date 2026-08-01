@@ -147,6 +147,19 @@ class SubmissionService {
     return typeof value === 'object' ? JSON.stringify(value) : value;
   }
 
+  /**
+   * Coerce a teacher-provided score into an integer, or return undefined when
+   * the value is not a finite number (e.g. a letter grade like "A" from the
+   * quick-grade buttons). Undefined keeps Prisma from touching the column, so
+   * the rest of the grade/remarks still persist instead of crashing the tx.
+   */
+  _coerceScore(score) {
+    if (score === undefined || score === null || score === '') return undefined;
+    const num = typeof score === 'number' ? score : Number(score);
+    if (!Number.isFinite(num)) return undefined;
+    return Math.round(num);
+  }
+
   async _upsertArtifactsParallel(tx, submissionId, data) {
     const sid = Number(submissionId);
     const ops = [];
@@ -577,20 +590,21 @@ class SubmissionService {
     if (!submissionId || isNaN(submissionId)) throw new Error('Invalid submission ID');
 
     const subInfo = await this._assertTeacherOwnsSubmission(submissionId, teacherId);
+    const coercedScore = this._coerceScore(score);
 
     const result = await submissionRepository.transaction(async (tx) => {
       await tx.evaluation.upsert({
         where: { submissionId: Number(submissionId) },
         update: {
           remarks: remarks,
-          totalScore: (score !== undefined && score !== null) ? parseInt(score) : undefined,
+          totalScore: coercedScore,
           evaluatedBy: Number(teacherId),
           evaluatedAt: new Date()
         },
         create: {
           submissionId: Number(submissionId),
           remarks: remarks,
-          totalScore: (score !== undefined && score !== null) ? parseInt(score) : undefined,
+          totalScore: coercedScore,
           evaluatedBy: Number(teacherId)
         }
       });
@@ -615,13 +629,14 @@ class SubmissionService {
     const submission = await this.getSubmissionDetailWithRole(submissionId, teacherId, 'teacher');
 
     const finalStatus = isDraft ? 'submitted' : 'graded';
+    const coercedScore = this._coerceScore(score);
 
     const feedback = await submissionRepository.transaction(async (tx) => {
       const evaluation = await tx.evaluation.upsert({
         where: { submissionId: Number(submissionId) },
         update: {
           remarks: remarks,
-          totalScore: (score !== undefined && score !== null) ? parseInt(score) : undefined,
+          totalScore: coercedScore,
           validationReport: report ? JSON.stringify(report) : undefined,
           evaluatedBy: Number(teacherId),
           evaluatedAt: isDraft ? null : new Date()
@@ -629,7 +644,7 @@ class SubmissionService {
         create: {
           submissionId: Number(submissionId),
           remarks: remarks,
-          totalScore: (score !== undefined && score !== null) ? parseInt(score) : undefined,
+          totalScore: coercedScore,
           validationReport: report ? JSON.stringify(report) : undefined,
           evaluatedBy: Number(teacherId)
         }

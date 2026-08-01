@@ -118,7 +118,7 @@ async function checkModelPhased(model, section = null, targetId = null) {
 
     if (phaseBlocked.size > 0) {
       const filtered = phaseResult.issues.filter((i) => !phaseBlocked.has(i.code));
-      blockedCodes.forEach((code) => {
+      phaseBlocked.forEach((code) => {
         const rule = getRuleByCode(code);
         if (rule) {
           filtered.push({

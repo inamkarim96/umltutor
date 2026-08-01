@@ -8,7 +8,7 @@ const UC_ID = 'uc-login-123';
 
 const sampleUseCaseDiagram = {
     nodes: [
-        { id: 'sb-1', type: 'systemBoundary', position: { x: 50, y: 50 }, data: { label: 'Online Shopping System', width: 600, height: 600 } },
+        { id: 'sb-1', type: 'systemBoundary', position: { x: 50, y: 50 }, data: { label: 'Student Portal', width: 600, height: 600 } },
         { id: UC_ID, type: 'usecase', parentNode: 'sb-1', position: { x: 150, y: 150 }, data: { label: 'Login User' } },
         { id: 'actor-student', type: 'actor', position: { x: 10, y: 150 }, data: { label: 'Student' } }
     ],

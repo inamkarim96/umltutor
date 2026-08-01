@@ -26,6 +26,7 @@ import { selectCurrentMode, selectIsTutorialMode } from '../../features/modes';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import CheckingModePanel from '../checking/CheckingModePanel';
 import { X } from 'lucide-react';
+import { useSequenceAutosave } from './useSequenceAutosave';
 
 const nodeTypes = {
     lifeline: LifelineNode,
@@ -73,18 +74,15 @@ const SequenceDiagramEditorInner = ({
         lastLoadedRef.current = dataString;
     }, [activeUseCaseId, model?.sequenceDiagrams, setNodes, setEdges]);
 
-    useEffect(() => {
-        if (isReadOnly || !activeUseCaseId) return;
-        const timer = setTimeout(() => {
-            dispatch(updateSequenceDiagram({
-                mode,
-                id: activeUseCaseId,
-                sequence: { nodes, edges, useCaseId: activeUseCaseId },
-            }));
-            lastLoadedRef.current = JSON.stringify({ nodes, edges });
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, [nodes, edges, mode, activeUseCaseId, dispatch, isReadOnly]);
+    useSequenceAutosave({
+        activeUseCaseId,
+        nodes,
+        edges,
+        mode,
+        isReadOnly,
+        dispatch,
+        updateSequenceDiagramAction: updateSequenceDiagram,
+    });
 
     const onNodesChange = useCallback(
         (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),

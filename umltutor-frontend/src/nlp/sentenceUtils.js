@@ -1,4 +1,4 @@
-import { VERB_DICTIONARY, INTERNAL_VERBS, EXTERNAL_VERBS, STOP_WORDS, RETURN_KEYWORDS } from './constants';
+import { VERB_DICTIONARY, INTERNAL_VERBS, EXTERNAL_VERBS, STOP_WORDS } from './constants';
 
 export function validateSentence(text) {
   if (!text || typeof text !== 'string') {
@@ -38,7 +38,8 @@ export function classifySystemStep(stepText) {
     if (INTERNAL_VERBS.has(w)) return 'self';
     if (EXTERNAL_VERBS.has(w)) return 'external';
   }
-  return 'external';
+  // Unclassified system processing is internal (self-loop), NOT an external response.
+  return 'self';
 }
 
 export function suggestFromSentence(sentence) {
@@ -100,52 +101,79 @@ export function validateActorName(name) {
   return { isValid: true, error: null };
 }
 
-export function parseScenarioStep(stepText, availableActors) {
-  const result = {
-    actor: null,
-    action: null,
-    keywords: [],
-    messageName: '',
-    isReturn: false,
-  };
+export function parseMethodSignature(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return null;
 
-  if (!stepText) return result;
+  let visibility = null;
+  let body = str;
+  const visMatch = str.match(/^([+\-#~])\s*/);
+  if (visMatch) {
+    visibility = visMatch[1];
+    body = str.slice(visMatch[0].length).trim();
+  }
 
-  const text = stepText.trim();
-  const textLower = text.toLowerCase();
-
-  for (const actor of availableActors) {
-    if (textLower.startsWith(actor.toLowerCase())) {
-      result.actor = actor;
-      result.action = text.slice(actor.length).trim();
-      break;
+  let returnType = null;
+  let namePart = body;
+  {
+    let depth = 0;
+    for (let i = 0; i < body.length; i++) {
+      const ch = body[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      else if (ch === ':' && depth === 0) {
+        namePart = body.slice(0, i).trim();
+        returnType = body.slice(i + 1).trim();
+        break;
+      }
     }
   }
 
-  if (!result.actor && textLower.startsWith('system')) {
-    result.actor = 'System';
-    result.action = text.slice(6).trim();
+  if (!namePart) return null;
+
+  const openParen = namePart.indexOf('(');
+  let name = namePart;
+  let paramsStr = '';
+  if (openParen !== -1) {
+    name = namePart.slice(0, openParen).trim();
+    const closeParen = namePart.lastIndexOf(')');
+    paramsStr = closeParen > openParen ? namePart.slice(openParen + 1, closeParen) : namePart.slice(openParen + 1);
   }
 
-  if (!result.actor) {
-    result.action = text;
+  if (!name) return null;
+
+  const parameters = (paramsStr ? paramsStr.split(',') : [])
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const colonIdx = p.indexOf(':');
+      if (colonIdx === -1) return { name: p, type: null };
+      return { name: p.slice(0, colonIdx).trim(), type: p.slice(colonIdx + 1).trim() || null };
+    });
+
+  return { visibility, name, parameters, returnType, raw: str };
+}
+
+export function parseClassAttribute(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return null;
+
+  let visibility = null;
+  let body = str;
+  const visMatch = str.match(/^([+\-#~])\s*/);
+  if (visMatch) {
+    visibility = visMatch[1];
+    body = str.slice(visMatch[0].length).trim();
   }
 
-  const retWords = result.action ? result.action.toLowerCase().split(/\s+/) : [];
-  result.isReturn = retWords.some((w) => RETURN_KEYWORDS.has(w));
-
-  result.keywords = result.action
-    ? result.action.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter((w) => w.length > 2)
-    : [];
-
-  if (result.keywords.length > 0) {
-    const firstWord = result.keywords.filter((w) =>
-      Array.from(VERB_DICTIONARY).some((v) => w.startsWith(v) || w === v)
-    );
-    const verb = firstWord[0] || result.keywords[0];
-    const obj = result.keywords.slice(1).join('');
-    result.messageName = obj ? `${verb}${obj.charAt(0).toUpperCase() + obj.slice(1)}` : verb;
+  const colonIdx = body.indexOf(':');
+  let name = body;
+  let type = null;
+  if (colonIdx !== -1) {
+    name = body.slice(0, colonIdx).trim();
+    type = body.slice(colonIdx + 1).trim() || null;
   }
 
-  return result;
+  if (!name) return null;
+  return { visibility, name, type, raw: str };
 }

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { fetchSubmissionStatus, resetStatus, submitAssignmentData, selectCurrentSubmission, selectIsSubmitting, selectSubmissionError } from '../../submissions';
+import { selectDevelopmentModel } from '../../diagram';
+import { buildSavePayload } from '../../../utils/savePayloadUtils';
 import { CheckCircle, Send, AlertCircle, FileText, Type, Clock, RefreshCcw } from 'lucide-react';
 import { useSuccessToast, useErrorToast } from '../../../components/ui/Toast';
 
@@ -10,6 +12,7 @@ const SubmitAssignment = ({ assignment }) => {
     const dispatch = useAppDispatch();
     const isSubmitting = useAppSelector(selectIsSubmitting);
     const currentSubmission = useAppSelector(selectCurrentSubmission);
+    const developmentModel = useAppSelector(selectDevelopmentModel);
     const error = useAppSelector(selectSubmissionError);
     const successToast = useSuccessToast();
     const errorToast = useErrorToast();
@@ -34,16 +37,13 @@ const SubmitAssignment = ({ assignment }) => {
             return;
         }
         
-        // In a real scenario, diagramData would be fetched from the editor's store (umlSlice)
-        // For this standalone component, we'll simulate or expect it to be handled via the workflow
-        // But to satisfy the "Call API on submission" task:
+        // Submit the student's actual workspace model (use case diagram,
+        // descriptions, SSD, class diagram, sequence diagrams) as a submitted
+        // assignment — not a placeholder payload.
         try {
             const resultAction = await dispatch(submitAssignmentData({
                 assignmentId: assignment.id,
-                data: {
-                    description,
-                    diagramData: { message: "Submission via SubmitAssignment Component" } // Placeholder
-                }
+                data: buildSavePayload(developmentModel, { status: 'submitted', notes: description })
             })).unwrap();
             
             successToast(hasSubmitted ? 'Assignment resubmitted successfully!' : 'Assignment submitted successfully!');

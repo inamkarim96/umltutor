@@ -146,7 +146,7 @@ const AssignmentDetails = () => {
     }, [id, role, dispatch]);
 
     useEffect(() => {
-        if (role === 'STUDENT' && id && submissionStatus?.status?.toLowerCase() === 'graded' && !submissionStatus?.fullReport) {
+        if (role === 'STUDENT' && id && submissionStatus?.status && ['submitted', 'graded'].includes(submissionStatus.status.toLowerCase()) && !submissionStatus?.fullReport) {
             dispatch(fetchSubmissionStatus({ assignmentId: id, includeReport: true }));
         }
     }, [id, role, dispatch, submissionStatus?.status, submissionStatus?.fullReport]);
@@ -472,7 +472,7 @@ const AssignmentDetails = () => {
                                                 </div>
                                                 <div className="flex-1 text-center md:text-left">
                                                     <h3 className="text-xl font-extrabold font-heading text-emerald-900 uppercase tracking-tighter">Work Turned In</h3>
-                                                    <p className="text-sm text-status-green font-bold font-body mt-1">Submitted on {new Date(myOfficialSubmission.submittedAt).toLocaleString()}</p>
+                                                    <p className="text-sm text-status-green font-bold font-body mt-1">Submitted {myOfficialSubmission.submittedAt ? `on ${new Date(myOfficialSubmission.submittedAt).toLocaleString()}` : ''}</p>
                                                 </div>
                                                 {myOfficialSubmission.score != null && (
                                                     <div className="text-center md:text-right">
@@ -493,7 +493,7 @@ const AssignmentDetails = () => {
                                                 </div>
                                             )}
 
-                                            {myOfficialSubmission.status?.toLowerCase() === 'graded' && (
+                                            {myOfficialSubmission?.fullReport && (
                                                 <StudentCheckingReport report={myOfficialSubmission.fullReport} />
                                             )}
 
