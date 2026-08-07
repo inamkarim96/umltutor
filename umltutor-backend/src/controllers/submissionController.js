@@ -244,3 +244,75 @@ const getTutorialRequests = async (req, res, next) => {
     next(error);
   }
 }; exports.getTutorialRequests = getTutorialRequests;
+
+const recordExport = async (req, res, next) => {
+  try {
+    const assignmentId = req.params.assignmentId;
+    const studentId = req.user.id;
+    const body = req.body || {};
+
+    let fileUrl = null;
+    let fileName = null;
+    let fileSize = null;
+    if (req.file) {
+      const getInfoFn = _fileUpload.getFileInfo || (_fileUpload2.default && _fileUpload2.default.getFileInfo);
+      const info = getInfoFn ? getInfoFn(req.file, 'submissions') : {};
+      fileName = info.originalName || info.filename || req.file.originalname || 'export.pdf';
+      fileSize = info.size || req.file.size || 0;
+      fileUrl = info.url || req.file.path || null;
+      try {
+        const uploaderFn = _fileUpload.uploadToCDN || (_fileUpload2.default && _fileUpload2.default.uploadToCDN);
+        if (uploaderFn) {
+          const cdnUrl = await uploaderFn(req.file, 'submission-exports');
+          if (cdnUrl) fileUrl = cdnUrl;
+        }
+      } catch (cdnErr) {
+        console.warn("[recordExport] CDN upload failed, using local URL:", cdnErr.message);
+      }
+    }
+
+    const record = await _submissionService2.default.recordExport({
+      assignmentId,
+      studentId,
+      format: body.format || 'pdf',
+      section: body.section || null,
+      durationMs: body.durationMs,
+      fileName,
+      fileSize,
+      fileUrl,
+    });
+
+    res.status(201).json({ success: true, data: record });
+  } catch (error) {
+    console.error("[recordExport] assignmentId=", req.params.assignmentId, "student=", req.user?.id, error.message);
+    next(error);
+  }
+}; exports.recordExport = recordExport;
+
+const getAssignmentExports = async (req, res, next) => {
+  try {
+    const assignmentId = req.params.assignmentId;
+    const result = await _submissionService2.default.getExportsForAssignment(Number(assignmentId), req.user, {
+      page: req.query.page,
+      limit: req.query.limit,
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error("[getAssignmentExports] assignmentId=", req.params.assignmentId, error.message);
+    next(error);
+  }
+}; exports.getAssignmentExports = getAssignmentExports;
+
+const getStudentExports = async (req, res, next) => {
+  try {
+    const studentId = req.params.studentId || req.user.id;
+    const result = await _submissionService2.default.getExportsForStudent(Number(studentId), {
+      page: req.query.page,
+      limit: req.query.limit,
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error("[getStudentExports] studentId=", studentId, error.message);
+    next(error);
+  }
+}; exports.getStudentExports = getStudentExports;

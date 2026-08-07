@@ -44,7 +44,7 @@ POST /api/check
 ## Key Features
 
 ### 1. Comprehensive Validation System
-- **112 validation rules** covering grammar, structure, and consistency
+- **124 validation rules** (117 active) covering grammar, structure, consistency, and UML standards
 - **Dependency-aware processing** to reduce cascading errors
 - **Real-time feedback** for students during diagram creation
 
@@ -221,7 +221,7 @@ psql $DATABASE_URL -c "SELECT 1"
 ## Project Status
 
 ### ✅ Completed
-- [x] Comprehensive validation rule system (112 rules)
+- [x] Comprehensive validation rule system (124 rules, 117 active)
 - [x] Dependency-aware rule pipeline
 - [x] Auto-fix suggestion engine
 - [x] Teacher flow integration

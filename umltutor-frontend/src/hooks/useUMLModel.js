@@ -47,6 +47,10 @@ export const useUMLModel = (assignmentId) => {
             const adaptedModel = await fetchModelLogic({ assignmentId });
 
             dispatch(setModel({ mode, model: adaptedModel }));
+            if (adaptedModel.rawSubmission) {
+                const { setCurrentSubmission } = await import('../features/submissions');
+                dispatch(setCurrentSubmission(adaptedModel.rawSubmission));
+            }
 
             const hasDiagramData =
                 (adaptedModel.diagram?.nodes?.length ?? 0) > 0 ||

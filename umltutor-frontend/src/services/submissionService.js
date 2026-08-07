@@ -203,6 +203,34 @@ class SubmissionService {
       })
     );
   }
+
+  // === EXPORT RECORDING ===
+
+  async recordExport(assignmentId, { format, section, durationMs }, fileBlob = null) {
+    const formData = new FormData();
+    formData.append('format', format || 'pdf');
+    if (section) formData.append('section', section);
+    formData.append('durationMs', String(Math.round(durationMs || 0)));
+    if (fileBlob) formData.append('file', fileBlob, fileBlob.name || `uml-export.${fileBlob.type.split('/')[1] || 'png'}`);
+    const result = await apiClient.post(`/api/submissions/${assignmentId}/exports`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return result;
+  }
+
+  async getAssignmentExports(assignmentId, { page = 1, limit = 20 } = {}) {
+    const key = `submissions:exports:assignment:${assignmentId}:${page}:${limit}`;
+    return inflightGet(key, () =>
+      apiClient.get(`/api/submissions/${assignmentId}/exports`, { params: { page, limit } })
+    );
+  }
+
+  async getMyExports({ page = 1, limit = 20 } = {}) {
+    const key = `submissions:exports:student:${page}:${limit}`;
+    return inflightGet(key, () =>
+      apiClient.get('/api/submissions/student/exports', { params: { page, limit } })
+    );
+  }
 }
 
 export const submissionService = new SubmissionService();

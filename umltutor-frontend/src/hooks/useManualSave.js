@@ -54,9 +54,10 @@ export const useManualSave = (activeSection) => {
     const exportToFile = async (format = 'json', report = null, userInfo = {}) => {
         if (!activeModel) throw new Error('No model to export');
 
+        let result = true;
         try {
             if (format === 'combined') {
-                await exportCombinedModel(activeModel, mode, report, userInfo);
+                result = await exportCombinedModel(activeModel, mode, report, userInfo);
             } else if (format === 'json') {
                 await exportModelAsJSON(mode, activeModel);
             } else if (format === 'txt' || format === 'pdf' || format === 'docx' || format === 'jpeg' || format === 'png' || format === 'svg') {
@@ -82,7 +83,7 @@ export const useManualSave = (activeSection) => {
             }
 
             console.log(`[Export] Exported ${mode} model as ${format.toUpperCase()}`);
-            return true;
+            return result;
         } catch (error) {
             console.error('[Export] Failed to export:', error);
             throw error;

@@ -6,7 +6,7 @@ This document provides detailed information about the key features of the UML Tu
 ## Core Validation System
 
 ### Rule Registry (src/rules/ruleRegistry.js)
-The rule registry contains **112 validation rules** that govern the quality and consistency of UML diagrams. Each rule is defined with comprehensive metadata including:
+The rule registry contains **124 validation rules** (117 active, 7 deprecated/disabled) that govern the quality and consistency of UML diagrams. Each rule is defined with comprehensive metadata including:
 
 - **Code**: Unique identifier (e.g., "ATMR-001")
 - **Name**: Human-readable name
@@ -313,7 +313,7 @@ node scripts/debug/test-rule-execution.js
 - **Code Examples**: Check `examples/` directory
 
 ### Learning Resources
-- **Rule Registry**: `src/rules/ruleRegistry.js` - 112 rules with examples
+- **Rule Registry**: `src/rules/ruleRegistry.js` - 124 rules (117 active) with examples
 - **API Reference**: `docs/API_REFERENCE.md` - detailed endpoint documentation
 - **Examples**: `examples/` - practical usage examples
 - **Tutorials**: `docs/GETTING_STARTED.md` - step-by-step guides

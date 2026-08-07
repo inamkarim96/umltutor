@@ -20,11 +20,22 @@ const prisma = new PrismaClient({
   },
 });
 
+// Periodic DB keep-alive ping every 25 seconds to keep Neon serverless compute warm and avoid 3s cold starts
+let keepAliveTimer = setInterval(async () => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch {
+    // ignore background keepalive errors
+  }
+}, 25_000);
+if (keepAliveTimer.unref) keepAliveTimer.unref();
+
 /**
  * Gracefully disconnect Prisma on process exit.
  * Prevents "connection already closed" noise during shutdown.
  */
 const shutdown = async (signal) => {
+  if (keepAliveTimer) clearInterval(keepAliveTimer);
   console.log(`[Prisma] Received ${signal} — disconnecting...`);
   await prisma.$disconnect();
   process.exit(0);

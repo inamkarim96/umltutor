@@ -14,9 +14,7 @@ import {
 } from '../features/assignments';
 import {
     selectSubmissions,
-    fetchSubmissionStatus,
     selectCurrentSubmission,
-    selectSubmissionLoading,
 } from '../features/submissions';
 
 /**
@@ -35,7 +33,6 @@ const WorkspacePage = ({ mode }) => {
 
     const assignments = useAppSelector(selectAllAssignments) || [];
     const isAssignmentLoading = useAppSelector(selectAssignmentLoading);
-    const isSubmissionLoading = useAppSelector(selectSubmissionLoading);
 
     const assignmentId = useMemo(() => {
         if (!titleSlug) return null;
@@ -47,18 +44,6 @@ const WorkspacePage = ({ mode }) => {
 
     const { error, isLoading: isModelLoading, refresh: refreshModel } = useUMLModel(assignmentId);
 
-    // Guard ref: tracks which assignmentId we have already fetched submission status for.
-    // This prevents fetchSubmissionStatus from being dispatched multiple times when the
-    // `assignments` array gets a new reference (which happens on every Redux state update).
-    const submissionFetchedRef = useRef(null);
-
-    // Reset the guard whenever we navigate to a different assignment.
-    useEffect(() => {
-        if (submissionFetchedRef.current !== assignmentId) {
-            submissionFetchedRef.current = null;
-        }
-    }, [assignmentId]);
-
     useEffect(() => {
         if (!titleSlug || isAssignmentLoading) return;
         if (assignments.length === 0) {
@@ -67,23 +52,18 @@ const WorkspacePage = ({ mode }) => {
         }
         if (assignmentId) {
             const found = assignments.find((a) => a.id === assignmentId);
-            if (found) {
-                // Only dispatch once per assignmentId — guard against repeated fetches
-                // caused by Redux returning a new `assignments` array reference on every update.
-                if (submissionFetchedRef.current !== assignmentId) {
-                    submissionFetchedRef.current = assignmentId;
-                    // Fetch lightweight status only — no report on initial load.
-                    // ModeAwareEditor fetches the full report lazily when status === 'graded'.
-                    dispatch(fetchSubmissionStatus(assignmentId));
-                }
-            } else {
+            if (!found) {
                 dispatch(fetchAssignmentById({ id: assignmentId, role: 'STUDENT' }));
             }
+            // Submission status + artifacts are populated by useUMLModel from
+            // GET /api/student/assignments/:id — no separate status fetch needed.
         }
     }, [dispatch, titleSlug, assignments.length, isAssignmentLoading, assignmentId]);
 
     const submissions = useAppSelector(selectSubmissions) || [];
     const currentSubmission = useAppSelector(selectCurrentSubmission);
+    // Note: currentSubmission is populated by useUMLModel's setCurrentSubmission dispatch —
+    // no need for a separate fetchSubmissionStatus call here.
 
     const initialSwitchRef = useRef(false);
 
@@ -137,8 +117,11 @@ const WorkspacePage = ({ mode }) => {
         return new Date(targetDate) < new Date();
     }, [assignmentObj, submissions, currentSubmission, assignmentId, titleSlug]);
 
-    const isPageLoading =
-        isModelLoading || isAssignmentLoading || (assignmentId && isSubmissionLoading && !currentSubmission);
+    // Only block on model loading and assignment loading.
+    // Submission status is populated by useUMLModel as part of the workspace load,
+    // so we must NOT include isSubmissionLoading here — it would block rendering
+    // when the redundant status fetch fires and currentSubmission is briefly null.
+    const isPageLoading = isModelLoading || isAssignmentLoading;
 
     if (isPageLoading) {
         return <WorkspaceSkeleton />;
@@ -148,11 +131,12 @@ const WorkspacePage = ({ mode }) => {
         <div className="min-h-screen flex flex-col bg-transparent font-body overflow-x-hidden">
             {/* Mode banner */}
             <div
-                className={`px-4 py-3 text-center shadow-sm relative z-50 border-b transition-colors duration-300 ${
-                    currentMode === 'tutorial'
-                        ? 'bg-gradient-to-r from-emerald-600 via-status-green to-teal-600 text-white border-green-800'
+                className={`px-4 py-3 text-center shadow-sm relative z-50 border-b transition-colors duration-300 ${currentMode === 'tutorial'
+                    ? 'bg-gradient-to-r from-emerald-600 via-status-green to-teal-600 text-white border-green-800'
+                    : isReadOnly
+                        ? 'bg-gradient-to-r from-green-600 via-emerald-500 to-green-700 text-white border-green-800'
                         : 'bg-ink text-white border-black/20'
-                }`}
+                    }`}
                 role="status"
                 aria-live="polite"
             >
@@ -165,12 +149,12 @@ const WorkspacePage = ({ mode }) => {
                         {currentMode === 'tutorial'
                             ? 'Guided Tutorial Mode'
                             : isReadOnly
-                              ? 'Submitted Assignment — View Only'
-                              : 'Development Workspace'}
+                                ? 'Submitted Assignment — View Only'
+                                : 'Development Workspace'}
                     </span>
                     {currentMode === 'tutorial' && (
                         <span className="text-[10px] font-medium normal-case tracking-normal opacity-90 max-w-lg">
-                            Complete each step, run validation, then proceed to the next editor.
+                            .
                         </span>
                     )}
                 </div>

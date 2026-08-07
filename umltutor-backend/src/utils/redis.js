@@ -108,7 +108,7 @@ function fireAndForget(fn) {
 }
 
 const cacheService = {
-  isMemoryOnly: () => MEMORY_ONLY || Date.now() < redisDegradedUntil,
+  isMemoryOnly: () => !isRedisUsable(),
 
   async ping() {
     if (!redis || MEMORY_ONLY) return false;

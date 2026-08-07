@@ -256,8 +256,11 @@ const submissionSlice = createSlice({
         state.error = action.payload;
       })
       // Status
-      .addCase(fetchSubmissionStatus.pending, (state) => {
-        state.isLoading = true;
+      .addCase(fetchSubmissionStatus.pending, (state, action) => {
+        const isIncludeReport = typeof action.meta?.arg === 'object' && action.meta.arg.includeReport;
+        if (!isIncludeReport) {
+          state.isLoading = true;
+        }
       })
       .addCase(fetchSubmissionStatus.fulfilled, (state, action) => {
         state.isLoading = false;

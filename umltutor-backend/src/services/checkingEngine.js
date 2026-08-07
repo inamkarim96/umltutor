@@ -59,6 +59,11 @@ class CheckingEngine {
             this.validateDiagram(model.diagram, issues, diagramAnalysis);
         }
 
+        // 1a. Use case relationship validation (include / extend / generalization)
+        if (!section || section === 'diagram' || section === 'usecase') {
+            this.validateUseCaseRelationships(model.diagram, issues, diagramAnalysis);
+        }
+
         // 2. Description Validation (Step 2)
         if (!section || section === 'description') {
             this.validateDescriptions(model.descriptions, issues, diagramAnalysis, targetId);
@@ -146,6 +151,16 @@ class CheckingEngine {
         // 9. Sequence diagram structure validation (call/return pairing, duplicate lifelines)
         if (!section || section === 'sequence-diagram') {
             this.validateSequenceDiagramStructure(model.sequenceDiagrams, model.classDiagram, issues, diagramAnalysis);
+        }
+
+        // 9a. Sequence activation-bar validation (UML standard)
+        if (!section || section === 'sequence-diagram') {
+            this.validateSequenceActivations(model.sequenceDiagrams, issues, diagramAnalysis);
+        }
+
+        // 9b. Sequence combined-fragment validation (loop / alt / opt / ...)
+        if (!section || section === 'sequence-diagram') {
+            this.validateSequenceCombinedFragments(model.sequenceDiagrams, model.descriptions, issues, diagramAnalysis);
         }
 
         // Global mapping consistency across steps 2–5
@@ -417,6 +432,82 @@ class CheckingEngine {
                     relatedId: uc.id,
                     context: { useCaseId: uc.id, suggestion: 'Draw an association line from an Actor to this Use Case. Every Use Case must be connected to at least one Actor.' }
                 });
+            }
+        });
+    }
+
+    /**
+     * Use case relationship validation (include / extend / generalization).
+     * Edges in the use case diagram may carry a relationship type in
+     * `edge.data.relationshipType`, `edge.data.type` or `edge.type`. Plain
+     * actor-to-use-case association edges carry no such type and are ignored.
+     *
+     * Checks:
+     *   - include/extend edges must target a use case                → USE_CASE_RELATIONSHIP_INCLUDE_EXTEND
+     *   - generalization edges must join the same element kind
+     *     (actor↔actor or use case↔use case)                          → USE_CASE_RELATIONSHIP_GENERALIZATION
+     */
+    static validateUseCaseRelationships(diagram, issues, analysis) {
+        if (!diagram?.edges?.length) return;
+
+        const { nodes } = analysis;
+        const nodesById = new Map(nodes.map((n) => [n.id, n]));
+        const isUseCase = (n) => n && (n.type === 'usecase' || n.type === 'useCase');
+        const isActor = (n) => n && n.type === 'actor';
+        const labelOf = (id) => {
+            const node = nodesById.get(id);
+            if (!node) return id;
+            return node.data?.label || id;
+        };
+
+        const relationshipTypeOf = (edge) => {
+            const raw = edge.data?.relationshipType || edge.data?.relationship || edge.data?.type || edge.type;
+            if (!raw) return null;
+            const norm = String(raw).toLowerCase().trim();
+            if (norm === 'include' || norm === 'extend' || norm === 'generalization' || norm === 'generalize') {
+                return norm === 'generalize' ? 'generalization' : norm;
+            }
+            return null;
+        };
+
+        diagram.edges.forEach((edge) => {
+            const relationship = relationshipTypeOf(edge);
+            if (!relationship) return;
+
+            const src = nodesById.get(edge.source);
+            const tgt = nodesById.get(edge.target);
+            const srcLabel = labelOf(edge.source);
+            const tgtLabel = labelOf(edge.target);
+
+            if (relationship === 'include' || relationship === 'extend') {
+                // Both ends must exist and the target must be a use case.
+                if (tgt && !isUseCase(tgt)) {
+                    issues.push({
+                        type: 'diagram', severity: 'warning', location: 'diagram',
+                        code: 'USE_CASE_RELATIONSHIP_INCLUDE_EXTEND',
+                        message: `${relationship[0].toUpperCase() + relationship.slice(1)} relationship connects "${srcLabel}" to "${tgtLabel}", but include/extend must target a use case.`,
+                        relatedId: edge.source,
+                        context: { relationship, source: edge.source, target: edge.target, suggestion: `Point the ${relationship} arrow at a use case, or use a plain association to connect actors.` }
+                    });
+                } else if (!tgt) {
+                    issues.push({
+                        type: 'diagram', severity: 'warning', location: 'diagram',
+                        code: 'USE_CASE_RELATIONSHIP_INCLUDE_EXTEND',
+                        message: `${relationship[0].toUpperCase() + relationship.slice(1)} relationship from "${srcLabel}" references a missing element.`,
+                        relatedId: edge.source,
+                        context: { relationship, source: edge.source, target: edge.target, suggestion: `Reconnect the ${relationship} edge to an existing use case.` }
+                    });
+                }
+            } else if (relationship === 'generalization') {
+                if (src && tgt && isActor(src) !== isActor(tgt)) {
+                    issues.push({
+                        type: 'diagram', severity: 'warning', location: 'diagram',
+                        code: 'USE_CASE_RELATIONSHIP_GENERALIZATION',
+                        message: `Generalization connects "${srcLabel}" to "${tgtLabel}", which are different element types (actors and use cases cannot be generalized together).`,
+                        relatedId: edge.source,
+                        context: { relationship, source: edge.source, target: edge.target, suggestion: 'Generalization must connect two actors or two use cases of the same kind.' }
+                    });
+                }
             }
         });
     }
@@ -809,10 +900,11 @@ class CheckingEngine {
                         issues.push({
                             type: 'consistency',
                             severity: 'error',
-                            code: 'SSD_CONSISTENCY_ACTOR_MISMATCH',
-                            message: `SSD 3.${displayNum} Consistency error: Started with Actor "${sender.label}", but mapped ${mappingRef} defines "${desc.primaryActor}".`,
+                            code: 'CROSS_DIAGRAM_ACTOR_CONSISTENCY',
+                            message: `SSD 3.${displayNum} uses actor "${sender.label}", but ${mappingRef} defines "${desc.primaryActor}".`,
                             relatedId: ucId,
-                            location: 'ssd'
+                            location: 'ssd',
+                            context: { suggestion: 'Use the same actor name across the description and the SSD (e.g. "Student").' }
                         });
                     }
                 }
@@ -1654,6 +1746,186 @@ class CheckingEngine {
         });
     }
 
+    /**
+     * Sequence activation-bar validation (UML standard).
+     *
+     * The editor model may carry activation data as `semanticData.activations`
+     * (array of { participantId, startMessageId, endMessageId, depthLevel }),
+     * mirroring the SSD schema. When present:
+     *   - each activation must reference an existing lifeline/message → SEQUENCE_ACTIVATION_INVALID
+     *   - every synchronous call landing on an object lifeline must be covered
+     *     by an activation bar on that lifeline → SEQUENCE_ACTIVATION_BAR_MISSING
+     */
+    static validateSequenceActivations(sequenceDiagrams, issues, analysis) {
+        if (!sequenceDiagrams) return;
+
+        const { useCases, useCaseLabels } = analysis;
+        const VALID_ACTIVATION_MSG_TYPES = new Set(['synchronous', 'create']);
+
+        useCases.forEach((uc) => {
+            const ucName = this.getUseCaseName(uc.id, useCaseLabels);
+            const rawSeq = sequenceDiagrams[uc.id];
+            if (!rawSeq) return;
+
+            const { semanticData } = this.processSequenceData(rawSeq);
+            if (!semanticData) return;
+
+            const activations = semanticData.activations;
+            const isActivationDataPresent = Array.isArray(activations);
+            if (!isActivationDataPresent) return;
+
+            const lifelineMap = new Map((semanticData.lifelines || []).map((l) => [l.id, l]));
+            const messageMap = new Map((semanticData.messages || []).map((m) => [m.id, m]));
+
+            activations.forEach((bar, idx) => {
+                const participant = bar.participantId;
+                const startMsg = bar.startMessageId;
+                const coveredLifeline = lifelineMap.get(participant);
+                const coveredMessage = messageMap.get(startMsg);
+
+                if ((participant && !coveredLifeline) || (startMsg && !coveredMessage)) {
+                    issues.push({
+                        type: 'sequence-diagram',
+                        severity: 'error',
+                        location: 'sequence-diagram',
+                        code: 'SEQUENCE_ACTIVATION_INVALID',
+                        message: `Activation bar ${idx + 1} in Sequence Diagram for "${ucName}" references a non-existent lifeline or message.`,
+                        relatedId: uc.id,
+                        context: { suggestion: 'Ensure every activation bar is attached to an existing lifeline and triggered by an existing message.' }
+                    });
+                }
+            });
+
+            // Synchronous calls to object lifelines should be covered by an activation bar.
+            if (isActivationDataPresent && semanticData.messages?.length) {
+                const coveredParticipants = new Set(activations.map((b) => b.participantId).filter(Boolean));
+                semanticData.messages.forEach((msg) => {
+                    if (msg.isReturn || msg.type === 'return') return;
+                    if (!VALID_ACTIVATION_MSG_TYPES.has(msg.type)) return;
+                    const receiver = lifelineMap.get(msg.toLifelineId);
+                    if (!receiver || receiver.type === 'actor' || receiver.type === 'system') return;
+                    if (coveredParticipants.has(msg.toLifelineId)) return;
+                    issues.push({
+                        type: 'sequence-diagram',
+                        severity: 'warning',
+                        location: 'sequence-diagram',
+                        code: 'SEQUENCE_ACTIVATION_BAR_MISSING',
+                        message: `Synchronous message "${msg.name}" in Sequence Diagram for "${ucName}" has no activation bar on the receiving lifeline.`,
+                        relatedId: uc.id,
+                        context: { suggestion: 'Add an activation bar on the receiving lifeline for the duration of the call.' }
+                    });
+                });
+            }
+        });
+    }
+
+    /**
+     * Sequence combined-fragment validation (loop / alt / opt / par / ...).
+     *
+     * The editor model may carry fragments as `semanticData.fragments` or
+     * `semanticData.combinedFragments` (array of { operator, guard, operands }).
+     * Checks:
+     *   - unknown operator                                       → SEQUENCE_COMBINED_FRAGMENT_INVALID
+     *   - loop/alt/opt/par fragments missing a guard condition    → SEQUENCE_COMBINED_FRAGMENT_MISSING_GUARD
+     *   - alt fragments with fewer than two operands              → SEQUENCE_COMBINED_FRAGMENT_INVALID
+     *   - scenario contains conditional/alternative steps but the
+     *     sequence diagram declares no combined fragment          → SEQUENCE_COMBINED_FRAGMENT_MISSING
+     */
+    static validateSequenceCombinedFragments(sequenceDiagrams, descriptions, issues, analysis) {
+        if (!sequenceDiagrams) return;
+
+        const { useCases, useCaseLabels } = analysis;
+        const VALID_FRAGMENT_OPERATORS = new Set([
+            'loop', 'alt', 'opt', 'par', 'break', 'critical', 'assert', 'neg', 'ref',
+        ]);
+
+        useCases.forEach((uc) => {
+            const ucName = this.getUseCaseName(uc.id, useCaseLabels);
+            const rawSeq = sequenceDiagrams[uc.id];
+            if (!rawSeq) return;
+
+            const { semanticData } = this.processSequenceData(rawSeq);
+            if (!semanticData) return;
+
+            const fragments = semanticData.fragments || semanticData.combinedFragments;
+            const hasFragmentsData = Array.isArray(fragments);
+            const hasFragments = hasFragmentsData && fragments.length > 0;
+
+            // ── Structural fragment validation (only when fragment data is present) ──
+            if (hasFragmentsData) {
+                fragments.forEach((frag, idx) => {
+                    const operator = String(frag?.operator || frag?.type || '').toLowerCase().trim();
+                    if (!VALID_FRAGMENT_OPERATORS.has(operator)) {
+                        issues.push({
+                            type: 'sequence-diagram',
+                            severity: 'error',
+                            location: 'sequence-diagram',
+                            code: 'SEQUENCE_COMBINED_FRAGMENT_INVALID',
+                            message: `Combined fragment ${idx + 1} in Sequence Diagram for "${ucName}" uses an invalid operator "${frag?.operator || frag?.type || '(none)'}".`,
+                            relatedId: uc.id,
+                            context: { suggestion: `Use a standard UML combined-fragment operator: ${Array.from(VALID_FRAGMENT_OPERATORS).join(', ')}.` }
+                        });
+                        return;
+                    }
+
+                    if (['loop', 'alt', 'opt', 'par', 'break'].includes(operator)) {
+                        const guard = (frag?.guard || frag?.condition || '').toString().trim();
+                        if (!guard) {
+                            issues.push({
+                                type: 'sequence-diagram',
+                                severity: 'warning',
+                                location: 'sequence-diagram',
+                                code: 'SEQUENCE_COMBINED_FRAGMENT_MISSING_GUARD',
+                                message: `Combined fragment of type "${operator}" in Sequence Diagram for "${ucName}" has no guard condition.`,
+                                relatedId: uc.id,
+                                context: { suggestion: `Add a guard to the ${operator} fragment (e.g., ${operator === 'loop' ? '"while items remain"' : '"if condition holds"'} ).` }
+                            });
+                        }
+                    }
+
+                    if (operator === 'alt' && (!Array.isArray(frag.operands) || frag.operands.length < 2)) {
+                        issues.push({
+                            type: 'sequence-diagram',
+                            severity: 'error',
+                            location: 'sequence-diagram',
+                            code: 'SEQUENCE_COMBINED_FRAGMENT_INVALID',
+                            message: `alt fragment in Sequence Diagram for "${ucName}" must have at least two operands (a branch and an else).`,
+                            relatedId: uc.id,
+                            context: { suggestion: 'Give the alt fragment two operands: one guarded branch plus an else operand.' }
+                        });
+                    }
+                });
+            }
+
+            // ── Cross-diagram: conditional scenario should be reflected in a fragment ──
+            const desc = (descriptions || {})[uc.id];
+            if (!desc || !hasFragmentsData || hasFragments) return;
+
+            const mainFlow = Array.isArray(desc.mainFlow) ? desc.mainFlow : [];
+            const altFlows = Array.isArray(desc.alternativeFlows) ? desc.alternativeFlows : [];
+            const conditionalText = [
+                ...mainFlow.map((s) => (s && typeof s === 'object' ? s.action : s) || ''),
+                ...altFlows.map((f) => (f && (f.condition || f.response)) || ''),
+            ].join(' ').toLowerCase();
+
+            const hasConditionalScenario =
+                /\b(if|when|unless|otherwise|else|alternatively)\b/.test(conditionalText) ||
+                altFlows.length > 0;
+
+            if (hasConditionalScenario) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'warning',
+                    location: 'sequence-diagram',
+                    code: 'SEQUENCE_COMBINED_FRAGMENT_MISSING',
+                    message: `Scenario for "${ucName}" contains conditional steps but the sequence diagram has no combined fragment.`,
+                    relatedId: uc.id,
+                    context: { suggestion: 'Add an alt/opt/loop combined fragment to model the branching or repetition in the scenario.' }
+                });
+            }
+        });
+    }
+
     static extractClassDiagramModel(classDiagram) {
         const classes = [];
         const methods = [];
@@ -1877,6 +2149,22 @@ class CheckingEngine {
         // ── Relationship edges ─────────────────────────────────────────────
         const edges = classDiagram.edges || [];
         const inheritance = [];
+        const VALID_RELATIONSHIP_TYPES = new Set([
+            'association',
+            'directed-association',
+            'inheritance',
+            'implementation',
+            'composition',
+            'aggregation',
+            'dependency',
+        ]);
+        const MULTIPLICITY_RELATIONSHIP_TYPES = new Set([
+            'association',
+            'directed-association',
+            'composition',
+            'aggregation',
+            'dependency',
+        ]);
 
         edges.forEach((edge) => {
             const src = edge.source;
@@ -1895,7 +2183,73 @@ class CheckingEngine {
                 return;
             }
 
-            if (type === 'inheritance') {
+            // Relationship typing (UML standard)
+            const typeKey = String(type).toLowerCase().trim();
+            if (!VALID_RELATIONSHIP_TYPES.has(typeKey)) {
+                issues.push({
+                    type: 'class-diagram',
+                    severity: 'warning',
+                    code: 'CLASS_RELATIONSHIP_TYPE_INVALID',
+                    message: `Relationship type "${type}" between "${labelOf(src)}" and "${labelOf(tgt)}" is not a valid UML relationship.`,
+                    location: 'class-diagram',
+                    context: {
+                        suggestion: `Use one of: ${Array.from(VALID_RELATIONSHIP_TYPES).join(', ')}.`
+                    }
+                });
+            }
+
+            // Multiplicity on relationship ends (when multiplicity data is present,
+            // validate it; for composition/aggregation/association/... the editor
+            // can optionally declare sourceMultiplicity/targetMultiplicity on the
+            // edge data or as a label such as "1..*").
+            const srcMult = edge.data?.sourceMultiplicity ?? edge.data?.fromMultiplicity;
+            const tgtMult = edge.data?.targetMultiplicity ?? edge.data?.toMultiplicity;
+            const edgeLabelMult = typeof edge.label === 'string' ? edge.label.trim() : '';
+            const anyMult = srcMult || tgtMult || edgeLabelMult;
+
+            if (MULTIPLICITY_RELATIONSHIP_TYPES.has(typeKey)) {
+                if (!anyMult) {
+                    issues.push({
+                        type: 'class-diagram',
+                        severity: 'info',
+                        code: 'CLASS_RELATIONSHIP_MULTIPLICITY_MISSING',
+                        message: `Relationship "${type}" between "${labelOf(src)}" and "${labelOf(tgt)}" has no multiplicities declared at its ends.`,
+                        location: 'class-diagram',
+                        context: {
+                            suggestion: 'Declare multiplicities at each end (e.g., 1, *, 0..1, 1..*) to express how many objects participate.'
+                        }
+                    });
+                } else {
+                    // A raw edge label may carry both source and target multiplicities
+                    const multCandidates = [];
+                    if (srcMult) multCandidates.push(String(srcMult));
+                    if (tgtMult) multCandidates.push(String(tgtMult));
+                    if (edgeLabelMult) multCandidates.push(edgeLabelMult);
+
+                    const MULTIPLICITY_RE = /^(\d+|\*)$|^(\d+|\*)\.\.(\d+|\*)$|^(\d+|\*\.\.\d+)$|^([\d*](\.[\d*])?)(\.\.)?([\d*](\.[\d*])?)?$/;
+                    multCandidates.forEach((raw) => {
+                        // Strip any prefix like "src: " or "1..*" tokens separated by spaces
+                        const parts = raw.split(/\s*,\s*|\s+(?=\d|\*)/).map((p) => p.trim()).filter(Boolean);
+                        parts.forEach((part) => {
+                            if (part.includes(' ')) return; // free text like "exactly two" — skip
+                            if (!MULTIPLICITY_RE.test(part)) {
+                                issues.push({
+                                    type: 'class-diagram',
+                                    severity: 'warning',
+                                    code: 'CLASS_RELATIONSHIP_MULTIPLICITY_INVALID',
+                                    message: `Multiplicity "${part}" on relationship "${type}" between "${labelOf(src)}" and "${labelOf(tgt)}" is not valid.`,
+                                    location: 'class-diagram',
+                                    context: {
+                                        suggestion: 'Use a valid UML multiplicity such as 1, *, 0..1, 1..*, 0..* (e.g. "1" or "0..*").'
+                                    }
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+
+            if (typeKey === 'inheritance') {
                 inheritance.push([src, tgt]);
                 if (src === tgt) {
                     issues.push({
@@ -1909,7 +2263,7 @@ class CheckingEngine {
                 }
             }
 
-            if (type === 'implementation') {
+            if (typeKey === 'implementation') {
                 const tgtNode = nodesById.get(tgt);
                 if (tgtNode.type !== 'interface') {
                     issues.push({
@@ -2590,10 +2944,11 @@ class CheckingEngine {
                         issues.push({
                             type: 'consistency',
                             severity: 'error',
-                            code: 'SEQ_CONSISTENCY_ACTOR_MISMATCH',
-                            message: `Sequence 5.${displayNum}: first actor lifeline "${sender.label}" does not match ${mappingRef} primary actor "${desc.primaryActor}".`,
+                            code: 'CROSS_DIAGRAM_ACTOR_CONSISTENCY',
+                            message: `Sequence 5.${displayNum} uses actor lifeline "${sender.label}", but ${mappingRef} defines "${desc.primaryActor}".`,
                             relatedId: ucId,
-                            location: 'sequence-diagram'
+                            location: 'sequence-diagram',
+                            context: { suggestion: 'Use the same actor name across the description, SSD and sequence diagram (e.g. "Student").' }
                         });
                     }
                 }

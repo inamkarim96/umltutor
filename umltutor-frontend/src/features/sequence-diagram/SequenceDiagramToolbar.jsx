@@ -35,9 +35,10 @@ const SequenceDiagramToolbar = ({
     onDelete,
     onClear,
     hasSelection = false,
-    activeMessageType = 'sync',
+    activeMessageType = null,
     onMessageTypeChange,
     onAddActivation,
+    lifelineCount = 0,
     isReadOnly = false
 }) => {
     if (isReadOnly) return null;
@@ -78,22 +79,26 @@ const SequenceDiagramToolbar = ({
 
             <div>
                 <div className="text-xs font-bold font-body text-muted mb-2 uppercase tracking-wider">Messages</div>
-                <div className="grid grid-cols-2 gap-1 mb-2">
+                 <div className="grid grid-cols-2 gap-1 mb-2">
                     <button
-                        onClick={() => onMessageTypeChange('sync')}
-                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeMessageType === 'sync' ? 'bg-blue-100 text-blue-700 font-bold' : 'bg-surface-3 hover:bg-surface-3'}`}
+                        onClick={() => onMessageTypeChange('call')}
+                        disabled={lifelineCount < 2}
+                        title={lifelineCount < 2 ? 'Add at least two objects first' : 'Insert a call between the two most recently added objects'}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeMessageType === 'call' ? 'bg-blue-100 text-blue-700 font-bold ring-2 ring-blue-400' : 'bg-surface-3 hover:bg-surface-3'} ${lifelineCount < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <CallMessageIcon /> Call
                     </button>
                     <button
-                        onClick={() => onMessageTypeChange('reply')}
-                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-red-500 ${activeMessageType === 'reply' ? 'bg-red-100 text-red-700 font-bold' : 'bg-surface-3 hover:bg-surface-3'}`}
+                        onClick={() => onMessageTypeChange('return')}
+                        disabled={lifelineCount < 2}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-red-500 ${activeMessageType === 'return' ? 'bg-red-100 text-red-700 font-bold ring-2 ring-red-400' : 'bg-surface-3 hover:bg-surface-3'} ${lifelineCount < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <ReturnMessageIcon /> Return
                     </button>
                     <button
                         onClick={() => onMessageTypeChange('self')}
-                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${activeMessageType === 'self' ? 'bg-purple-100 text-purple-700 font-bold' : 'bg-surface-3 hover:bg-surface-3'}`}
+                        disabled={lifelineCount < 1}
+                        className={`p-2 text-xs rounded flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${activeMessageType === 'self' ? 'bg-purple-100 text-purple-700 font-bold ring-2 ring-purple-400' : 'bg-surface-3 hover:bg-surface-3'} ${lifelineCount < 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <SelfMessageIcon /> Self
                     </button>

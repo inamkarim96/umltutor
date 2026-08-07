@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 const submissionRepository = _interopRequireDefault(require('../repositories/submissionRepository')).default;
+const submissionExportRepository = _interopRequireDefault(require('../repositories/submissionExportRepository')).default;
 const assignmentRepository = _interopRequireDefault(require('../repositories/assignmentRepository')).default;
 const classRepository = _interopRequireDefault(require('../repositories/classRepository')).default;
 const userRepository = _interopRequireDefault(require('../repositories/userRepository')).default;
@@ -1210,6 +1211,72 @@ class SubmissionService {
         };
       }
     }, 30_000);
+  }
+
+  async _assertTeacherOwnsAssignment(assignmentId, teacherId) {
+    const assignment = await assignmentRepository.findFirst({
+      id: Number(assignmentId),
+    });
+    if (!assignment) throw new NotFoundError('Assignment');
+    const ownerTeacherId = Number(assignment.createdBy);
+    if (ownerTeacherId !== Number(teacherId)) {
+      throw new AuthorizationError('Unauthorized access to assignment');
+    }
+    return assignment;
+  }
+
+  async recordExport({ assignmentId, studentId, format, section, durationMs, fileName, fileSize, fileUrl }) {
+    const submission = await submissionRepository.findUnique({
+      where: {
+        assignmentId_studentId: {
+          assignmentId: Number(assignmentId),
+          studentId: Number(studentId),
+        },
+      },
+      select: { id: true },
+    });
+    if (!submission) {
+      throw new NotFoundError('Submission not found for this assignment. Please save your work before exporting.');
+    }
+    return submissionExportRepository.create({
+      submissionId: submission.id,
+      studentId: Number(studentId),
+      assignmentId: Number(assignmentId),
+      format: format || 'pdf',
+      section: section || null,
+      durationMs: durationMs,
+      fileName: fileName || null,
+      fileSize: fileSize,
+      fileUrl: fileUrl || null,
+    });
+  }
+
+  async getExportsForAssignment(assignmentId, user, { page = 1, limit = 20 } = {}) {
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, Number(limit) || 20));
+    const offset = (pageNum - 1) * limitNum;
+
+    if (user.role === 'TEACHER') {
+      await this._assertTeacherOwnsAssignment(Number(assignmentId), user.id);
+    }
+
+    const [items, summary] = await Promise.all([
+      submissionExportRepository.findManyByAssignment(Number(assignmentId), { limit: limitNum, offset }),
+      submissionExportRepository.summaryByAssignment(Number(assignmentId)),
+    ]);
+    return { items, summary, pagination: { page: pageNum, limit: limitNum } };
+  }
+
+  async getExportsForStudent(studentId, { page = 1, limit = 20 } = {}) {
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, Number(limit) || 20));
+    const offset = (pageNum - 1) * limitNum;
+
+    const [items, summary] = await Promise.all([
+      submissionExportRepository.findManyByStudent(Number(studentId), { limit: limitNum, offset }),
+      submissionExportRepository.summaryByStudent(Number(studentId)),
+    ]);
+    return { items, summary, pagination: { page: pageNum, limit: limitNum } };
   }
 }
 

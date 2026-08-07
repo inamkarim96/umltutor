@@ -4,7 +4,7 @@ const SequenceMarkers = () => {
     return (
         <svg style={{ position: 'absolute', width: 0, height: 0 }}>
             <defs>
-                {/* Synchronous Message: Solid Arrowhead */}
+                {/* Synchronous Message: Solid Arrowhead (refX=10 → tip at path end, for L→R) */}
                 <marker
                     id="sequence-sync-arrow"
                     viewBox="0 0 10 10"
@@ -15,6 +15,19 @@ const SequenceMarkers = () => {
                     orient="auto-start-reverse"
                 >
                     <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2937" />
+                </marker>
+
+                {/* Self-Message Arrowhead: refX=0 so the TIP lands at the leftward path endpoint */}
+                <marker
+                    id="sequence-self-arrow"
+                    viewBox="0 0 10 10"
+                    refX="0"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                >
+                    <path d="M 10 0 L 0 5 L 10 10 z" fill="#1f2937" />
                 </marker>
 
                 {/* Asynchronous Message / Reply: Open Arrowhead */}

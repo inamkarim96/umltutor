@@ -49,7 +49,19 @@ export const adaptModel = (loadedModel, assignmentId) => {
         className: loadedModel.class?.name || loadedModel.assignment?.className || loadedModel.assignment?.class?.name || 
                    loadedModel.classroom?.name || loadedModel.assignment?.class_name || '',
         
-        classCode: loadedModel.class?.code || loadedModel.assignment?.classCode || loadedModel.assignment?.class_code || ''
+        classCode: loadedModel.class?.code || loadedModel.assignment?.classCode || loadedModel.assignment?.class_code || '',
+
+        rawSubmission: submission
+            ? {
+                  ...submission,
+                  assignmentId: Number(assignmentId),
+                  fullReport: submission.evaluation?.validationReport
+                      ? (typeof submission.evaluation.validationReport === 'string'
+                            ? (() => { try { return JSON.parse(submission.evaluation.validationReport); } catch { return null; } })()
+                            : submission.evaluation.validationReport)
+                      : submission.fullReport || null,
+              }
+            : null,
     };
 };
 

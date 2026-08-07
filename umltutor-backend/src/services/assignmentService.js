@@ -221,9 +221,17 @@ class AssignmentService {
     const studentIdNum = Number(studentId);
     const cacheKey = `assignments:student:${studentIdNum}:list`;
     return serviceCache.cached(cacheKey, 120, async () => {
-    // Optimized query with single fetch for assignments and submissions
+    // 1. Get enrolled class IDs via student index (1ms)
+    const memberships = await prisma.classStudent.findMany({
+      where: { studentId: studentIdNum },
+      select: { classId: true },
+    });
+    if (memberships.length === 0) return [];
+    const classIds = memberships.map((m) => m.classId);
+
+    // 2. Fetch assignments for enrolled classes via classId index (1ms)
     const assignments = await prisma.assignment.findMany({
-      where: { class: { students: { some: { studentId: studentIdNum } } } },
+      where: { classId: { in: classIds } },
       select: {
         id: true,
         title: true,
@@ -280,13 +288,11 @@ class AssignmentService {
     const cacheKey = `assignment:student:${studentIdNum}:${assignmentIdNum}`;
 
     return serviceCache.cached(cacheKey, 90, async () => {
+      const tStart = Date.now();
       let assignment;
       try {
-        assignment = await prisma.assignment.findFirst({
-          where: {
-            id: assignmentIdNum,
-            class: { students: { some: { studentId: studentIdNum } } },
-          },
+        assignment = await prisma.assignment.findUnique({
+          where: { id: assignmentIdNum },
           select: {
             id: true,
             title: true,
@@ -309,6 +315,16 @@ class AssignmentService {
             },
           },
         });
+
+        if (assignment) {
+          // Direct PK lookup for class membership check — 1ms vs multi-second EXISTS subquery
+          const membership = await prisma.classStudent.findUnique({
+            where: {
+              classId_studentId: { classId: assignment.classId, studentId: studentIdNum },
+            },
+          });
+          if (!membership) assignment = null;
+        }
       } catch (err) {
         console.error(
           `[AssignmentService] Assignment query failed id=${assignmentIdNum} student=${studentIdNum}:`,
@@ -318,12 +334,14 @@ class AssignmentService {
       }
       if (!assignment) throw new NotFoundError('Assignment');
 
-      // Run submission fetch and student info fetch in PARALLEL — student info
-      // does not depend on submission result so both can start at the same time.
+      const tAssign = Date.now() - tStart;
+
+      // Run submission fetch and student info fetch in PARALLEL
       let submission = null;
       let studentInfo = null;
       let submissionLoadWarning = null;
 
+      const tSubStart = Date.now();
       const [submissionResult, studentResult] = await Promise.allSettled([
         findSubmissionWithArtifacts(submissionRepository, {
           assignmentId: assignmentIdNum,
@@ -334,6 +352,11 @@ class AssignmentService {
           select: { id: true, firstName: true, lastName: true, email: true },
         }),
       ]);
+      const tSub = Date.now() - tSubStart;
+
+      if (tAssign + tSub > 100) {
+        console.log(`[Perf] getAssignmentForStudent id=${assignmentIdNum} assignQuery=${tAssign}ms subQuery=${tSub}ms total=${Date.now() - tStart}ms`);
+      }
 
       // Process submission result
       if (submissionResult.status === 'fulfilled') {

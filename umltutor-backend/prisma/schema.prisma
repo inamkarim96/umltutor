@@ -119,6 +119,7 @@ model Submission {
   classDiagram        ClassDiagram?
   sequenceDiagrams    SequenceDiagram[]
   evaluation          Evaluation?
+  exports             SubmissionExport[]
 
   @@unique([assignmentId, studentId])
   @@index([assignmentId])
@@ -127,6 +128,27 @@ model Submission {
   @@index([assignmentId, studentId, status])
   @@index([tutorialRequested, tutorialApproved, tutorialRejected])
   @@index([submittedAt])
+  @@index([createdAt])
+}
+
+model SubmissionExport {
+  id           Int       @id @default(autoincrement())
+  submissionId Int
+  studentId    Int
+  assignmentId Int
+  format       String    // pdf | png | jpeg | svg | json | txt | combined
+  section      String?   // usecase | description | ssd | class-diagram | sequence-diagram | null for combined
+  durationMs   Int       @default(0)
+  fileUrl      String?
+  fileName     String?
+  fileSize     Int?
+  createdAt    DateTime  @default(now())
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([studentId])
+  @@index([assignmentId])
   @@index([createdAt])
 }
 

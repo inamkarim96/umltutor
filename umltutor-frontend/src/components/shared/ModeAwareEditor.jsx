@@ -31,6 +31,7 @@ import {
 } from '../../features/tutorial/tutorialWorkflow';
 import { selectIsAuthenticated } from '../../features/auth';
 import { useManualSave } from '../../hooks/useManualSave';
+import { submissionService } from '../../services/submissionService';
 import { UseCaseDiagramEditor } from '../../features/diagram';
 import { UseCaseDescriptionEditor } from '../../features/description';
 import { SSDDiagramEditor } from '../../features/ssd';
@@ -123,6 +124,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true); // Open by default if it's an assignment
   const [exportModal, setExportModal] = useState({ isOpen: false, format: null });
   const [isExporting, setIsExporting] = useState(false);
+  const [isCombinedExporting, setIsCombinedExporting] = useState(false);
   const [previewFile, setPreviewFile] = useState(null); // { url, name, type }
   const [lastSaved, setLastSaved] = useState(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -622,12 +624,15 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   }
 
   const renderContent = () => {
+    const wrap = (sectionId, node) => (
+      <div data-editor-section={sectionId} className="h-full flex flex-col min-w-0">{node}</div>
+    );
     switch (activeSection) {
       case 'usecase':
         if (!isCheckingActive) {
-          return <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />;
+          return wrap('usecase', <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />);
         }
-        return (
+        return wrap('usecase',
           <div className="flex h-full">
             <div className="flex-1 min-w-0 h-full overflow-hidden">
               <UseCaseDiagramEditor key={effectivelyReadOnly ? 'read-only' : 'editable'} assignmentId={model.id} initialData={model.diagram} isReadOnly={effectivelyReadOnly} />
@@ -642,26 +647,30 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           </div>
         );
       case 'description':
-        return <UseCaseDescriptionEditor
-          key={effectivelyReadOnly ? 'read-only' : 'editable'}
-          assignmentId={model.id}
-          isReadOnly={effectivelyReadOnly}
-          isCheckingActive={isCheckingActive}
-          reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
-        />;
+        return wrap('description',
+          <UseCaseDescriptionEditor
+            key={effectivelyReadOnly ? 'read-only' : 'editable'}
+            assignmentId={model.id}
+            isReadOnly={effectivelyReadOnly}
+            isCheckingActive={isCheckingActive}
+            reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+          />
+        );
       case 'ssd':
-        return <SSDDiagramEditor
-          key={effectivelyReadOnly ? 'read-only' : 'editable'}
-          assignmentId={model.id}
-          isReadOnly={effectivelyReadOnly}
-          isCheckingActive={isCheckingActive}
-          reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
-          onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
-          modelOverride={model}
-        />;
+        return wrap('ssd',
+          <SSDDiagramEditor
+            key={effectivelyReadOnly ? 'read-only' : 'editable'}
+            assignmentId={model.id}
+            isReadOnly={effectivelyReadOnly}
+            isCheckingActive={isCheckingActive}
+            reportOverride={isGraded || currentSubmission?.tutorialApproved || isSubmitted ? currentSubmission?.fullReport : null}
+            onRunChecker={!effectivelyReadOnly && !isStudent && currentMode === 'development' ? ((args) => dispatch(runSubmissionCheckLogic(model.id, args))) : undefined}
+            modelOverride={model}
+          />
+        );
       case 'class-diagram':
         if (!isCheckingActive) {
-          return (
+          return wrap('class-diagram',
             <ClassDiagramEditor
               key={effectivelyReadOnly ? 'read-only' : 'editable'}
               assignmentId={model.id}
@@ -671,7 +680,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
             />
           );
         }
-        return (
+        return wrap('class-diagram',
           <div className="flex h-full gap-0">
             <div className="flex-1 min-w-0 h-full overflow-hidden">
               <ClassDiagramEditor
@@ -693,7 +702,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           </div>
         );
       case 'sequence-diagram':
-        return (
+        return wrap('sequence-diagram',
           <SequenceDiagramEditor
             key={effectivelyReadOnly ? 'read-only' : 'editable'}
             assignmentId={model.id}
@@ -789,12 +798,12 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                   <button
                     onClick={async () => {
                       setIsExporting(true);
-                      await new Promise(resolve => setTimeout(resolve, 300));
+                      setIsCombinedExporting(true);
                       try {
                         const studentName = model?.studentName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '') || (user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '') || user?.name || user?.fullName || currentSubmission?.studentName || '';
                         const teacherName = model?.teacherName || assignmentDetails?.teacher_name || assignmentDetails?.teacherName || assignmentDetails?.teacher?.name || assignmentDetails?.createdBy?.name || '';
                         const className = model?.className || assignmentDetails?.class_name || assignmentDetails?.className || assignmentDetails?.class?.name || assignmentDetails?.course || '';
-                        await exportToFile('combined', currentSubmission?.fullReport || checkingState.results, {
+                        const result = await exportToFile('combined', currentSubmission?.fullReport || checkingState.results, {
                           studentName: studentName.trim() || user?.username || user?.email || '',
                           teacherName: teacherName.trim(),
                           className: className.trim(),
@@ -803,10 +812,20 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                           reviewerName: currentSubmission?.reviewedBy?.name || currentSubmission?.reviewedBy?.username || ''
                         });
                         successToast('Full model exported successfully!');
+                        try {
+                            await submissionService.recordExport(model.id, {
+                              format: 'pdf',
+                              section: 'all',
+                              durationMs: result?.durationMs,
+                            }, result?.blob || null);
+                        } catch (recordErr) {
+                            console.warn('[Export] Could not record export:', recordErr?.message);
+                        }
                       } catch (err) {
                         errorToast('Export failed: ' + err.message);
                       } finally {
                         setIsExporting(false);
+                        setIsCombinedExporting(false);
                         setShowExportDropdown(false);
                       }
                     }}
@@ -1222,13 +1241,22 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           try {
             if (activeSection !== stepId) {
               setActiveSection(stepId);
-              await new Promise(resolve => setTimeout(resolve, 600));
             }
 
             const { exportStepWithReport } = await import('../../utils/exportUtils');
-            await exportStepWithReport(stepId, format, model, currentSubmission?.fullReport || (activeSection === stepId ? checkingState.results : null), finalItemId);
+            const result = await exportStepWithReport(stepId, format, model, currentSubmission?.fullReport || (activeSection === stepId ? checkingState.results : null), finalItemId);
 
             successToast(`Step exported successfully as ${format.toUpperCase()}.`);
+
+            try {
+                await submissionService.recordExport(model.id, {
+                  format: result?.format || format,
+                  section: stepId,
+                  durationMs: result?.durationMs,
+                }, result?.blob || null);
+            } catch (recordErr) {
+                console.warn('[Export] Could not record export:', recordErr?.message);
+            }
           } catch (error) {
             console.error('Single step export failed:', error);
             errorToast('Export failed: ' + error.message);
@@ -1273,19 +1301,20 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
       )}
 
       {isExporting && (
-        <>
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/60 backdrop-blur-md">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-sm font-black text-indigo-600 uppercase tracking-widest">Preparing High-Quality Export...</p>
-              <p className="text-xs text-gray-500 mt-1">Including your work and checking report</p>
-              <p className="text-[10px] text-gray-400 mt-4 italic">Sequential rendering in progress (Diagrams → Descriptions → SSDs → Class Diagram)</p>
-            </div>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/60 backdrop-blur-md">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-sm font-black text-indigo-600 uppercase tracking-widest">Preparing High-Quality Export...</p>
+            <p className="text-xs text-gray-500 mt-1">Including your work and checking report</p>
+            <p className="text-[10px] text-gray-400 mt-4 italic">Rendering all 5 steps (Use Case → Descriptions → SSDs → Class Diagram → Sequence Diagrams)</p>
           </div>
+        </div>
+      )}
+      {isCombinedExporting && (
           <div
             id="full-model-export-renderer"
-            className="fixed opacity-0 pointer-events-none"
-            style={{ width: '1300px', height: 'auto', left: '-20000px', top: 0, overflow: 'visible' }}
+            className="fixed pointer-events-none"
+            style={{ width: '1400px', height: 'auto', left: 0, top: 0, zIndex: -100, opacity: 0.01, overflow: 'visible' }}
           >
             <div className="w-full flex flex-col gap-20 p-20 bg-white">
               {/* Step 1: Use Case Diagram & Report */}
@@ -1393,12 +1422,18 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                         useCaseId={id}
                       />
                     </div>
+                    <div className="w-full">
+                      <CheckingModePanel
+                        activeSection="sequence-diagram"
+                        reportOverride={currentSubmission?.fullReport}
+                        modelOverride={model}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </>
       )}
     </div>
   );

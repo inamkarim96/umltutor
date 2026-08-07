@@ -20,7 +20,7 @@ export function useSequenceAutosave({
 
     useEffect(() => {
         autosaveRef.current.schedule({ activeUseCaseId, nodes, edges, mode, isReadOnly });
-    }, [activeUseCaseId, nodes, edges, mode, isReadOnly]);
+    }, [activeUseCaseId, nodes, edges, mode]);
 
     useEffect(() => {
         const autosave = autosaveRef.current;

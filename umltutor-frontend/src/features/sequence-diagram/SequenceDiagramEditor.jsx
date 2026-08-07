@@ -8,6 +8,7 @@ import ReactFlow, {
     applyNodeChanges,
     applyEdgeChanges,
     addEdge,
+    ConnectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -48,8 +49,10 @@ const SequenceDiagramEditorInner = ({
 
     const [nodes, setNodes] = useNodesState([]);
     const [edges, setEdges] = useEdgesState([]);
-    const [activeMessageType, setActiveMessageType] = useState('sync');
+    const [activeMessageType, setActiveMessageType] = useState(null);
     const [selectedElement, setSelectedElement] = useState(null);
+    const [editingNodeId, setEditingNodeId] = useState(null);
+    const [editingEdgeId, setEditingEdgeId] = useState(null);
     const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
     const flowInstanceRef = useRef(null);
@@ -72,7 +75,7 @@ const SequenceDiagramEditorInner = ({
         setNodes(sequenceData.nodes || []);
         setEdges(sequenceData.edges || []);
         lastLoadedRef.current = dataString;
-    }, [activeUseCaseId, model?.sequenceDiagrams, setNodes, setEdges]);
+    }, [activeUseCaseId, model?.sequenceDiagrams]);
 
     useSequenceAutosave({
         activeUseCaseId,
@@ -94,17 +97,122 @@ const SequenceDiagramEditorInner = ({
         [setEdges]
     );
 
+    // ── Toolbar & Drag message helpers ──────────────────────────────────────────
+    const getDefaultLabel = (type) => {
+        if (type === 'call') return 'call()';
+        if (type === 'return') return 'return()';
+        if (type === 'self') return 'self()';
+        return 'message()';
+    };
+
+    const getNextY = useCallback(() => {
+        const last = edges.reduce((acc, e) => Math.max(acc, e.data?.y || 0), 0);
+        return last ? last + 40 : 160;
+    }, [edges]);
+
     const onConnect = useCallback(
         (params) => {
+            const isSelf = params.source === params.target;
+            const msgType = isSelf ? 'self' : (activeMessageType || 'call');
+            const y = getNextY();
             const newEdge = {
                 ...params,
                 id: crypto.randomUUID(),
                 type: 'message',
-                data: { type: activeMessageType, label: 'message()' },
+                data: {
+                    type: msgType,
+                    label: getDefaultLabel(msgType),
+                    y,
+                    order: edges.length,
+                },
             };
             setEdges((eds) => addEdge(newEdge, eds));
         },
-        [setEdges, activeMessageType]
+        [setEdges, activeMessageType, getNextY, edges.length]
+    );
+
+    const addMessage = useCallback(
+        (source, target, type) => {
+            const y = getNextY();
+            setEdges((eds) => [
+                ...eds,
+                {
+                    id: crypto.randomUUID(),
+                    source,
+                    target,
+                    type: 'message',
+                    data: {
+                        type,
+                        label: getDefaultLabel(type),
+                        y,
+                        order: eds.length,
+                    },
+                },
+            ]);
+        },
+        [getNextY, setEdges]
+    );
+
+    const createMessageBetweenRecent = useCallback(
+        (type) => {
+            if (isReadOnly) return;
+
+            const lifelines = nodes.filter((n) => n.type === 'lifeline' || n.type === 'actor');
+            if (lifelines.length === 0) return;
+
+            // Sort lifelines left-to-right horizontally by X position
+            const sortedLifelines = [...lifelines].sort((a, b) => (a.position?.x || 0) - (b.position?.x || 0));
+
+            let sourceNode = null;
+            let targetNode = null;
+
+            const selectedId = selectedElement?.type === 'node' ? selectedElement.id : null;
+            const selectedIndex = selectedId ? sortedLifelines.findIndex((n) => n.id === selectedId) : -1;
+
+            if (type === 'self') {
+                const target = selectedIndex !== -1 ? sortedLifelines[selectedIndex] : sortedLifelines[sortedLifelines.length - 1];
+                sourceNode = target;
+                targetNode = target;
+            } else {
+                if (sortedLifelines.length < 2) return;
+
+                if (selectedIndex !== -1) {
+                    if (type === 'call') {
+                        if (selectedIndex < sortedLifelines.length - 1) {
+                            sourceNode = sortedLifelines[selectedIndex];
+                            targetNode = sortedLifelines[selectedIndex + 1];
+                        } else {
+                            sourceNode = sortedLifelines[selectedIndex - 1];
+                            targetNode = sortedLifelines[selectedIndex];
+                        }
+                    } else if (type === 'return') {
+                        if (selectedIndex < sortedLifelines.length - 1) {
+                            sourceNode = sortedLifelines[selectedIndex + 1];
+                            targetNode = sortedLifelines[selectedIndex];
+                        } else {
+                            sourceNode = sortedLifelines[selectedIndex];
+                            targetNode = sortedLifelines[selectedIndex - 1];
+                        }
+                    }
+                } else {
+                    const source = sortedLifelines[0];
+                    const target = sortedLifelines[1];
+                    if (type === 'return') {
+                        sourceNode = target;
+                        targetNode = source;
+                    } else {
+                        sourceNode = source;
+                        targetNode = target;
+                    }
+                }
+            }
+
+            if (sourceNode && targetNode) {
+                addMessage(sourceNode.id, targetNode.id, type);
+            }
+            setActiveMessageType(type);
+        },
+        [isReadOnly, addMessage, nodes, selectedElement]
     );
 
     const onAddLifeline = useCallback(() => {
@@ -116,7 +224,7 @@ const SequenceDiagramEditorInner = ({
             data: { label: 'Instance:ClassName', isReadOnly },
         };
         setNodes((nds) => [...nds, newNode]);
-    }, [nodes.length, setNodes, isReadOnly]);
+    }, [nodes.length, setNodes]);
 
     const onAddActor = useCallback(() => {
         const id = crypto.randomUUID();
@@ -127,7 +235,7 @@ const SequenceDiagramEditorInner = ({
             data: { label: 'ActorName', isReadOnly, isActor: true },
         };
         setNodes((nds) => [...nds, newNode]);
-    }, [nodes.length, setNodes, isReadOnly]);
+    }, [nodes.length, setNodes]);
 
     const onAddSystem = useCallback(() => {
         const id = crypto.randomUUID();
@@ -138,7 +246,97 @@ const SequenceDiagramEditorInner = ({
             data: { label: 'System', isReadOnly, isSystem: true },
         };
         setNodes((nds) => [...nds, newNode]);
-    }, [nodes.length, setNodes, isReadOnly]);
+    }, [nodes.length, setNodes]);
+
+    const onNodeDoubleClick = useCallback(
+        (event, node) => {
+            if (isReadOnly) return;
+            setSelectedElement({ id: node.id, type: 'node' });
+            setEditingNodeId(node.id);
+        },
+        [isReadOnly]
+    );
+
+    const handleEditCommit = useCallback(
+        (nodeId, newLabel) => {
+            setNodes((nds) =>
+                nds.map((n) =>
+                    n.id === nodeId ? { ...n, data: { ...n.data, label: newLabel } } : n
+                )
+            );
+        },
+        [setNodes]
+    );
+
+    const endEditing = useCallback(() => setEditingNodeId(null), []);
+
+    const visibleNodes = useMemo(
+        () => {
+            if (!editingNodeId) return nodes;
+            
+            return nodes.map((n) =>
+                n.id === editingNodeId
+                    ? {
+                          ...n,
+                          data: {
+                              ...n.data,
+                              editing: true,
+                              editValue: n.data.label,
+                              onCommit: handleEditCommit,
+                              onDone: endEditing,
+                          },
+                      }
+                    : n
+            );
+        },
+        [nodes, editingNodeId, handleEditCommit, endEditing]
+    );
+
+    const onEdgeDoubleClick = useCallback(
+        (event, edge) => {
+            if (isReadOnly) return;
+            setSelectedElement({ id: edge.id, type: 'edge' });
+            setEditingEdgeId(edge.id);
+        },
+        [isReadOnly]
+    );
+
+    const handleEdgeEditCommit = useCallback(
+        (edgeId, newLabel) => {
+            setEdges((eds) =>
+                eds.map((e) =>
+                    e.id === edgeId
+                        ? { ...e, data: { ...e.data, label: newLabel } }
+                        : e
+                )
+            );
+        },
+        [setEdges]
+    );
+
+    const endEdgeEditing = useCallback(() => setEditingEdgeId(null), []);
+
+    const visibleEdges = useMemo(
+        () => {
+            if (!editingEdgeId) return edges;
+            
+            return edges.map((e) =>
+                e.id === editingEdgeId
+                    ? {
+                          ...e,
+                          data: {
+                              ...e.data,
+                              editing: true,
+                              editValue: e.data.label,
+                              onCommit: handleEdgeEditCommit,
+                              onDone: endEdgeEditing,
+                          },
+                      }
+                    : e
+            );
+        },
+        [edges, editingEdgeId, handleEdgeEditCommit, endEdgeEditing]
+    );
 
     const onDelete = useCallback(() => {
         if (!selectedElement) return;
@@ -165,17 +363,22 @@ const SequenceDiagramEditorInner = ({
                         onClear={() => setIsClearConfirmOpen(true)}
                         hasSelection={!!selectedElement}
                         activeMessageType={activeMessageType}
-                        onMessageTypeChange={setActiveMessageType}
+                        onMessageTypeChange={createMessageBetweenRecent}
+                        lifelineCount={nodes.filter((n) => n.type === 'lifeline' || n.type === 'actor').length}
                         isReadOnly={isReadOnly}
                     />
                 )}
                 <div data-testid="sequence-canvas" data-usecase-id={activeUseCaseId} className="w-full h-full">
                     <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
+                        nodes={visibleNodes}
+                        edges={visibleEdges}
                         onNodesChange={isReadOnly ? undefined : onNodesChange}
                         onEdgesChange={isReadOnly ? undefined : onEdgesChange}
                         onConnect={isReadOnly ? undefined : onConnect}
+                        isValidConnection={() => true}
+                        connectionMode={ConnectionMode.Loose}
+                        onNodeDoubleClick={isReadOnly ? undefined : onNodeDoubleClick}
+                        onEdgeDoubleClick={isReadOnly ? undefined : onEdgeDoubleClick}
                         onInit={(instance) => { flowInstanceRef.current = instance; }}
                         nodeTypes={nodeTypes}
                         edgeTypes={edgeTypes}

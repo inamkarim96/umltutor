@@ -91,6 +91,10 @@ const validateSSDSemantics = (semanticData) => {
         if (sender.type !== 'actor' || !isSystemReceiver) {
           structuredErrors.push({ code: 'SSD_MESSAGE_DIRECTION', message: `Message ${messageIndex}: Synchronous messages in SSD should go from Actor to System`, type: 'ssd', severity: 'error', relatedId: message.id });
         }
+      } else if (message.type === 'asynchronous' && !message.isReturn) {
+        if (sender.type !== 'actor' || !isSystemReceiver) {
+          structuredErrors.push({ code: 'SSD_ASYNC_MESSAGE_DIRECTION', message: `Message ${messageIndex}: Asynchronous messages in SSD should go from Actor to System`, type: 'ssd', severity: 'error', relatedId: message.id });
+        }
       } else if (message.type === 'return' || message.isReturn) {
         if (!isSystemSender || receiver.type !== 'actor') {
           structuredErrors.push({ code: 'SSD_RETURN_DIRECTION', message: `Message ${messageIndex}: Return messages in SSD should go from System to Actor`, type: 'ssd', severity: 'error', relatedId: message.id });

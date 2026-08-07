@@ -6,27 +6,37 @@ This document describes the validation flow architecture in the UML Tutor Backen
 ## Core Validation Architecture
 
 ### 1. Rule Registry (src/rules/ruleRegistry.js)
-The rule registry is the central repository of all validation rules. It contains **112 validation rules** organized by category:
+The rule registry is the central repository of all validation rules. It contains **124 validation rules** (117 active, 7 deprecated/disabled) organized by category:
 
 #### Rule Categories
-1. **Grammar Rules** (15 rules)
+1. **Naming Rules** (13 rules)
    - Use case naming validation
    - Actor naming validation
-   - Verb usage validation
+   - Duplicate element detection
 
 2. **Structural Rules** (25 rules)
    - Diagram connectivity validation
-   - Relationship multiplicity validation
+   - Relationship typing and multiplicity validation
    - Actor-connection validation
 
-3. **Consistency Rules** (35 rules)
+3. **Consistency Rules** (30 rules)
    - SSD consistency validation
    - Main flow alignment
    - Return message validation
+   - Cross-diagram actor-name consistency
 
-4. **Content Rules** (37 rules)
+4. **Completeness Rules** (20 rules)
    - Precondition validation
    - Postcondition validation
+   - Description completeness
+
+5. **UML Standard Rules** (21 rules)
+   - Sequence activation-bar validation
+   - Combined-fragment (alt/loop/opt/par) validation
+   - Use case include/extend/generalization validation
+
+6. **Best Practice Rules** (4 rules) and **NLP/Description Rules** (4 rules)
+   - Responsibility warnings
    - Description grammar validation
 
 ### 2. Rule Pipeline (src/rules/rulePipeline.js)
@@ -384,8 +394,8 @@ npm run test:backend -- --testPathPattern=suggestionEngine
 ```javascript
 // In src/rules/__tests__/ruleRegistry.test.js
 describe('Rule Registry', () => {
-  test('should have 112 rules defined', () => {
-    expect(ruleRegistry).toHaveLength(112);
+  test('should have 124 rules defined', () => {
+    expect(ruleRegistry).toHaveLength(124);
   });
   
   test('should have valid rule structure', () => {

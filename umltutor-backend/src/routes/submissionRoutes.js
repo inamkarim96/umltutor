@@ -3,6 +3,7 @@ var _routeMiddleware = require('../middleware/routeMiddleware');
 var _submissionController = require('../controllers/submissionController');
 var _validationMiddleware = require('../middleware/validationMiddleware');
 var _validators = require('../utils/validators');
+var _fileUpload = require('../utils/fileUpload');
 
 const router = _express.Router.call(void 0, );
 
@@ -59,6 +60,18 @@ router.get(
   _submissionController.getStudentAnalytics
 );
 
+/**
+ * @route   GET /api/submissions/student/exports
+ * @desc    Get the current student's export history
+ * @access  STUDENT
+ */
+router.get(
+  '/student/exports',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('STUDENT'),
+  _submissionController.getStudentExports
+);
+
 // ─── Assignment-scoped Student Routes (/api/submissions/:assignmentId/...) ──
 
 /**
@@ -108,6 +121,31 @@ router.get(
   _routeMiddleware.authenticate,
   _routeMiddleware.authorize('TEACHER'),
   _submissionController.getAssignmentSubmissions
+);
+
+/**
+ * @route   POST /api/submissions/:assignmentId/exports
+ * @desc    Record an export (with optional uploaded file) for the student's submission
+ * @access  STUDENT
+ */
+router.post(
+  '/:assignmentId/exports',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('STUDENT'),
+  _fileUpload.uploadSubmissionFile.single('file'),
+  _submissionController.recordExport
+);
+
+/**
+ * @route   GET /api/submissions/:assignmentId/exports
+ * @desc    List exports for an assignment (teacher: all students; student: own)
+ * @access  TEACHER, STUDENT
+ */
+router.get(
+  '/:assignmentId/exports',
+  _routeMiddleware.authenticate,
+  _routeMiddleware.authorize('TEACHER', 'STUDENT'),
+  _submissionController.getAssignmentExports
 );
 
 /**

@@ -64,3 +64,4 @@ prisma/migrations/
 test-results/
 playwright-report/
 umltutor-backend/src/tests/
+umltutor-frontend/sd-browser-test/
