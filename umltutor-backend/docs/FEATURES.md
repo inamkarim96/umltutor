@@ -4,6 +4,21 @@ This document describes the modules that make up the back end and what each one
 does. It is written in plain English and reflects the code as it is today. If
 something is not described here, it does not run.
 
+Where things live:
+
+```
+src/
+├── controllers/   # handle incoming requests
+├── routes/        # define the web endpoints
+├── services/      # business logic (validation, submissions, grading)
+├── repositories/  # database access
+├── rules/         # validation rules and pipeline
+├── nlp/           # offline text analysis
+├── middleware/    # auth, rate limiting, request checks, errors
+├── utils/         # shared helpers (cache, uploads, logging)
+└── tests/         # Jest unit tests
+```
+
 ## 1. The Rule System (`src/rules/`)
 
 The back end uses a catalogue of rules to check student work. A rule is a small,
@@ -28,7 +43,7 @@ There is also a group of rules that checks whether the different diagrams agree
 with each other (for example, whether a message in the SSD matches a method in
 the class diagram).
 
-Related files:
+Related files in `src/rules/`:
 
 - `ruleRegistry.js` — the full catalogue of rule definitions and helpers for
   looking rules up by code, diagram type, or category.
@@ -112,19 +127,25 @@ advice for diagram elements — for example, a sensible name for an operation or
 the right class to place a method on. It is used alongside the assignment-aware
 suggestions described above.
 
-## 6. The Submission Workflow (`src/services/submissionService.js`)
+## 6. The Submission and Assignment Workflow (`src/services/submissionService.js`)
 
 This module manages the whole student–teacher cycle for a submission:
 
 - saving and submitting the five artifacts;
 - calculating how complete the work is;
-- running the authoritative check and reporting its status;
+- running the authoritative check and producing the stored report;
 - teacher grading, remarks and feedback;
 - exporting submissions and issuing receipts;
 - per-student and per-teacher analytics.
 
 It relies on `utils/submissionQueryUtils.js` for reading submissions in a way
 that stays correct across different database schema versions.
+
+Together with `assignmentService.js` it covers the full assignment journey:
+assignment creation, student saves and submits, the run-check that generates
+the report, grading, tutorial-mode requests, exports and analytics. The whole
+flow — who does what at each stage, with file references as proof — is
+documented in [ASSIGNMENT_LIFECYCLE.md](ASSIGNMENT_LIFECYCLE.md).
 
 ## 7. Communication and Data Handling
 

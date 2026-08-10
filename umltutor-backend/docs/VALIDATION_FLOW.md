@@ -23,15 +23,14 @@ The back-end report is always the source of truth.
 
 The engine runs its checks in six phases, one after another:
 
-1. **Use case diagram** — the boundary, names, connectivity, relationships and
-   duplicates, plus the case-study consistency group.
-2. **Use case description** — whether the description is complete and its flows
-   are written correctly.
-3. **System sequence diagram (SSD)** — the diagram structure and whether it
-   aligns with the description.
-4. **Class diagram** — classes, methods, relationships and multiplicities.
-5. **Sequence diagram** — lifelines, operations, activations and fragments.
-6. **Consistency** — whether all five artifacts agree with each other.
+```
+ 1  use case diagram      boundary, names, connectivity, relationships, duplicates
+ 2  use case description  completeness and flow correctness
+ 3  SSD                   structure and alignment with the description
+ 4  class diagram         classes, methods, relationships, multiplicities
+ 5  sequence diagram      lifelines, operations, activations, fragments
+ 6  consistency           all five artifacts agree with each other
+```
 
 A serious error in an early phase stops the remaining checks for that phase, so
 the student is not overwhelmed with errors caused by the original mistake.
@@ -100,16 +99,17 @@ run.
 
 Here is the full journey of a run-check request:
 
-1. The student clicks the "Run Checker" button.
-2. The back end loads the student's saved artifacts.
-3. It reads and parses the assignment's requirement text.
-4. The validation engine checks the whole model in the six phases.
-5. The case-study consistency check compares the use case diagram to the
-   parsed requirement text and builds its report.
-6. The pipeline enriches the findings with root causes and removes cascading
-   noise.
-7. The suggestion engines write plain-language advice.
-8. The finished report is saved and returned to the front end, which renders it.
+```
+run-check
+  │
+  ├─ 1  load the student's saved artifacts
+  ├─ 2  read and parse the assignment's requirement text
+  ├─ 3  run the six validation phases
+  ├─ 4  case-study check: compare use case diagram with the text
+  ├─ 5  trace root causes and remove cascading noise
+  ├─ 6  write plain-language suggestions
+  └─ 7  save the report and return it to the front end
+```
 
 ## 7. Front-End Rendering
 

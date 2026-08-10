@@ -15,15 +15,33 @@ with the back end through a single API client. Firebase handles user login.
 
 ## Quick Start
 
-- **Install** — `npm install`, then create a `.env` file with the back-end
-  address and the Firebase key.
-- **Develop** — run the webpack development server.
-- **Build** — create a production bundle.
-- **Lint** — run ESLint to check code style.
+```bash
+npm install          # install dependencies
+npm run dev          # webpack dev server
+npm run build        # production bundle
+npm run lint         # ESLint code style check
+```
+
+Create a `.env` file with the back-end address and the Firebase key before
+running the app.
 
 ## What Each Area of the Code Does
 
-The code is organised into areas with clear responsibilities:
+```
+src/
+├── app/               # Redux store, one slice per concern
+├── components/        # reusable UI, workspace shell, layout
+├── contexts/          # app-wide providers
+├── features/          # one module per capability (editors, checking, ...)
+├── hooks/             # reusable logic, model loading
+├── nlp/               # fallback text helpers (mirror of the back end)
+├── pages/             # top-level student and teacher screens
+├── services/          # API client and back-end communication
+├── utils/             # exports, stale-data guards, helpers
+└── styles/            # global styling
+```
+
+Each area has a clear job:
 
 - **entry and app** — mounts the application, wires up the router, the global
   state store and the shared providers.
@@ -81,6 +99,14 @@ Separate areas serve the two roles. Teachers create assignments, manage
 classes, review submissions, and handle tutorial requests. Students see their
 classes and assignments, work on them in the workspace, submit them, and view
 their reports.
+
+The complete user journey — teacher creates a class and an assignment, the
+student draws and submits, the teacher runs the automated check, grades, and
+the student reads the report — is described with file references in the back
+end's lifecycle document:
+[`umltutor-backend/docs/ASSIGNMENT_LIFECYCLE.md`](../umltutor-backend/docs/ASSIGNMENT_LIFECYCLE.md).
+It lists the front-end pages used at each stage alongside their back-end
+endpoints.
 
 ## Routing
 

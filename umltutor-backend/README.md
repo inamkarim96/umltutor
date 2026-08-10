@@ -14,12 +14,16 @@ JavaScript.
 
 ## Quick Start
 
-- **Install** — `npm install`, then generate the database client and create a
-  `.env` file from the example with your database and security keys.
-- **Database** — sync the Prisma schema to your database and start the server
-  in development mode.
-- **Tests** — run the Jest suites with `npx jest`. The tests are pure unit
-  tests and do not need a database.
+```bash
+npm install                 # install dependencies
+npm run prisma:generate     # generate the Prisma client
+cp .env.example .env        # add database + security keys
+npm run prisma:push         # sync the schema to the database
+npm run dev                 # start the server in development mode
+```
+
+Run the test suites with `npx jest` — they are pure unit tests and do not need a
+database.
 
 Optional integrations the app can use when configured:
 
@@ -31,7 +35,23 @@ Optional integrations the app can use when configured:
 
 ## What Each Area of the Code Does
 
-The code is organised into separate areas, each with a clear job:
+```
+src/
+├── app.js              # web app setup, middleware, routes, docs
+├── config/             # database client, Firebase, paths
+├── controllers/        # handle incoming requests -> services
+├── routes/             # define the web endpoints
+├── services/           # business logic (the real work)
+├── repositories/       # database access
+├── rules/              # validation rules and pipeline
+├── nlp/                # offline text analysis
+├── middleware/         # auth, rate limiting, request checks, errors
+├── utils/              # shared helpers (cache, uploads, logging)
+├── fixtures/           # test-only example shapes
+└── tests/              # Jest unit tests
+```
+
+Each area has a clear job:
 
 - **app and entry files** — set up the web application, its middleware, routes
   and documentation.
@@ -92,14 +112,28 @@ diagram, and per-use-case descriptions, system sequence diagrams and sequence
 diagrams). Each assignment may carry a free-text requirement that the
 case-study check uses.
 
+## The Assignment Lifecycle
+
+The full journey — teacher creates an assignment, students draw and submit,
+the teacher runs the automated check, grades, and the student reads the report
+— is documented step by step in
+[`docs/ASSIGNMENT_LIFECYCLE.md`](docs/ASSIGNMENT_LIFECYCLE.md). It names the
+endpoints, services and front-end pages behind each stage and shows which role
+performs each task.
+
 ## Web Endpoints
 
 The back end exposes endpoints for every part of the workflow:
 
-- the authoritative grading check, plus a direct "check this model" endpoint;
-- authentication, classes, assignments, submissions, notifications, students
-  and resources;
-- Swagger documentation of the whole interface.
+- the authoritative grading check (`POST /api/submissions/:id/run-check`),
+  plus a direct "check this model" endpoint (`POST /api/checking/check`);
+- authentication and classes (create classes, join with a class code, manage
+  students, announcements, resources, class analytics);
+- assignments (teacher create/edit/delete, student list and open);
+- submissions: save, submit, status, detail, run-check, remarks, grading and
+  feedback, tutorial-mode requests, exports, receipts and analytics;
+- notifications for both roles;
+- Swagger documentation of the whole interface at `/api-docs`.
 
 ## Testing
 

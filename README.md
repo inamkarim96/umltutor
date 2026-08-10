@@ -13,6 +13,16 @@ The project has two parts that work together:
 - a **front end** that students and teachers use to draw the diagrams and read
   the reports.
 
+```
+umltutor/
+├── README.md                 # this file
+├── umltutor-backend/         # the API (validation authority)
+│   ├── src/                  # routes, services, rules, nlp, ...
+│   └── docs/                 # features, validation-flow and lifecycle docs
+└── umltutor-frontend/        # the React app (drawing + reports)
+    └── README.md             # frontend overview
+```
+
 ## The Two Parts
 
 ### Back end (`umltutor-backend/`)
@@ -78,7 +88,11 @@ Full setup instructions for each part are in their own README files.
 ## Documentation
 
 - Back end: `umltutor-backend/README.md`, plus the detail documents in
-  `umltutor-backend/docs/` (features and the validation flow).
+  `umltutor-backend/docs/`:
+  - `FEATURES.md` — what the back-end modules do;
+  - `VALIDATION_FLOW.md` — how a model is checked;
+  - `ASSIGNMENT_LIFECYCLE.md` — the full journey from assignment creation to
+    report and grade (teacher and student tasks).
 - Frontend: `umltutor-frontend/README.md`.
 
 ## License
