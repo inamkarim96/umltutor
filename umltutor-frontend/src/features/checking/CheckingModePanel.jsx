@@ -1221,6 +1221,217 @@ const CheckingModePanel = ({
                     </div>
                 )}
 
+                {activeSection === 'usecase' && report?.caseStudyReport && (
+                    <div className="pt-2 border-t border-slate-100 space-y-3">
+                        <h4 className="font-extrabold font-heading text-slate-800 uppercase tracking-wider">
+                            CASE-STUDY CONSISTENCY
+                        </h4>
+
+                        {(() => {
+                            const cs = report.caseStudyReport;
+                            const findings = cs.findings || [];
+                            const expected = cs.expected || {};
+                            const validation = cs.validation || {};
+                            const overall = cs.overall
+                                || (findings.some(f => f.severity === 'error') ? 'errors'
+                                    : (findings.some(f => f.severity === 'warning') ? 'warnings' : 'consistent'));
+
+                            const renderExpectedChip = (value, key) => (
+                                <span key={key} className="inline-block px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[11px] font-bold font-body mr-1 mb-1">
+                                    {value}
+                                </span>
+                            );
+
+                            const severityLine = (finding) => {
+                                const ctx = finding.context || {};
+                                const detail =
+                                    ctx.expectedActor || ctx.actor
+                                        ? ` expected: ${ctx.expectedActor || ctx.actor}`
+                                        : (ctx.expected ? ` expected: ${ctx.expected}` : '');
+                                const submitted =
+                                    ctx.submittedActor ? `, submitted: ${ctx.submittedActor}` :
+                                    (ctx.submittedSystem ? `, submitted: ${ctx.submittedSystem}` : '');
+                                const score =
+                                    typeof ctx.matchedScore === 'number' ? ` (match ${Math.round(ctx.matchedScore * 100)}%)` : '';
+                                return `${finding.message}${detail}${submitted}${score}`;
+                            };
+
+                            const statusGlyph = (status) => {
+                                if (status === 'found') return { glyph: '✓', cls: 'text-status-green' };
+                                if (status === 'typo' || status === 'mismatch' || status === 'lowConfidence' || status === 'invalid') return { glyph: '!', cls: 'text-amber-600' };
+                                return { glyph: '✗', cls: 'text-status-red' };
+                            };
+
+                            // Insufficient text: show WHY nothing is required, never fabricate requirements.
+                            if (validation.reliable === false) {
+                                const signals = validation.signals || {};
+                                const signalNames = {
+                                    hasMultipleSentences: 'a few descriptive sentences',
+                                    hasContentTokens: 'specific content words',
+                                    hasFunctionalVerb: 'an action (functional) verb',
+                                    hasActorAction: 'actors performing actions',
+                                    hasSemanticCompleteness: 'enough assignment coverage',
+                                };
+                                const present = Object.keys(signalNames).filter(k => signals[k]);
+                                const absent = Object.keys(signalNames).filter(k => !signals[k]);
+                                return (
+                                    <>
+                                        <div className="text-amber-600 font-bold font-body">
+                                            ! The assignment text is too short for a reliable consistency check
+                                        </div>
+                                        {validation.loginSupported === true && (
+                                            <div className="text-slate-600 text-xs">
+                                                Login-related wording was recognised, but a login alone is a precondition, not a complete case-study brief.
+                                            </div>
+                                        )}
+                                        {validation.reasoning && (
+                                            <div className="text-slate-600 text-xs">Why: {validation.reasoning}</div>
+                                        )}
+                                        {(present.length > 0 || absent.length > 0) && (
+                                            <div className="text-xs text-slate-500 space-y-0.5">
+                                                {present.length > 0 && (
+                                                    <div>Detected: {present.map(k => signalNames[k]).join(', ')}.</div>
+                                                )}
+                                                {absent.length > 0 && (
+                                                    <div>Missing: {absent.map(k => signalNames[k]).join(', ')}.</div>
+                                                )}
+                                            </div>
+                                        )}
+                                        <div className="text-xs text-slate-400">
+                                            No expected actors or use cases are asserted for an assignment this thin — provide two or more sentences describing the system’s capabilities first.
+                                        </div>
+                                    </>
+                                );
+                            }
+
+                            const banner = overall === 'consistent'
+                                ? { glyph: '✓', cls: 'text-status-green', msg: 'Diagram matches the assignment requirements' }
+                                : overall === 'warnings'
+                                    ? { glyph: '!', cls: 'text-amber-600', msg: 'Diagram is mostly consistent — review the warnings below' }
+                                    : { glyph: '✗', cls: 'text-status-red', msg: 'Diagram does not fully match the assignment requirements' };
+
+                            const sys = cs.systemName || {};
+                            const sysGlyph = statusGlyph(sys.status || 'missing');
+
+                            return (
+                                <>
+                                    <div className={`${banner.cls} font-bold font-body`}>{banner.glyph} {banner.msg}</div>
+
+                                    <div className="text-slate-600 text-xs">
+                                        <span className="font-bold text-slate-700">System boundary:</span>{' '}
+                                        {sysGlyph.glyph === '✓'
+                                            ? <span className={sysGlyph.cls}>{sys.submitted}</span>
+                                            : (
+                                                <>
+                                                    <span className={`${sysGlyph.cls} font-bold font-body`}>{sysGlyph.glyph} {sys.submitted || 'no name'}</span>
+                                                    {sys.status === 'missing' && sys.expected && (
+                                                        <span className="text-slate-400"> — try "{sys.expected}"</span>
+                                                    )}
+                                                    {sys.status === 'mismatch' && (
+                                                        <span className="text-slate-400"> — assignment suggests "{sys.expected}"{typeof sys.matchedScore === 'number' ? ` (match ${Math.round(sys.matchedScore * 100)}%)` : ''}</span>
+                                                    )}
+                                                </>
+                                            )}
+                                    </div>
+
+                                    <div className="text-slate-600 text-xs">
+                                        <span className="font-bold text-slate-700">Actors vs assignment:</span>{' '}
+                                        {(cs.actorStatus || []).length === 0 && <span className="text-slate-400">none derived</span>}
+                                    </div>
+                                    {(cs.actorStatus || []).map((a, i) => {
+                                        const g = statusGlyph(a.status);
+                                        return (
+                                            <div key={`as-${i}`} className={`${g.cls} text-xs font-body`}>
+{g.glyph} {a.actor}
+                                        {a.status === 'typo' && a.actor ? ` — use exact role "${a.actor}"` : ''}
+                                        {a.status === 'missing' && a.submitted ? ` — diagram has "${a.submitted}" (match ${Math.round(a.matchedScore * 100)}%)` : ''}
+                                        {a.status === 'found' && a.submitted ? ` (match ${Math.round(a.matchedScore * 100)}%)` : ''}
+                                            </div>
+                                        );
+                                    })}
+
+                                    <div className="text-slate-600 text-xs">
+                                        <span className="font-bold text-slate-700">Use cases vs assignment:</span>{' '}
+                                        {(cs.useCaseStatus || []).length === 0 && <span className="text-slate-400">none derived</span>}
+                                    </div>
+                                    {(cs.useCaseStatus || []).map((u, i) => {
+                                        const g = statusGlyph(u.status);
+                                        const conf = typeof u.confidence === 'number' ? Math.round(u.confidence * 100) : null;
+                                        return (
+                                            <div key={`us-${i}`} className={`${g.cls} text-xs font-body`}>
+                                                {g.glyph} {u.useCase}
+                                                {conf !== null ? ` (confidence ${conf}%)` : ''}
+                                                {u.status === 'missing' && u.submitted ? ` — found "${u.submitted}" (match ${Math.round(u.matchedScore * 100)}%)` : ''}
+                                                {u.status === 'found' && u.submitted ? ` — "${u.submitted}"` : ''}
+                                                {u.status === 'lowConfidence' ? ' — hint only, not required' : ''}
+                                                {u.status === 'invalid' ? ' — not an action phrase' : ''}
+                                                {u.status === 'optional' ? ' — login/precondition, not required' : ''}
+                                            </div>
+                                        );
+                                    })}
+
+                                    <div className="text-slate-600 text-xs">
+                                        <span className="font-bold text-slate-700">Expected actors:</span>{' '}
+                                        {(expected.actors || []).length
+                                            ? expected.actors.map((a, i) => renderExpectedChip(a, `ea-${i}`))
+                                            : <span className="text-slate-400">none parsed</span>}
+                                    </div>
+                                    <div className="text-slate-600 text-xs">
+                                        <span className="font-bold text-slate-700">Expected use cases:</span>{' '}
+                                        {(expected.useCases || []).length
+                                            ? expected.useCases.map((u, i) => renderExpectedChip(u.name, `eu-${i}`))
+                                            : <span className="text-slate-400">none parsed</span>}
+                                    </div>
+                                    <div className="text-slate-600 text-xs">
+                                        <span className="font-bold text-slate-700">Suggested system names:</span>{' '}
+                                        {(expected.systemCandidates || []).length
+                                            ? expected.systemCandidates.slice(0, 3).map((s, i) => renderExpectedChip(s, `es-${i}`))
+                                            : <span className="text-slate-400">none</span>}
+                                    </div>
+
+                                    {findings.filter(f => f.severity === 'error').length > 0 && (
+                                        <div className="space-y-1">
+                                            <div className="text-status-red font-bold font-body">Errors:</div>
+                                            {findings.filter(f => f.severity === 'error').map((f, idx) => (
+                                                <div key={`ce-${idx}`} className="text-status-red font-body mb-1">
+                                                    ✗ {severityLine(f)}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {findings.filter(f => f.severity === 'warning').length > 0 && (
+                                        <div className="space-y-1">
+                                            <div className="text-amber-600 font-bold font-body">Warnings:</div>
+                                            {findings.filter(f => f.severity === 'warning').map((f, idx) => (
+                                                <div key={`cw-${idx}`} className="text-amber-600 font-body mb-1">
+                                                    ! {severityLine(f)}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {findings.filter(f => f.severity === 'info').length > 0 && (
+                                        <div className="space-y-1">
+                                            {findings.filter(f => f.severity === 'info').map((f, idx) => (
+                                                <div key={`ci-${idx}`} className="text-slate-600 font-body mb-1">
+                                                    • {severityLine(f)}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {(cs.counts || {}).total > 0 && (
+                                        <div className="text-xs text-slate-400 font-bold font-body">
+                                            {cs.counts.total} case-study finding(s) — {cs.counts.error || 0} error(s), {cs.counts.warning || 0} warning(s), {cs.counts.info || 0} info
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>
+                )}
+
                 {activeSection === 'description' && (
                     <div className="space-y-1">
                         {(() => {

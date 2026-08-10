@@ -1,581 +1,168 @@
-# UML Tutor - Validation Flow Documentation
+# Validation Flow
 
-## Overview
-This document describes the validation flow architecture in the UML Tutor Backend API, including the rule registry, pipeline, and suggestion system.
+This document explains how a UML model is validated from the moment a student
+presses "check" until the report appears on screen. It is written in plain
+English.
 
-## Core Validation Architecture
+## 1. Where Validation Happens
 
-### 1. Rule Registry (src/rules/ruleRegistry.js)
-The rule registry is the central repository of all validation rules. It contains **124 validation rules** (117 active, 7 deprecated/disabled) organized by category:
+There are three entry points, in order of importance:
 
-#### Rule Categories
-1. **Naming Rules** (13 rules)
-   - Use case naming validation
-   - Actor naming validation
-   - Duplicate element detection
+1. **Authoritative backend check** — `POST /api/submissions/:id/run-check`.
+   Resolves the assignment's requirement text, runs the full engine, and
+   stores/serves the report. Grading is based on this.
+2. **Per-model check API** — `POST /api/checking/check`. Validates a model
+   sent directly in the request body (optionally with a requirement text).
+3. **Front-end fallback** — `CheckingModePanel.performDynamicValidation` and a
+   small `ConsistencyChecker`. This runs in the browser only when no backend
+   report is available; it is a fallback, never the source of truth.
 
-2. **Structural Rules** (25 rules)
-   - Diagram connectivity validation
-   - Relationship typing and multiplicity validation
-   - Actor-connection validation
+## 2. The Six Validation Phases
 
-3. **Consistency Rules** (30 rules)
-   - SSD consistency validation
-   - Main flow alignment
-   - Return message validation
-   - Cross-diagram actor-name consistency
+`rulePipeline.checkModelPhased` runs the engine in six phases, in order:
 
-4. **Completeness Rules** (20 rules)
-   - Precondition validation
-   - Postcondition validation
-   - Description completeness
+1. **diagram** — use case diagram structure: boundary, names, connectivity,
+   relationships, duplicates, and the dynamic case-study group.
+2. **description** — use case description completeness and flow correctness.
+3. **ssd** — system sequence diagram structure and description↔SSD alignment.
+4. **class-diagram** — class structure, methods, relationships, multiplicity.
+5. **sequence-diagram** — lifelines, operations, activations, fragments.
+6. **consistency** — cross-diagram mapping across all five artifacts.
 
-5. **UML Standard Rules** (21 rules)
-   - Sequence activation-bar validation
-   - Combined-fragment (alt/loop/opt/par) validation
-   - Use case include/extend/generalization validation
+A **critical error** in an early phase short-circuits the rest of that phase so
+the student is not flooded with irrelevant downstream errors.
 
-6. **Best Practice Rules** (4 rules) and **NLP/Description Rules** (4 rules)
-   - Responsibility warnings
-   - Description grammar validation
+## 3. Dependency-Aware Pipeline
 
-### 2. Rule Pipeline (src/rules/rulePipeline.js)
+`rulePipeline.checkModelWithPipeline` runs after the engine and does two jobs:
 
-#### Pipeline Architecture
-The rule pipeline executes validation rules in a **dependency-aware manner**, ensuring efficient and accurate error detection.
+### 3.1 Issue enrichment
+Dependencies in the registry express "if rule B exists, it only fires because
+rule A fired". The pipeline reads these chains and annotates findings so the
+front end can show the *root cause* instead of the symptoms.
 
-#### Pipeline Process
-1. **Initialization**: Load all rules from registry
-2. **Dependency Resolution**: Build execution graph
-3. **Rule Execution**: Execute rules in dependency order
-4. **Result Compilation**: Aggregate results
-5. **Suggestion Generation**: Create improvement suggestions
+### 3.2 Cascade suppression
+When several errors share one root cause, the pipeline collapses the redundant
+ones. Example outcome: instead of ten "missing connection" errors caused by a
+missing actor, the student sees the single real problem ("this actor does not
+exist"). This keeps reports short and focused.
 
-#### Key Features
+## 4. Suggestion Generation
 
-##### Dependency-Aware Processing
-- **Graph-based execution**: Rules are executed based on dependency relationships
-- **Suppression Logic**: Cascading errors are suppressed
-- **Error Prioritization**: Root causes are prioritized over downstream effects
+Suggestions come from two independent engines:
 
-##### Error Suppression
-```javascript
-// Example of error suppression in rulePipeline.js
-if (dependentRule.status === 'SKIPPED_DEPENDENCY') {
-  result.push({
-    code: dependentRule.code,
-    message: 'Error suppressed due to dependency',
-    type: 'info'
-  });
-}
+- `services/suggestionEngine.js` — repair/naming suggestions matched to
+  validation codes, deduplicated before display.
+- `nlp/suggestionGenerator.js` — assignment-aware suggestions used by the
+  case-study checks. When a requirement model exists, issue suggestions are
+  overwritten with concrete text pulled from that requirement model (role
+  names, derived capabilities, system-name candidates).
+
+Every issue may carry a `context.suggestion`; the front end collects and
+deduplicates those into a plain-language list.
+
+## 5. The Case-Study Check (Requirement → Use Case Diagram)
+
+This group validates the student's use case diagram against the assignment's
+own requirement prose. It is fully dynamic — there is no fixed case-study data
+in the code.
+
+### 5.1 Parsing
+`requirementService` reads the assignment text and hands it to the
+`promptRequirementParser`, which produces a structured model (actors, use
+cases, requirement buckets, coverage). `requirementClassifier` decides which
+sentences are functional (action) statements; all other prose is stored under
+its requirement type and ignored by the check.
+
+### 5.2 Reliability gate
+`analyzeCaseStudyContext` checks five signals. If the text is too thin
+(fragments, a short login-only story, gibberish), the engine:
+
+- raises exactly one `CASE_STUDY_INSUFFICIENT` warning
+  (`specCode INSUFFICIENT_CONTEXT`),
+- includes `context.reasoning` and the per-signal breakdown,
+- returns without enforcing *any* expected actor or use case.
+
+### 5.3 Confidence gate
+Each derived use case has `confidence` 0..1. Only `highConfidence`
+(`≥ 0.75`) use cases are enforced as `CASE_STUDY_USE_CASE_MISSING` when absent.
+Low-confidence capabilities and plain-noun names are informational only.
+
+### 5.4 Login handling
+If the text mentions authentication (`loginSupported`), auth-labeled use cases
+are skipped in the required check and in the unsupported check. A student who
+draws "Login" on such an assignment is neither penalized for missing it nor
+for including it.
+
+### 5.5 Matching thresholds
+- Actor match: exact (`≥ 0.97`) passes; near (`≥ 0.72`) → name-quality info;
+  close-but-different (`≥ 0.4`) → name-mismatch warning; otherwise →
+  unsupported-actor warning.
+- Use case match: `≥ 0.48` → `MATCH_FOUND` info (with `relatedId` to the drawn
+  node); below → missing error.
+- Unsupported use case: a drawn use case matching all requirements below `0.4`
+  is unsupported.
+- System name: a submitted name that scores below `0.5` against the
+  requirement domain is a mismatch.
+
+Every matching value is attached to the finding as `context.matchedScore`.
+
+### 5.6 Report
+`buildCaseStudyReport` compiles:
+
+- `expected` actors, use cases and system-name candidates;
+- a `findings` array (`specCode` + legacy `CASE_STUDY_*` code + severity +
+  `relatedId`);
+- `counts` and `coverage`;
+- `validation` (reliable / loginSupported / reasoning / signals);
+- per-element `actorStatus[]`, `useCaseStatus[]` and `systemName` statuses;
+- an `overall` verdict (`consistent | warnings | errors | insufficient`).
+
+The front end renders the verdict banner, status rows, and (for
+`insufficient`) a validation-only explanation of what text signals were
+missing.
+
+## 6. End-to-End Walkthrough (run-check)
+
+```
+student clicks "Run Checker"
+   │
+   ▼
+POST /api/submissions/:id/run-check
+   │
+   ├─ submissionService loads the submission artifacts
+   ├─ requirementService resolves + parses the assignment requirement text
+   ├─ checkingEngine.checkModel(model, section, targetId, requirementModel)
+   │     ├─ phased validation (6 phases, §2)
+   │     ├─ dynamic case-study consistency check (§5)
+   │     └─ buildCaseStudyReport(...)
+   ├─ rulePipeline.checkModelWithPipeline: enrichment + suppression (§3)
+   ├─ suggestion engines write assignment-aware suggestions (§4)
+   └─ report saved → served to the front end
 ```
 
-### 3. Auto-Fix Suggestions (src/services/suggestionEngine.js)
+## 7. Front-End Rendering
 
-#### Integration Points
-The suggestion engine integrates with multiple components:
+`CheckingModePanel.jsx` consumes the report:
 
-1. **Checking Controller** (`src/controllers/checkingController.js`)
-2. **Submission Service** (`src/services/submissionService.js`)
-3. **Validation Engine** (`src/services/checkingEngine.js`)
+- a summary line per active section (use case diagram, description, SSD);
+- a "suggestions" list (deduplicated);
+- the CASE-STUDY CONSISTENCY block when a `caseStudyReport` is present:
+  overall banner, system boundary status, per-actor and per-use-case statuses,
+  expected chips, and findings grouped by severity — or, for thin assignment
+  text, an explanation of what was missing.
 
-#### Suggestion Format
-```javascript
-{
-  code: 'ERROR-CODE',           // Error code that triggered the suggestion
-  type: 'suggestion-type',      // Type of suggestion
-  message: 'User-friendly message',  // Explanation for users
-  action: () => void,          // Function to implement the fix
-  priority: 'high' | 'medium' | 'low'  // Priority level
-}
-```
+The backend report is authoritative. The in-browser checker is used only as a
+fallback when no report exists.
 
-#### Suggestion Categories
-1. **Add Missing Elements**: Add missing actors, use cases, relationships
-2. **Fix Naming**: Rename incorrectly named elements
-3. **Correct Relationships**: Fix broken or incorrect connections
-4. **Improve Structure**: Reorganize diagram for better clarity
-5. **Enhance Documentation**: Suggest better descriptions or comments
+## 8. Reference
 
-## Validation Flow Implementation
-
-### 1. API Endpoint (/api/check)
-
-#### Request Processing
-1. **Request Validation**: Validate request body using Zod schemas
-2. **Model Parsing**: Parse UML diagram data
-3. **Pipeline Execution**: Execute rule pipeline
-4. **Suggestion Integration**: Generate suggestions
-5. **Response Compilation**: Format and return results
-
-#### Response Format
-```json
-{
-  "success": true,
-  "data": {
-    "score": 85,
-    "maxScore": 100,
-    "errors": [
-      {
-        "code": "ATMR-001",
-        "message": "ATM system requires at least one customer actor",
-        "location": "diagram.nodes[0]",
-        "severity": "error",
-        "suggestion": "Add a 'Bank Customer' actor"
-      }
-    ],
-    "warnings": [...],
-    "suggestions": [...],
-    "ruleExecutionDetails": [...]
-  }
-}
-```
-
-### 2. Rule Execution Pipeline
-
-#### Step 1: Rule Registration
-```javascript
-// In src/rules/ruleRegistry.js
-const ruleRegistry = [
-  {
-    code: 'ATMR-001',
-    name: 'ATM Minimum Actors',
-    severity: 'error',
-    category: 'actor',
-    description: 'ATM system requires at least one customer actor',
-    enabled: true,
-    dependencies: [],
-    check: (model) => {
-      // Validation logic
-      return validationResult || null;
-    }
-  },
-  // ... more rules
-];
-```
-
-#### Step 2: Dependency Resolution
-```javascript
-// In src/rules/rulePipeline.js
-function buildExecutionGraph(rules) {
-  const graph = {};
-  
-  rules.forEach(rule => {
-    graph[rule.code] = {
-      ...rule,
-      dependents: [],
-      dependencies: rule.dependencies || [],
-      status: 'PENDING'
-    };
-  });
-  
-  // Build dependency graph
-  Object.values(graph).forEach(rule => {
-    rule.dependencies.forEach(depCode => {
-      if (graph[depCode]) {
-        graph[depCode].dependents.push(rule.code);
-      }
-    });
-  });
-  
-  return graph;
-}
-```
-
-#### Step 3: Rule Execution
-```javascript
-// In src/rules/rulePipeline.js
-async function executePipeline(model, ruleGraph) {
-  const results = [];
-  const executionOrder = topologicalSort(ruleGraph);
-  
-  for (const ruleCode of executionOrder) {
-    const rule = ruleGraph[ruleCode];
-    
-    if (rule.status === 'SKIPPED_DEPENDENCY') {
-      // Skip rule if its dependencies failed
-      results.push(createSkippedResult(rule));
-      continue;
-    }
-    
-    const result = await executeRule(rule, model);
-    
-    if (result.error) {
-      // Handle error
-      results.push(result);
-      
-      // Update dependent rules
-      rule.dependents.forEach(depCode => {
-        const dep = ruleGraph[depCode];
-        if (dep.status === 'PENDING') {
-          dep.status = 'SKIPPED_DEPENDENCY';
-        }
-      });
-    } else {
-      results.push({ ...result, status: 'PASSED' });
-    }
-  }
-  
-  return results;
-}
-```
-
-### 3. Suggestion Integration
-
-#### Student Flow
-```javascript
-// In src/services/submissionService.js
-async function runCheckForStudent(submissionId, model) {
-  const results = await rulePipeline.executePipeline(model, ruleRegistry);
-  
-  const suggestions = await Promise.all(
-    results
-      .filter(result => result.suggestion)
-      .map(async result => {
-        const suggestion = await suggestionEngine.generateSuggestion(
-          result.code,
-          result,
-          model
-        );
-        return suggestion;
-      })
-  );
-  
-  return {
-    results,
-    suggestions,
-    score: calculateScore(results)
-  };
-}
-```
-
-#### Teacher Flow
-```javascript
-// In src/controllers/checkingController.js
-const checkModel = async (req, res) => {
-  const { validatedData } = req.body;
-  
-  const results = await rulePipeline.executePipeline(
-    validatedData,
-    ruleRegistry
-  );
-  
-  const suggestions = await suggestionEngine.generateSuggestions(results, validatedData);
-  
-  const formattedResults = formatResults(results);
-  
-  res.json({
-    success: true,
-    data: {
-      ...formattedResults,
-      suggestions
-    }
-  });
-};
-```
-
-## Validation Rule Examples
-
-### Example 1: ATM Minimum Actors (ATMR-001)
-
-#### Rule Definition
-```javascript
-const atmMinimumActorsRule = {
-  code: 'ATMR-001',
-  name: 'ATM Minimum Actors',
-  severity: 'error',
-  category: 'actor',
-  description: 'ATM system requires at least one customer actor',
-  enabled: true,
-  dependencies: [],
-  check: (model) => {
-    const actors = model.diagram.nodes.filter(n => n.type === 'actor');
-    const customerActors = actors.filter(a => 
-      a.data?.label?.toLowerCase().includes('customer')
-    );
-    
-    if (customerActors.length === 0) {
-      return {
-        code: 'ATMR-001',
-        message: 'ATM system requires at least one customer actor',
-        location: 'diagram.nodes',
-        severity: 'error',
-        suggestion: {
-          type: 'add-actor',
-          message: 'Add a "Bank Customer" actor to represent system users',
-          action: () => {
-            // Implementation for adding customer actor
-          }
-        }
-      };
-    }
-    
-    return null;
-  }
-};
-```
-
-#### Suggestion Logic
-```javascript
-// In src/services/suggestionEngine.js
-suggestions['ATMR-001'] = (result, model) => [
-  {
-    type: 'add-actor',
-    message: 'Add a "Bank Customer" actor to represent system users',
-    action: () => {
-      // Implementation for adding customer actor
-      return {
-        type: 'create-actor',
-        params: {
-          name: 'Bank Customer',
-          type: 'actor',
-          stereotypes: [],
-          attributes: [],
-          methods: []
-        }
-      };
-    },
-    priority: 'high'
-  }
-];
-```
-
-### Example 2: Use Case Naming (USCN-001)
-
-#### Rule Definition
-```javascript
-const useCaseNamingRule = {
-  code: 'USCN-001',
-  name: 'Use Case Naming',
-  severity: 'warning',
-  category: 'useCase',
-  description: 'Use case names should include a verb',
-  enabled: true,
-  dependencies: [],
-  check: (model) => {
-    const useCases = model.diagram.nodes.filter(n => n.type === 'usecase');
-    const invalidUseCases = useCases.filter(uc => {
-      const name = uc.data?.label?.trim();
-      return name && !isVerb(name) && name.length < 3;
-    });
-    
-    return invalidUseCases.map(uc => ({
-      code: 'USCN-001',
-      message: `Use case "${uc.data.label}" should include a verb or be more descriptive`,
-      location: `diagram.nodes.${uc.id}`,
-      severity: 'warning',
-      suggestion: {
-        type: 'rename-use-case',
-        message: `Rename "${uc.data.label}" to include a verb (e.g., "Process Payment", "Login User")`,
-        action: () => {
-          // Implementation for renaming use case
-        }
-      }
-    }));
-  }
-};
-```
-
-## Testing the Validation Pipeline
-
-### Unit Tests
-```bash
-# Run all rule pipeline tests
-npm run rules:test
-
-# Run specific rule tests
-npm run test:backend -- --testPathPattern=ruleRegistry
-
-# Run suggestion engine tests
-npm run test:backend -- --testPathPattern=suggestionEngine
-```
-
-### Test Structure
-```javascript
-// In src/rules/__tests__/ruleRegistry.test.js
-describe('Rule Registry', () => {
-  test('should have 124 rules defined', () => {
-    expect(ruleRegistry).toHaveLength(124);
-  });
-  
-  test('should have valid rule structure', () => {
-    ruleRegistry.forEach(rule => {
-      expect(rule.code).toBeDefined();
-      expect(rule.name).toBeDefined();
-      expect(['error', 'warning', 'info']).toContain(rule.severity);
-      expect(typeof rule.check).toBe('function');
-    });
-  });
-});
-
-// In src/rules/__tests__/rulePipeline.test.js
-describe('Rule Pipeline', () => {
-  test('should execute rules in dependency order', () => {
-    const model = { /* test model */ };
-    const results = await rulePipeline.executePipeline(model, ruleRegistry);
-    
-    // Verify execution order
-    expect(results).toBeDefined();
-    expect(Array.isArray(results)).toBe(true);
-  });
-  
-  test('should suppress cascading errors', () => {
-    const model = { /* model with cascading errors */ };
-    const results = await rulePipeline.executePipeline(model, ruleRegistry);
-    
-    // Verify suppression
-    const cascadingErrors = results.filter(r => r.suppressed);
-    expect(cascadingErrors).toHaveLength(0);
-  });
-});
-```
-
-## Performance Considerations
-
-### Large Model Handling
-- **Lazy Loading**: Load rules only when needed
-- **Parallel Processing**: Execute independent rules in parallel
-- **Caching**: Cache rule results for repeated validations
-
-### Memory Management
-```javascript
-// In src/rules/rulePipeline.js
-class RulePipeline {
-  constructor() {
-    this.ruleCache = new Map(); // Cache rule metadata
-    this.resultCache = new Map(); // Cache validation results
-  }
-  
-  async executePipeline(model, ruleGraph) {
-    // Clear cache for large models
-    if (model.diagram.nodes.length > 100) {
-      this.clearCache();
-    }
-    
-    // Execute pipeline
-    return super.executePipeline(model, ruleGraph);
-  }
-}
-```
-
-## Migration Guide
-
-### From Legacy Validation to Rule Pipeline
-
-#### Step 1: Identify Legacy Rules
-Replace calls to `CheckingEngine.checkModel()` with `rulePipeline.execute()`:
-
-```javascript
-// OLD (legacy)
-const result = await CheckingEngine.checkModel(model);
-
-// NEW (pipeline)
-const result = await rulePipeline.executePipeline(model, ruleRegistry);
-```
-
-#### Step 2: Update Suggestion Integration
-```javascript
-// OLD (legacy)
-const suggestions = await suggestionEngine.generateSuggestions(result, model);
-
-// NEW (pipeline)
-const suggestions = await suggestionEngine.generateSuggestions(
-  result.results,
-  model
-);
-```
-
-#### Step 3: Update API Controller
-```javascript
-// OLD (legacy)
-const checkModel = async (req, res) => {
-  const { validatedData } = req.body;
-  const result = await CheckingEngine.checkModel(validatedData);
-  const suggestions = await suggestionEngine.generateSuggestions(result, validatedData);
-  
-  res.json({ success: true, data: { result, suggestions } });
-};
-
-// NEW (pipeline)
-const checkModel = async (req, res) => {
-  const { validatedData } = req.body;
-  const results = await rulePipeline.executePipeline(validatedData, ruleRegistry);
-  const suggestions = await suggestionEngine.generateSuggestions(results, validatedData);
-  
-  res.json({ 
-    success: true, 
-    data: { results, suggestions } 
-  });
-};
-```
-
-## Common Issues and Solutions
-
-### Issue: Rules Not Being Executed
-**Cause**: Rule registry not loaded properly
-**Solution**: Ensure `src/rules/ruleRegistry.js` is properly imported
-
-```javascript
-// In src/rules/rulePipeline.js
-import { ruleRegistry } from './ruleRegistry';
-```
-
-### Issue: Suggestions Not Appearing
-**Cause**: Suggestion engine not integrated
-**Solution**: Ensure suggestion engine is called in the validation pipeline
-
-```javascript
-// In src/controllers/checkingController.js
-const checkModel = async (req, res) => {
-  const { validatedData } = req.body;
-  const results = await rulePipeline.executePipeline(validatedData, ruleRegistry);
-  
-  // Ensure suggestions are generated
-  const suggestions = await suggestionEngine.generateSuggestions(results, validatedData);
-  
-  // Ensure suggestions are included in response
-  res.json({ 
-    success: true, 
-    data: { results, suggestions } 
-  });
-};
-```
-
-### Issue: Cascading Errors
-**Cause**: Dependency resolution not working
-**Solution**: Check rule dependencies in `ruleRegistry.js`
-
-```javascript
-// Example rule with dependencies
-const complexRule = {
-  code: 'COMPLEX-001',
-  name: 'Complex Rule',
-  severity: 'error',
-  dependencies: ['PREREQ-001'], // Depends on prerequisite rule
-  // ... rest of rule definition
-};
-```
-
-## Future Enhancements
-
-### Proposed Features
-
-1. **Real-time Validation**: Stream validation results as diagrams are edited
-2. **Machine Learning**: Intelligent pattern recognition for error prediction
-3. **Adaptive Learning**: Personalized feedback based on student performance
-4. **Collaborative Validation**: Multiple user validation with conflict resolution
-5. **Cloud Integration**: Scalable validation in cloud environments
-
-### Research Areas
-
-1. **NLP Integration**: Natural language processing for requirements analysis
-2. **Visual Analysis**: Automated diagram understanding and interpretation
-3. **Adaptive Systems**: Systems that learn from user interactions
-4. **Performance Optimization**: Parallel processing and caching strategies
-
----
-
-**Documentation Last Updated**: July 2026
-**Next Update**: After implementation of real-time validation feature
-
-*This document is part of the UML Tutor project and is subject to change based on feature development.*
+- Rule definitions: `src/rules/ruleRegistry.js`
+- Phase and suppression logic: `src/rules/rulePipeline.js`
+- Core engine: `src/services/checkingEngine.js`
+- Requirement parsing/classification: `src/nlp/promptRequirementParser.js`,
+  `src/nlp/requirementClassifier.js`
+- Case-study report: `src/services/checkingEngine.js` →
+  `buildCaseStudyReport`
+- Assignment-aware suggestions: `src/nlp/suggestionGenerator.js`
+- Requirement resolution: `src/services/requirementService.js`

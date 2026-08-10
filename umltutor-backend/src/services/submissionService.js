@@ -454,6 +454,7 @@ class SubmissionService {
         classId: submission.assignment?.classId,
         className: submission.assignment?.class?.name,
         textContent: submission.assignment?.textContent,
+        requirementText: submission.assignment?.requirementText,
         instructions: submission.assignment?.textContent || submission.assignment?.instructions
       },
       artifacts: {
@@ -497,8 +498,13 @@ class SubmissionService {
       sequenceDiagrams: detail.artifacts?.sequenceDiagram || null
     };
 
+    // Resolve the case-study requirement model for this submission's
+    // assignment. It drives the dynamic use-case diagram consistency checks.
+    const reqService = require('./requirementService').default;
+    const { model: requirementModel } = await reqService.getRequirementModelForSubmission(submissionId);
+
     // Run the check for the requested scope
-    const result = CheckingEngine.checkModel(model, section, targetId);
+    const result = CheckingEngine.checkModel(model, section, targetId, requirementModel);
 
     // MERGE LOGIC: If checking a specific item, merge with existing report to preserve other results
     let finalIssues = result.issues;

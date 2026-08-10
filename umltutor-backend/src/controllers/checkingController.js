@@ -3,22 +3,18 @@ var _validators = require('../utils/validators');
 var _errors = require('../utils/errors');
 var _checkingEngine = require('../services/checkingEngine');
 var _suggestionEngine = require('../services/suggestionEngine');
-
-/**
- * Check UML model for validation and scoring
- * POST /api/check
- */
 const checkModel = (0, _errors.asyncHandler)(async (req, res) => {
-  // Validate request body
   const validatedData = _validators.umlModelSchema.parse(req.body);
 
-  // Perform validation using the CheckingEngine service
-  const result = _checkingEngine.CheckingEngine.checkModel(validatedData);
+  const { requirementText } = req.body || {};
+  let requirementModel = null;
+  if (requirementText && typeof requirementText === 'string' && requirementText.trim()) {
+    requirementModel = _requirementService.default.parse(requirementText);
+  }
 
-  // Attach concrete repair suggestions to the result
+  const result = _checkingEngine.CheckingEngine.checkModel(validatedData, null, null, requirementModel);
   const suggestions = _suggestionEngine.SuggestionEngine.generateSuggestions(result);
   result.suggestions = suggestions;
 
-  // Send success response
   (0, _errors.sendSuccess)(res, result);
 }); exports.checkModel = checkModel;

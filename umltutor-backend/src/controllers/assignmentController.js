@@ -26,6 +26,7 @@ const createAssignmentDefinition = async (req, res, next) => {
             contentText,
             maxScore,
             classId: bodyClassId,
+            requirementText,
         } = req.body;
 
         const finalDueDate = deadline || dueDate;
@@ -44,6 +45,7 @@ const createAssignmentDefinition = async (req, res, next) => {
             assignmentType,
             type,
             textContent: assignmentType === 'TEXT' ? (textContent || contentText || null) : null,
+            requirementText: requirementText != null && requirementText.trim() ? requirementText : null,
             maxScore: maxScore != null ? Number(maxScore) : undefined,
             classId: req.params.classId ? Number(req.params.classId) : (bodyClassId ? Number(bodyClassId) : null),
             teacherId: req.user.id,

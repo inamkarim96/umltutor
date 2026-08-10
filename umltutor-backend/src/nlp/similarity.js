@@ -91,6 +91,91 @@ function lemmatizeToken(token) {
   return norm;
 }
 
+
+function normalizeRoleToken(text) {
+  let s = String(text || '').toLowerCase().trim();
+  s = s.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  s = s.replace(/^actor\s+|\s+actor\s*$/g, ' ').replace(/\s+/g, ' ').trim();
+  s = s.replace(/\s+(?:member|members|user|users|person|people|client|clients)\s*$/i, '').trim();
+  s = s.replace(/['\u2019]s$/, '').trim();
+  return s;
+}
+
+
+function actorRoleSimilarity(roleA, roleB) {
+  const a = normalizeRoleToken(roleA);
+  const b = normalizeRoleToken(roleB);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+
+  const lemmaA = lemmatizeToken(a);
+  const lemmaB = lemmatizeToken(b);
+  if (lemmaA === lemmaB) return 0.97;
+
+  const tokensA = a.split(/\s+/);
+  const tokensB = b.split(/\s+/);
+
+  // Multi-word role where one is a sub-phrase of the other ("staff member" vs "staff").
+  if (tokensA.length > 1 || tokensB.length > 1) {
+    const shorter = tokensA.length <= tokensB.length ? tokensA : tokensB;
+    const longer = tokensA.length <= tokensB.length ? tokensB : tokensA;
+    if (shorter.every((t) => longer.some((lt) => lemmatizeToken(lt) === lemmatizeToken(t)))) {
+      return 0.9;
+    }
+  }
+
+  // Best per-token match; require the full shorter role to be covered.
+  const shorterTokens = tokensA.length <= tokensB.length ? tokensA : tokensB;
+  const longerTokens = tokensA.length <= tokensB.length ? tokensB : tokensA;
+  let covered = 0;
+  const used = new Set();
+  for (const st of shorterTokens) {
+    let best = 0;
+    let bestIdx = -1;
+    for (let i = 0; i < longerTokens.length; i++) {
+      if (used.has(i)) continue;
+      const lt = longerTokens[i];
+      const ls = lemmatizeToken(st);
+      const ll = lemmatizeToken(lt);
+      let s = 0;
+      if (ls === ll) s = 1;
+      else if (areSynonyms(ls, ll)) s = 0.92;
+      else if (fuzzyIncludes(ls, ll)) s = 0.85;
+      else s = similarity(ls, ll);
+      if (s > best) { best = s; bestIdx = i; }
+    }
+    if (best >= 0.72) { used.add(bestIdx); covered += best; }
+  }
+  if (shorterTokens.length > 0) {
+    const avg = covered / shorterTokens.length;
+    return Number(avg.toFixed(2));
+  }
+  return 0;
+}
+
+function classifyUseCaseMatch(studentLabel, reqLabel) {
+  const match = evaluateFunctionMatch(String(studentLabel), String(reqLabel));
+  if (match.score >= 0.85) return { ...match, kind: 'MATCH' };
+  if (match.score >= 0.5 && (match.matchType === 'STRONG' || match.matchType === 'PARTIAL')) {
+    const verbA = extractKeywords(String(studentLabel))[0];
+    const verbB = extractKeywords(String(reqLabel))[0];
+    const helpWords = ['delete', 'add', 'create', 'insert', 'update', 'edit', 'modify',
+      'remove', 'cancel', 'change', 'register', 'view', 'see', 'show', 'save', 'publish'];
+    const isOpposing = helpWords.includes(verbA) && helpWords.includes(verbB) && verbA !== verbB && !areSynonyms(verbA, verbB);
+    if (isOpposing) return { score: match.score, kind: 'CONFLICT', reason: 'Opposing verb' };
+    return { ...match, kind: 'PARTIAL' };
+  }
+  return { ...match, kind: 'UNRELATED' };
+}
+
+function fuzzy(a, b) {
+  const na = String(a || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const nb = String(b || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!na || !nb) return 0;
+  if (na.includes(nb) || nb.includes(na)) return 0.9;
+  return similarity(na, nb);
+}
+
 function areSynonyms(wordA, wordB) {
   const a = lemmatizeToken(wordA);
   const b = lemmatizeToken(wordB);
@@ -178,7 +263,7 @@ function evaluateFunctionMatch(funcA, funcB) {
   let matchedCount = 0;
   for (const kwA of keywordsA) {
     for (const kwB of keywordsB) {
-      if (areSynonyms(kwA, kwB) || fuzzyIncludes(kwA, kwB)) {
+      if (areSynonyms(kwA, kwB) || fuzzyIncludes(kwA, kwB) || similarity(kwA, kwB) >= 0.75) {
         matchedCount++;
         break;
       }
@@ -214,4 +299,8 @@ module.exports = {
   areSynonyms,
   evaluateFunctionMatch,
   checkPhrasalVerbMatch,
+  normalizeRoleToken,
+  actorRoleSimilarity,
+  classifyUseCaseMatch,
+  fuzzy,
 };

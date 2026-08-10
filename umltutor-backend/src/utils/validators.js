@@ -30,6 +30,7 @@ const joinClassSchema = _zod.z.object({
 const assignmentSchema = _zod.z.object({
   title: _zod.z.string().min(3, 'Title must be at least 3 characters'),
   textContent: _zod.z.string().optional(),
+  requirementText: _zod.z.string().optional(),
   releaseDate: _zod.z.string().datetime().optional(),
   dueDate: _zod.z.string().datetime(),
   maxScore: _zod.z.number().min(0).max(100),

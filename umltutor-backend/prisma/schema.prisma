@@ -75,6 +75,7 @@ model Assignment {
   dueDate            DateTime
   releaseDate        DateTime? @default(now())
   textContent        String?
+  requirementText    String?
   assignmentFileUrl  String?
   assignmentFileName String?
   assignmentFileType String?

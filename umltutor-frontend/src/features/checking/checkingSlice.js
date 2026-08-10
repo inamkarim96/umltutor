@@ -20,7 +20,8 @@ const checkingSlice = createSlice({
       state.isRunning = action.payload !== undefined ? action.payload : true;
     },
     setCheckingResults: (state, action) => {
-      state.results = action.payload;
+      const payload = action.payload;
+      state.results = payload;
       state.isRunning = false;
     },
     clearResults: (state) => {

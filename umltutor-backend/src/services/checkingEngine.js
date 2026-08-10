@@ -1,4 +1,4 @@
-"use strict"; Object.defineProperty(exports, "__esModule", { value: true }); function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } var _ssdValidationService = require('./ssdValidationService');
+﻿"use strict"; Object.defineProperty(exports, "__esModule", { value: true }); function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } var _ssdValidationService = require('./ssdValidationService');
 
 const {
     VERB_DICTIONARY, INTERNAL_VERBS, EXTERNAL_VERBS, STOP_WORDS,
@@ -7,6 +7,7 @@ const {
 const {
     fuzzyIncludes, normalizeToken, normalizeName,
     evaluateFunctionMatch, areSynonyms, lemmatizeToken, fuzzyMatch,
+    extractKeywords, similarity,
 } = require('../nlp/similarity');
 const {
     validateSentence, classifySystemStep, suggestFromSentence, parseScenarioStep,
@@ -18,7 +19,7 @@ const {
 
 class CheckingEngine {
 
-    static checkModel(model, section = null, targetId = null) {
+    static checkModel(model, section = null, targetId = null, requirementModel = null) {
         const issues = [];
 
         // Normalize model data: convert arrays, strings, or unparsed objects to keyed objects
@@ -62,6 +63,11 @@ class CheckingEngine {
         // 1a. Use case relationship validation (include / extend / generalization)
         if (!section || section === 'diagram' || section === 'usecase') {
             this.validateUseCaseRelationships(model.diagram, issues, diagramAnalysis);
+        }
+
+        // 1b. Dynamic Case-Study Diagram Consistency (Step 1 assignment requirements)
+        if ((!section || section === 'diagram' || section === 'usecase') && requirementModel) {
+            this.validateCaseStudyDiagramConsistency(model.diagram, issues, diagramAnalysis, requirementModel);
         }
 
         // 2. Description Validation (Step 2)
@@ -163,23 +169,32 @@ class CheckingEngine {
             this.validateSequenceCombinedFragments(model.sequenceDiagrams, model.descriptions, issues, diagramAnalysis);
         }
 
-        // Global mapping consistency across steps 2–5
+        // Global mapping consistency across steps 2â€“5
         if (!section) {
             this.validateGlobalMapping(model, issues, diagramAnalysis);
+        }
+
+
+        if (requirementModel) {
+            const { enrichIssueSuggestions } = require('../nlp/suggestionGenerator');
+            enrichIssueSuggestions(issues, requirementModel);
         }
 
         // Calculate summary efficiently
         const summary = this.countIssues(issues);
 
+        const caseStudyReport = requirementModel
+            ? this.buildCaseStudyReport(issues, diagramAnalysis, requirementModel)
+            : null;
+
         return {
             summary,
-            issues
+            issues,
+            caseStudyReport,
         };
     }
 
-    /**
-     * Pre-compute diagram analysis to avoid repeated calculations
-     */
+
     static analyzeDiagram(diagram) {
         if (!diagram || !diagram.nodes) {
             return {
@@ -240,7 +255,7 @@ class CheckingEngine {
 
     /**
      * Resolve a human-readable Use Case name for error messages.
-     * Priority: use case diagram label → description useCaseName → readable fallback.
+     * Priority: use case diagram label â†’ description useCaseName â†’ readable fallback.
      */
     static getUseCaseName(ucId, useCaseLabels, descriptions = {}) {
         const rawLabel = useCaseLabels.get(ucId);
@@ -254,28 +269,11 @@ class CheckingEngine {
         return classifySystemStep(stepText);
     }
 
-    /**
-     * Nearest Message / Function Suggestion Engine
-     *
-     * Given a raw scenario sentence, produces smart naming suggestions:
-     *   nearestMessage        → verb + key content words (e.g. "calculate total price")
-     *   nearestFunction       → camelCase function name (e.g. "calculateTotalPrice")
-     *   nearestFunctionWithParam → function + last noun as param (e.g. "calculateTotalPrice(order)")
-     *
-     * This is purely informational – no validation, no errors.
-     */
     static suggestFromSentence(sentence) {
         return suggestFromSentence(sentence);
     }
 
-    /**
-     * Proper sentence validation for Preconditions, Postconditions, and Steps.
-     * Rules:
-     * 1. Minimum 10 characters.
-     * 2. Minimum 3 words.
-     * 3. Starts with an alphabetic character (capital or small).
-     * 4. Must contain at least one vowel (basic gibberish check).
-     */
+
     static validateSentence(text) {
         return validateSentence(text);
     }
@@ -288,7 +286,7 @@ class CheckingEngine {
 
         const { actors, useCases, edges, useCaseLabels, actorLabels, nodes } = analysis;
 
-        // ── System Boundary Validation ──
+        // â”€â”€ System Boundary Validation â”€â”€
         const systemBoundary = nodes.find((n) => n.type === 'systemBoundary');
         if (!systemBoundary) {
             issues.push({
@@ -319,7 +317,6 @@ class CheckingEngine {
             }
         }
 
-        // ── Actor Validation ──
         if (actors.length === 0) {
             issues.push({
                 type: 'diagram', severity: 'error', location: 'diagram',
@@ -365,7 +362,7 @@ class CheckingEngine {
             }
         });
 
-        // ── Use Case Validation ──
+        // â”€â”€ Use Case Validation â”€â”€
         if (useCases.length === 0) {
             issues.push({
                 type: 'diagram', severity: 'error', location: 'diagram',
@@ -387,25 +384,39 @@ class CheckingEngine {
                     context: { useCaseId: uc.id, suggestion: 'Please provide a name for this Use Case. Use Case names must follow the format: Verb + Noun (e.g: "Submit Order").' }
                 });
             } else {
-                // Grammar validation: must be at least 2 words, first word must be a verb
+                // Grammar validation: allow valid single-word UML use cases (e.g. Login, Logout, Register, Search)
                 const words = label.trim().split(/\s+/);
-                if (words.length < 2) {
-                    issues.push({
-                        type: 'diagram', severity: 'error', location: 'diagram',
-                        code: 'USE_CASE_INVALID_NAME',
-                        message: `Invalid Use Case Name: "${label}". Use case name must contain a verb followed by an object.`,
-                        relatedId: uc.id,
-                        context: { useCaseId: uc.id, suggestion: 'Use Case names must follow the format: Verb + Noun (e.g: "Submit Order"). Start with a verb from the dictionary.' }
-                    });
+                const SINGLE_WORD_VALID_ACTIONS = new Set([
+                    'login', 'logout', 'register', 'signup', 'signin', 'signout', 'search',
+                    'browse', 'checkout', 'authenticate', 'pay', 'upload', 'download', 'export', 'import'
+                ]);
+
+                const firstWord = words[0].toLowerCase();
+                const lemma = lemmatizeToken(firstWord) || firstWord;
+                const isFirstVerb = VERB_DICTIONARY.has(firstWord) ||
+                    VERB_DICTIONARY.has(lemma) ||
+                    INTERNAL_VERBS.has(firstWord) ||
+                    EXTERNAL_VERBS.has(firstWord) ||
+                    /ing$|ed$|es$|tain$|ate$|ize$|ify$/.test(firstWord);
+
+                if (words.length === 1) {
+                    if (!SINGLE_WORD_VALID_ACTIONS.has(firstWord) && !isFirstVerb) {
+                        issues.push({
+                            type: 'diagram', severity: 'error', location: 'diagram',
+                            code: 'USE_CASE_INVALID_NAME',
+                            message: `Invalid Use Case Name: "${label}". Single-word use case names must be an action verb (e.g. "Login", "Search") or a Verb + Noun phrase (e.g. "Submit Order").`,
+                            relatedId: uc.id,
+                            context: { useCaseId: uc.id, suggestion: 'Use Case names must represent an action (e.g: "Login" or "Add Notice").' }
+                        });
+                    }
                 } else {
-                    const firstWord = words[0].toLowerCase();
-                    if (!VERB_DICTIONARY.has(firstWord)) {
+                    if (!isFirstVerb) {
                         issues.push({
                             type: 'diagram', severity: 'error', location: 'diagram',
                             code: 'USE_CASE_INVALID_NAME',
                             message: `Invalid Use Case Name: "${label}". Use case name must start with a verb.`,
                             relatedId: uc.id,
-                            context: { useCaseId: uc.id, suggestion: 'Use Case names must follow the format: Verb + Noun (e.g: "Submit Order"). Start with a verb from the dictionary.' }
+                            context: { useCaseId: uc.id, suggestion: 'Use Case names must follow the format: Verb + Noun (e.g: "Submit Order"). Start with an action verb.' }
                         });
                     }
                 }
@@ -436,17 +447,630 @@ class CheckingEngine {
         });
     }
 
-    /**
-     * Use case relationship validation (include / extend / generalization).
-     * Edges in the use case diagram may carry a relationship type in
-     * `edge.data.relationshipType`, `edge.data.type` or `edge.type`. Plain
-     * actor-to-use-case association edges carry no such type and are ignored.
-     *
-     * Checks:
-     *   - include/extend edges must target a use case                → USE_CASE_RELATIONSHIP_INCLUDE_EXTEND
-     *   - generalization edges must join the same element kind
-     *     (actor↔actor or use case↔use case)                          → USE_CASE_RELATIONSHIP_GENERALIZATION
-     */
+
+    static validateCaseStudyDiagramConsistency(diagram, issues, analysis, requirementModel) {
+        if (!requirementModel) return;
+
+        const reqUseCases = requirementModel.useCases || [];
+        const reqActors = requirementModel.actors || [];
+        const reqResponsibilities = requirementModel.responsibilities || [];
+        // No parseable case-study content → nothing meaningful to check.
+        if (reqUseCases.length === 0 && reqActors.length === 0) return;
+
+        if (requirementModel.reliable === false) {
+            const ctx = requirementModel.context || {};
+            issues.push({
+                type: 'diagram', severity: 'warning', location: 'diagram',
+                code: 'CASE_STUDY_INSUFFICIENT',
+                message: 'The provided assignment text does not contain enough requirement information to determine the expected actors and use cases.',
+                context: {
+                    specCode: 'INSUFFICIENT_CONTEXT',
+                    reasoning: ctx.reasoning || '',
+                    signalBreakdown: ctx.signals || null,
+                    suggestion: 'Provide a complete case study or requirement description containing system behavior, actors, and their responsibilities (at least two clear sentences describing system capabilities).',
+                },
+            });
+            return;
+        }
+
+        const { actors, useCases, edges, actorLabels, useCaseLabels, nodes } = analysis;
+        const { actorRoleSimilarity, classifyUseCaseMatch, normalizeRoleToken } = require('../nlp/similarity');
+
+        const HIGH_CONFIDENCE = 0.75; // only ≥ this may become a REQUIRED user goal
+        const actorLabelList = actors.map((a) => actorLabels.get(a.id) || '').filter(Boolean);
+        const ucLabelList = useCases.map((u) => useCaseLabels.get(u.id) || '').filter(Boolean);
+
+        const reqText = (requirementModel.sources || []).join(' ');
+        const loginSupported = requirementModel.loginSupported === true;
+
+
+        const utilityHints = [
+            'view', 'browse', 'search', 'see', 'look up', 'read', 'print',
+            'select', 'navigate', 'home', 'about', 'help',
+        ];
+        const utilityVerb = (labelText) => {
+            const t = String(labelText || '').toLowerCase().trim();
+            if (!t) return false;
+            return utilityHints.some((h) => t === h || t.startsWith(h + ' '));
+        };
+        const AUTH_RE = /\b(log(?:g)?(?:s|ged|ging)?\s*in|log(?:g)?(?:s|ged|ging)?\s*out|sign\s*in|sign\s*out|sign\s*up|login|logon|logout|authenticate|authentication|sso|register|registration)\b/i;
+        const authName = (labelText) => AUTH_RE.test(String(labelText || ''));
+
+        // Capability verbs used to spot noun-only (invalid) use-case names.
+        const CAPABILITY_VERB_RE = /\b(?:add|create|delete|update|view|browse|search|manage|maintain|book|pay|submit|login|log|register|send|validate|verify|save|edit|remove|list|show|display|approve|reject|generate|process|order|place|enroll|enrol|check|track|post|publish|announce|enter|select|choose|review|rate|download|upload|print|export|import|buy|sell|issue|schedule|record|hold|return|reserve|assign|allocate|enquire|enquire)\w*\b/i;
+
+        const isRequiredUseCase = (uc) =>
+            uc.highConfidence === true ||
+            (typeof uc.confidence === 'number' && uc.confidence >= HIGH_CONFIDENCE);
+
+        // 1. System Boundary Name validation (dynamic domain extraction).
+        const systemBoundary = nodes.find((n) => n.type === 'systemBoundary');
+        let sysLabel = '';
+        if (systemBoundary && systemBoundary.data && typeof systemBoundary.data.label === 'string') {
+            sysLabel = systemBoundary.data.label.trim();
+        }
+        if (!systemBoundary || !sysLabel || SYSTEM_INVALID_NAMES.includes(sysLabel.toLowerCase())) {
+            const gen = require('../nlp/suggestionGenerator');
+            const expectedSystem = (gen.deriveSystemNameCandidates
+                ? gen.deriveSystemNameCandidates(requirementModel) || [] : [])[0] || null;
+            issues.push({
+                type: 'diagram', severity: 'warning', location: 'diagram',
+                code: 'CASE_STUDY_SYSTEM_NAME_MISSING',
+                message: 'The system boundary has no valid name. Give the system a name that represents the assignment domain.',
+                context: {
+                    specCode: 'MISSING_SYSTEM_NAME',
+                    expectedSystem,
+                    submittedSystem: sysLabel || null,
+                    suggestion: this.systemCandidateSuggestion(requirementModel),
+                },
+            });
+        } else {
+            const report = this.systemNameMatch(requirementModel, reqText, sysLabel);
+            if (report.bestDomainTerm && report.score < 0.5) {
+                issues.push({
+                    type: 'diagram', severity: 'error', location: 'diagram',
+                    code: 'CASE_STUDY_SYSTEM_NAME_MISMATCH',
+                    message: `System name "${sysLabel}" does not appear to represent the "${report.bestDomainTerm}" domain described in the assignment.`,
+                    context: {
+                        specCode: 'SYSTEM_NAME_MISMATCH',
+                        expectedSystem: report.bestDomainTerm,
+                        submittedSystem: sysLabel,
+                        matchedScore: Number(report.score.toFixed(2)),
+                        confidence: Number(report.confidence.toFixed(2)),
+                        suggestion: this.systemCandidateSuggestion(requirementModel),
+                    },
+                });
+            }
+        }
+
+        // 2. MISSING ACTORS — every dynamic actor required by the assignment.
+        reqActors.forEach((reqActor) => {
+            if (String(reqActor).toLowerCase() === 'system') return;
+            let best = { score: 0, label: null };
+            actorLabelList.forEach((sActor) => {
+                const score = actorRoleSimilarity(reqActor, sActor);
+                if (score > best.score) best = { score, label: sActor };
+            });
+            if (best.score >= 0.72) return; // found (typo tolerant)
+
+            const responsibility = (reqResponsibilities || []).find((r) =>
+                String(r.actor || '').toLowerCase() === String(reqActor).toLowerCase());
+            const reason = responsibility && responsibility.sourceSentence
+                ? `The assignment states: "${responsibility.sourceSentence}"`
+                : `The assignment requires a "${reqActor}" role`;
+            issues.push({
+                type: 'diagram', severity: 'error', location: 'diagram',
+                code: 'CASE_STUDY_ACTOR_MISSING',
+                message: `Actor "${reqActor}" required by the assignment is missing from the diagram.`,
+                context: {
+                    actor: reqActor,
+                    expected: reqActor,
+                    matchedScore: Math.round(best.score * 100) / 100,
+                    confidence: Math.round(best.score * 100) / 100,
+                    specCode: 'MISSING_ACTOR',
+                    requirement: reason,
+                    suggestion: `${reason} Add an actor named "${reqActor}".`,
+                },
+            });
+        });
+
+        // 2b. Per submitted actor: found / typo / close-role-mismatch / unsupported.
+        actors.forEach((actor) => {
+            const label = actorLabels.get(actor.id);
+            if (!label) return;
+            const lower = String(label).toLowerCase().trim();
+            if (lower === 'system' || utilityVerb(lower)) return;
+
+            let best = { score: 0, req: null };
+            reqActors.forEach((reqActor) => {
+                const s = actorRoleSimilarity(label, reqActor);
+                if (s > best.score) best = { score: s, req: reqActor };
+            });
+
+            if (best.score >= 0.97) return; // found (exact / synonym)
+            if (best.req && best.score >= 0.72) {
+                // typo → name-quality info (seeded into findings via specCode)
+                issues.push({
+                    type: 'diagram', severity: 'info', location: 'diagram',
+                    code: 'ACTOR_NAME_QUALITY',
+                    relatedId: actor.id,
+                    message: `The actor name "${label}" appears to be a typo for "${best.req}" from the assignment.`,
+                    context: {
+                        specCode: 'ACTOR_NAME_QUALITY',
+                        expected: best.req,
+                        submitted: label,
+                        suggestion: `Did you mean "${best.req}"?`,
+                    },
+                });
+                return;
+            }
+            if (best.req && best.score >= 0.4) {
+                // close but semantically a different role → name mismatch warning
+                issues.push({
+                    type: 'diagram', severity: 'warning', location: 'diagram',
+                    code: 'CASE_STUDY_ACTOR_NAME_MISMATCH',
+                    relatedId: actor.id,
+                    message: `The actor name "${label}" is closer to the role "${best.req}" from the assignment. Use the assignment's role name.`,
+                    context: {
+                        specCode: 'ACTOR_NAME_MISMATCH',
+                        expected: best.req,
+                        submitted: label,
+                        matchedScore: Math.round(best.score * 100) / 100,
+                        suggestion: `Rename this actor to "${best.req}" (or a synonym of it) to match the assignment.`,
+                    },
+                });
+                return;
+            }
+            // No assignment support at all → unsupported actor warning
+            issues.push({
+                type: 'diagram', severity: 'warning', location: 'diagram',
+                code: 'CASE_STUDY_ACTOR_UNSUPPORTED',
+                relatedId: actor.id,
+                message: `Actor "${label}" is present in the diagram but is not described by the assignment.`,
+                context: {
+                    specCode: 'UNSUPPORTED_ACTOR',
+                    actor: label,
+                    confidence: Math.round(best.score * 100) / 100,
+                    suggestion: 'Check whether this actor participates in the case study. If not, remove it.',
+                },
+            });
+        });
+
+
+        reqUseCases.forEach((reqUc) => {
+            const label = String(reqUc.name || '').trim();
+            if (!label) return;
+            if (authName(label) && loginSupported) return; // supported precondition, not required
+            if (utilityVerb(label)) return;
+
+            // Low-confidence derivations must never be enforced as required.
+            if (!isRequiredUseCase(reqUc)) {
+                const requirement = this.requirementSentence(reqText, reqUc);
+                issues.push({
+                    type: 'diagram', severity: 'info', location: 'diagram',
+                    code: 'CASE_STUDY_LOW_CONFIDENCE_REQUIREMENT',
+                    message: `The assignment hints at "${label}", but the wording is too uncertain to require it in the diagram.`,
+                    context: {
+                        specCode: 'LOW_CONFIDENCE_REQUIREMENT',
+                        useCase: label,
+                        confidence: Math.round(Number(reqUc.confidence) * 100) / 100,
+                        requirement,
+                        suggestion: 'Consider whether this capability belongs in the case study diagram; the automated check is intentionally skipping it.',
+                    },
+                });
+                return;
+            }
+
+            // Noun-only name (no capability verb) → invalid derived name.
+            if (!CAPABILITY_VERB_RE.test(label)) {
+                const requirement = this.requirementSentence(reqText, reqUc);
+                issues.push({
+                    type: 'diagram', severity: 'info', location: 'diagram',
+                    code: 'CASE_STUDY_INVALID_USE_CASE_NAME',
+                    message: `The derived use case "${label}" is not an action phrase. Phrase it as a verb + object (e.g. "Manage ${label}").`,
+                    context: {
+                        specCode: 'INVALID_USE_CASE_NAME',
+                        useCase: label,
+                        submitted: label,
+                        requirement,
+                        suggestion: `Replace "${label}" with an action, e.g. "Manage ${label}".`,
+                    },
+                });
+                return;
+            }
+
+            const best = { score: 0, label: null, kind: 'UNRELATED' };
+            ucLabelList.forEach((sUc) => {
+                const match = classifyUseCaseMatch(sUc, label);
+                if (match.score > best.score) best.score = match.score, best.label = sUc, best.kind = match.kind;
+            });
+
+            if (best.score >= 0.48) {
+                const matchedNode = useCases.find((u) => useCaseLabels.get(u.id) === best.label);
+                issues.push({
+                    type: 'diagram', severity: 'info', location: 'diagram',
+                    code: 'CASE_STUDY_MATCH_FOUND',
+                    relatedId: matchedNode ? matchedNode.id : null,
+                    message: `Found use case "${best.label}" matching the assignment requirement "${label}".`,
+                    context: {
+                        specCode: 'MATCH_FOUND',
+                        useCase: label,
+                        submitted: best.label,
+                        matchedScore: Math.round(best.score * 100) / 100,
+                    },
+                });
+                return;
+            }
+
+            const reason = this.requirementSentence(reqText, reqUc);
+            issues.push({
+                type: 'diagram', severity: 'error', location: 'diagram',
+                code: 'CASE_STUDY_USE_CASE_MISSING',
+                message: `Missing Use Case: "${label}". The assignment requires this functionality.`,
+                context: {
+                    useCase: label,
+                    expected: label,
+                    matchedScore: Math.round(best.score * 100) / 100,
+                    confidence: Math.round(Number(reqUc.confidence) * 100) / 100,
+                    specCode: 'MISSING_REQUIRED_USE_CASE',
+                    requirement: reason,
+                    suggestion: this.useCaseMissingSuggestion(reqUc, reason),
+                },
+            });
+        });
+
+        // 4. UNSUPPORTED use cases (present, not backed by the assignment).
+        useCases.forEach((uc) => {
+            const label = useCaseLabels.get(uc.id) || '';
+            if (!label) return;
+            const lower = String(label).toLowerCase().trim();
+            if (utilityVerb(lower)) return;
+            if (authName(lower) && loginSupported) return; // supported precondition
+
+            const bestReqScore = reqUseCases.reduce((best, reqUc) => {
+                const s = classifyUseCaseMatch(String(label), String(reqUc.name)).score;
+                return s > best.score ? { score: s, req: reqUc } : best;
+            }, { score: 0, req: null });
+
+            if (bestReqScore.score >= 0.4) return;
+            issues.push({
+                type: 'diagram', severity: 'warning', location: 'diagram',
+                code: 'CASE_STUDY_USE_CASE_UNSUPPORTED',
+                relatedId: uc.id,
+                message: `Use case "${label}" is present in the diagram but is not described by the assignment.`,
+                context: {
+                    useCase: label,
+                    confidence: Math.round(bestReqScore.score * 100) / 100,
+                    specCode: 'UNSUPPORTED_USE_CASE',
+                    suggestion: `Check whether "${label}" is part of the teacher's assignment. If not, remove it.`,
+                },
+            });
+        });
+
+        // 5. ACTOR responsibility mismatch — every required capability's assigned actor.
+        reqUseCases.forEach((reqUc) => {
+            if (!reqUc.primaryActor) return;
+            const label = String(reqUc.name || '').trim();
+            if (!label) return;
+
+            const bestNode = useCases.reduce((best, u) => {
+                const ulabel = useCaseLabels.get(u.id);
+                if (!ulabel) return best;
+                const score = classifyUseCaseMatch(ulabel, label).score;
+                return score > best.score ? { score, node: u } : best;
+            }, { score: 0, node: null });
+            if (!bestNode.node || bestNode.score < 0.48) return;
+
+            const connectedEdges = edges.filter((e) => e.source === bestNode.node.id || e.target === bestNode.node.id);
+            const connectedLabels = connectedEdges
+                .map((e) => {
+                    const other = e.source === bestNode.node.id ? e.target : e.source;
+                    const n = actors.find((a) => a.id === other);
+                    return n ? actorLabels.get(n.id) : null;
+                })
+                .filter(Boolean);
+            if (connectedLabels.length === 0) return;
+
+            const bestMatch = connectedLabels.reduce((best, al) => {
+                const s = actorRoleSimilarity(al, reqUc.primaryActor);
+                return s > best.score ? { score: s, label: al } : best;
+            }, { score: 0, label: null });
+
+            if (bestMatch.score >= 0.72) return;
+
+            const wrongActor = bestMatch.label || connectedLabels[0];
+            const reason = this.requirementSentence(reqText, reqUc);
+            issues.push({
+                type: 'diagram', severity: 'warning', location: 'diagram',
+                code: 'CASE_STUDY_ACTOR_USE_CASE_MISMATCH',
+                context: {
+                    useCase: label,
+                    expectedActor: reqUc.primaryActor,
+                    submittedActor: wrongActor,
+                    matchedScore: Math.round(bestMatch.score * 100) / 100,
+                    confidence: Math.round(bestMatch.score * 100) / 100,
+                    specCode: 'ACTOR_RESPONSIBILITY_MISMATCH',
+                    requirement: reason,
+                    suggestion: `The assignment assigns "${label}" to "${reqUc.primaryActor}", but the diagram connects it to "${wrongActor}". Connect "${label}" to "${reqUc.primaryActor}" instead.`,
+                },
+            });
+        });
+    }
+
+
+    static buildCaseStudyReport(issues, analysis, requirementModel) {
+        const gen = require('../nlp/suggestionGenerator');
+        const systemCandidates = gen.deriveSystemNameCandidates
+            ? gen.deriveSystemNameCandidates(requirementModel) || []
+            : [];
+
+        const actorLabels = analysis.actorLabels || new Map();
+        const useCaseLabels = analysis.useCaseLabels || new Map();
+        const submittedActors = analysis.actors.map((a) => actorLabels.get(a.id)).filter(Boolean);
+
+        const { actorRoleSimilarity, classifyUseCaseMatch } = require('../nlp/similarity');
+
+        const reqActors = (requirementModel.actors || []).slice();
+        const reqUseCases = (requirementModel.useCases || []).map((u) => ({
+            name: String(u.name || ''),
+            primaryActor: u.primaryActor || null,
+            confidence: typeof u.confidence === 'number' ? u.confidence : 0,
+            highConfidence: u.highConfidence === true,
+        }));
+
+        const reliable = requirementModel.reliable !== false;
+        const loginSupported = requirementModel.loginSupported === true;
+        const HIGH_CONFIDENCE = 0.75;
+        const AUTH_RE = /\b(log(?:g)?(?:s|ged|ging)?\s*in|log(?:g)?(?:s|ged|ging)?\s*out|sign\s*in|sign\s*out|sign\s*up|login|logon|logout|authenticate|authentication|sso|register|registration)\b/i;
+        const authName = (labelText) => AUTH_RE.test(String(labelText || ''));
+        const CAPABILITY_VERB_RE = /\b(?:add|create|delete|update|view|browse|search|manage|maintain|book|pay|submit|login|log|register|send|validate|verify|save|edit|remove|list|show|display|approve|reject|generate|process|order|place|enroll|enrol|check|track|post|publish|announce|enter|select|choose|review|rate|download|upload|print|export|import|buy|sell|issue|schedule|record|hold|return|reserve|assign|allocate|enquire|enquire)\w*\b/i;
+
+        const caseStudyIssues = issues.filter(
+            (i) => i.code && (i.code.startsWith('CASE_STUDY') || (i.context && i.context.specCode)));
+
+        const findings = caseStudyIssues.map((issue) => ({
+            code: issue.context && issue.context.specCode ? issue.context.specCode : issue.code,
+            legacyCode: issue.code,
+            severity: issue.severity,
+            message: issue.message,
+            relatedId: issue.relatedId || null,
+            context: { ...(issue.context || {}) },
+        }));
+
+        const byCode = {};
+        let errorCount = 0;
+        let warningCount = 0;
+        let infoCount = 0;
+        caseStudyIssues.forEach((issue) => {
+            const key = issue.context && issue.context.specCode ? issue.context.specCode : issue.code;
+            byCode[key] = (byCode[key] || 0) + 1;
+            if (issue.severity === 'error') errorCount++;
+            else if (issue.severity === 'warning') warningCount++;
+            else infoCount++;
+        });
+
+        // Per-actor status: found / typo / missing.
+        const actorStatus = reqActors.map((actor) => {
+            let best = { score: 0, submitted: null };
+            submittedActors.forEach((sActor) => {
+                const s = actorRoleSimilarity(actor, sActor);
+                if (s > best.score) best = { score: s, submitted: sActor };
+            });
+            let status = 'missing';
+            if (best.score >= 0.97) status = 'found';
+            else if (best.score >= 0.72) status = 'typo';
+            return {
+                actor,
+                status,
+                submitted: best.submitted,
+                matchedScore: Math.round(best.score * 100) / 100,
+            };
+        });
+
+        // Per-use-case status: found / missing / lowConfidence / optional / invalid.
+        const useCaseStatus = reqUseCases.map((uc) => {
+            const label = uc.name;
+            const base = {
+                useCase: label,
+                primaryActor: uc.primaryActor,
+                confidence: uc.confidence,
+                highConfidence: uc.highConfidence,
+            };
+            if (!label || (authName(label) && loginSupported)) {
+                return { ...base, status: 'optional' };
+            }
+            if (uc.highConfidence === false && uc.confidence < HIGH_CONFIDENCE) {
+                return { ...base, status: 'lowConfidence' };
+            }
+            if (!CAPABILITY_VERB_RE.test(label)) {
+                return { ...base, status: 'invalid', submitted: null, matchedScore: 0 };
+            }
+            let best = { score: 0, submitted: null };
+            [...useCaseLabels.values()].forEach((sUc) => {
+                const s = classifyUseCaseMatch(sUc, label).score;
+                if (s > best.score) best = { score: s, submitted: sUc };
+            });
+            return {
+                ...base,
+                status: best.score >= 0.48 ? 'found' : 'missing',
+                submitted: best.submitted,
+                matchedScore: Math.round(best.score * 100) / 100,
+            };
+        });
+
+        // System boundary status.
+        let systemName = { status: 'missing', submitted: null, expected: systemCandidates[0] || null, matchedScore: null };
+        const boundary = (analysis.nodes || []).find((n) => n.type === 'systemBoundary');
+        if (boundary && boundary.data && typeof boundary.data.label === 'string' && boundary.data.label.trim()) {
+            const submitted = boundary.data.label.trim();
+            const invalid = SYSTEM_INVALID_NAMES.includes(submitted.toLowerCase());
+            systemName = {
+                status: invalid ? 'invalid' : 'found',
+                submitted,
+                expected: systemCandidates[0] || null,
+                matchedScore: null,
+            };
+            if (!invalid) {
+                const report = this.systemNameMatch(requirementModel, (requirementModel.sources || []).join(' '), submitted);
+                if (report.bestDomainTerm && report.score < 0.5) {
+                    systemName.status = 'mismatch';
+                    systemName.expected = report.bestDomainTerm;
+                    systemName.matchedScore = Number(report.score.toFixed(2));
+                }
+            }
+        }
+
+        const foundActorCount = submittedActors.length;
+        const foundUseCaseCount = analysis.useCases.filter(
+            (u) => (analysis.useCaseLabels || new Map()).get(u.id)).length;
+
+        // Overall verdict drives the UI banner: insufficient → validation-only.
+        const overall = !reliable
+            ? 'insufficient'
+            : (errorCount > 0 ? 'errors' : (warningCount > 0 ? 'warnings' : 'consistent'));
+
+        return {
+            expected: {
+                actors: reqActors,
+                useCases: reqUseCases,
+                systemCandidates,
+            },
+            submittedActors,
+            findings,
+            counts: {
+                total: caseStudyIssues.length,
+                error: errorCount,
+                warning: warningCount,
+                info: infoCount,
+                byCode,
+            },
+            coverage: {
+                actorCoverage: reqActors.length ? foundActorCount / reqActors.length : 1,
+                useCaseCoverage: reqUseCases.length ? foundUseCaseCount / reqUseCases.length : 1,
+            },
+            validation: {
+                reliable,
+                loginSupported,
+                reasoning: (requirementModel.context && requirementModel.context.reasoning) || null,
+                signals: (requirementModel.context && requirementModel.context.signals) || null,
+            },
+            actorStatus,
+            useCaseStatus,
+            systemName,
+            overall,
+        };
+    }
+
+    /** @private score between 0..1 for an actor label vs a requirement actor */
+    static actorRoleMatch(a, b) {
+        return require('../nlp/similarity').actorRoleSimilarity(a, b);
+    }
+
+
+    static systemNameMatch(requirementModel, reqText, sysLabel) {
+        const { extractKeywords, similarity } = require('../nlp/similarity');
+        const gen = require('../nlp/suggestionGenerator');
+        const candidates = gen.deriveSystemNameCandidates
+            ? gen.deriveSystemNameCandidates(requirementModel) || []
+            : [];
+
+        // Generic/infrastructure tokens that should not count as domain evidence.
+        const GENERIC = new Set([
+            'system', 'systems', 'portal', 'website', 'web', 'site', 'online',
+            'application', 'app', 'management', 'manage', 'module', 'information',
+            'info', 'data', 'database', 'platform', 'option', 'options', 'service',
+            'services', 'user', 'users', 'login', 'logged', 'logout', 'front',
+            'back', 'admin', 'develop', 'development', 'new', 'old', 'software',
+            'program', 'room', 'design',
+        ]);
+
+        const domainTerms = new Set();
+        const addTerms = (arr) => String(arr || '')
+            .toLowerCase().split(/[^a-z]+/)
+            .forEach((w) => { if (w.length > 2 && !GENERIC.has(w)) domainTerms.add(w); });
+        (requirementModel.actors || []).forEach((a) => addTerms(a));
+        (requirementModel.useCases || []).forEach((uc) => addTerms(uc.name));
+        candidates.forEach((c) => addTerms(c));
+        String(reqText || '').toLowerCase().split(/[^a-z]+/)
+            .forEach((w) => { if (w.length > 3 && !STOP_WORDS.has(w) && !GENERIC.has(w)) domainTerms.add(w); });
+
+        const labelTerms = extractKeywords(String(sysLabel || ''))
+            .map((k) => String(k).toLowerCase())
+            .filter((t) => !GENERIC.has(t));
+        if (labelTerms.length === 0) return { score: 0, bestDomainTerm: null, confidence: 0 };
+
+        let best = 0;
+        domainTerms.forEach((d) => {
+            labelTerms.forEach((t) => {
+                const s = t === d ? 1 : fuzzyIncludes(d, t) ? 0.85 : similarity(t, d);
+                if (s > best) best = s;
+            });
+        });
+
+        return {
+            score: best,
+            bestDomainTerm: best < 0.5 ? candidates[0] || null : null,
+            confidence: Math.max(0, Math.min(1, best)),
+        };
+    }
+
+    /** pull the most relevant requirement sentence for a use case from the assignment text */
+    static requirementSentence(reqText, reqUc) {
+        const sentences = (typeof reqText === 'string' ? reqText : (reqText.sources || []).join(' '));
+        return sentences.length > 0 ? sentences.slice(0, 120) + (sentences.length > 120 ? '…' : '') : '';
+    }
+
+    /** assignment-aware suggestion text listing viable system-name candidates */
+    static systemCandidateSuggestion(requirementModel) {
+        const gen = require('../nlp/suggestionGenerator');
+        const candidates = gen.deriveSystemNameCandidates ? gen.deriveSystemNameCandidates(requirementModel) || [] : [];
+        if (candidates.length > 0) {
+            const list = candidates.slice(0, 3).map((c) => `"${c}"`).join(' or ');
+            return `Name the system according to the assignment, e.g. ${list}.`;
+        }
+        return 'Give the system boundary a name that represents the assignment domain.';
+    }
+
+    /** build a missing-use-case suggestion from the requirement evidence */
+    static useCaseMissingSuggestion(reqUc, reason) {
+        const name = String(reqUc.name || '').trim();
+        const actor = reqUc.primaryActor || 'the actor';
+        const base = `Add a use case for "${name}" performed by ${actor}.`;
+        return reason ? `${reason}\n${base}` : base;
+    }
+
+    static describeActorExpectation(actor, requirementModel) {
+        const sourceSentence = this.actorSentence(actor, requirementModel);
+        return sourceSentence ? `the sentences mention "${sourceSentence}"` : `the actor should perform the responsibilities described in the assignment`;
+    }
+
+    static actorSentence(actor, requirementModel) {
+        const r = (requirementModel.responsibilities || []).find((r) =>
+            String(r.actor || '').toLowerCase() === String(actor).toLowerCase());
+        return r ? r.sourceSentence || '' : '';
+    }
+
+    static useCaseSuggestionUseCase(reqUc, reason) {
+        const name = String(reqUc.name || '').trim();
+        const actor = reqUc.primaryActor || 'the actor';
+        const base = `The assignment requires the function "${name}" (performed by ${actor}). Consider adding a use case representing "${name}" and connecting it to the appropriate actor.`;
+        return reason ? `${reason}\n${base}` : base;
+    }
+
+    static useCaseSuggestionFor(reason, label) {
+        return reason
+            ? `According to the assignment: ${reason}. The submitted use case "${label}" is not supported.`
+            : `The submitted use case "${label}" is not supported by the assignment.`;
+    }
+
+    // Helper: recommendations from source sentence.
+    static ucdSuggestionFor(sentence) {
+        const { suggestFromSentence } = require('../nlp/sentenceUtils');
+        const s = suggestFromSentence(sentence);
+        return s && s.nearestMessage ? s.nearestMessage : null;
+    }
+
+
     static validateUseCaseRelationships(diagram, issues, analysis) {
         if (!diagram?.edges?.length) return;
 
@@ -531,7 +1155,7 @@ class CheckingEngine {
             let desc = descriptions[node.id];
             const nodeLabel = this.getNodeLabel(node.id, useCaseLabels);
 
-            // ID-based lookup failed — try name-based fallback for stale relatedId
+            // ID-based lookup failed â€” try name-based fallback for stale relatedId
             if (!desc) {
                 const nodeNameNorm = normalizeName(nodeLabel);
                 if (nodeNameNorm && descriptionByName.has(nodeNameNorm)) {
@@ -575,7 +1199,7 @@ class CheckingEngine {
                 if (descName !== diagramLabel && descName !== 'unnamed' && diagramLabel !== 'unnamed') {
                     const semantic = evaluateFunctionMatch(desc.useCaseName, nodeLabel);
                     if (semantic.matchType === 'STRONG' || semantic.matchType === 'EXACT') {
-                        // Semantically equivalent (synonyms / word order) — acceptable, no error
+                        // Semantically equivalent (synonyms / word order) â€” acceptable, no error
                     } else if (semantic.matchType === 'PARTIAL') {
                         issues.push({
                             type: 'consistency',
@@ -671,7 +1295,7 @@ class CheckingEngine {
                 }
             }
 
-            // 2. Check preconditions — accept string or array
+            // 2. Check preconditions â€” accept string or array
             let preValue = desc.preconditions;
             if (Array.isArray(preValue)) preValue = preValue.join(' ');
             const preStr = (typeof preValue === 'string' ? preValue : '').trim();
@@ -702,7 +1326,7 @@ class CheckingEngine {
                 }
             }
 
-            // 3. Check postconditions — accept string or array
+            // 3. Check postconditions â€” accept string or array
             let postValue = desc.postconditions;
             if (Array.isArray(postValue)) postValue = postValue.join(' ');
             const postStr = (typeof postValue === 'string' ? postValue : '').trim();
@@ -793,7 +1417,7 @@ class CheckingEngine {
             const ssdRawData = ssds[nodeId];
 
             // Resolve a human-readable name for this Use Case in error messages:
-            // Priority: useCaseLabels (from diagram) → description.useCaseName → 'this Use Case'
+            // Priority: useCaseLabels (from diagram) â†’ description.useCaseName â†’ 'this Use Case'
             const ucName = this.getUseCaseName(nodeId, useCaseLabels, descriptions);
 
             if (!ssdRawData) return;
@@ -818,7 +1442,7 @@ class CheckingEngine {
                     type: 'ssd',
                     severity: 'error',
                     code: 'INCOMPLETE_SSD',
-                    message: `SSD for "${ucName}" is incomplete — add both an Actor and a System lifeline.`,
+                    message: `SSD for "${ucName}" is incomplete â€” add both an Actor and a System lifeline.`,
                     relatedId: nodeId,
                     context: { useCaseId: nodeId },
                     location: 'ssd'
@@ -836,7 +1460,7 @@ class CheckingEngine {
                         type: errObj.type || 'ssd',
                         severity: errObj.severity || 'error',
                         code: errObj.code || 'SSD_SEMANTIC_ERROR',
-                        // Never include raw UUIDs in the message — use the friendly ucName
+                        // Never include raw UUIDs in the message â€” use the friendly ucName
                         message: `${errObj.message} (Use Case: "${ucName}")`,
                         relatedId: nodeId,
                         context: { useCaseId: nodeId, elementId: errObj.relatedId },
@@ -995,13 +1619,13 @@ class CheckingEngine {
                 const isActorStep = stepText.includes('actor') || stepText.includes('user') || (desc.primaryActor && stepText.includes(desc.primaryActor.toLowerCase()));
                 const isSystemStep = stepText.startsWith('system');
 
-                // ── CLASSIFY SYSTEM STEP ────────────────────────────────────────
+                // â”€â”€ CLASSIFY SYSTEM STEP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 // Determine whether this is an Internal Operation (self-loop)
-                // or an External Response (System → Actor arrow)
+                // or an External Response (System â†’ Actor arrow)
                 const systemClass = isSystemStep ? this.classifySystemStep(stepTextOrig) : null;
                 const expectSelfLoop = systemClass === 'self';       // e.g. "System calculates ..."
                 const expectExternal = systemClass === 'external';   // e.g. "System displays ..."
-                // ────────────────────────────────────────────────────────────────
+                // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
                 if (isSystemStep && !isActorStep && sender && sender.type === 'actor') {
                     issues.push({
@@ -1019,7 +1643,7 @@ class CheckingEngine {
                     });
                 }
 
-                // ── SELF-LOOP VALIDATION ─────────────────────────────────────
+                // â”€â”€ SELF-LOOP VALIDATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 if (expectSelfLoop && sender && receiver) {
                     const isSelfLoop = msg.type === 'self' || sender.id === receiver.id;
                     if (!isSelfLoop) {
@@ -1039,7 +1663,7 @@ class CheckingEngine {
                     }
                 }
 
-                // ── EXTERNAL RESPONSE VALIDATION ─────────────────────────────
+                // â”€â”€ EXTERNAL RESPONSE VALIDATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 if (expectExternal && sender && receiver) {
                     const isSelfLoop = msg.type === 'self' || sender.id === receiver.id;
                     if (isSelfLoop) {
@@ -1047,13 +1671,13 @@ class CheckingEngine {
                             type: 'consistency',
                             severity: 'warning',
                             code: 'SSD_CONSISTENCY_SHOULD_BE_EXTERNAL',
-                            message: 'Expected System → Actor Message',
+                            message: 'Expected System â†’ Actor Message',
                             relatedId: ucId,
                             location: 'ssd',
                             context: {
                                 stepNumber: `${stepNo}`,
                                 problem: `Step ${stepNo} ("${stepTextOrig.substring(0, 60)}") is an output/response from System. Message ${msg.order} ("${msgOrig}") should target the Actor, not be a self-loop.`,
-                                suggestion: `Change "${msgOrig}" to a normal System → Actor arrow.`
+                                suggestion: `Change "${msgOrig}" to a normal System â†’ Actor arrow.`
                             }
                         });
                     } else if (receiver.type !== 'actor') {
@@ -1073,7 +1697,7 @@ class CheckingEngine {
                     }
                 }
 
-                // Generic target check – skip for classified messages (handled above)
+                // Generic target check â€“ skip for classified messages (handled above)
                 if (!expectSelfLoop && !expectExternal && receiver && receiver.type !== 'system' && !msg.isReturn) {
                     issues.push({
                         type: 'consistency',
@@ -1107,7 +1731,7 @@ class CheckingEngine {
                     });
                 }
 
-                // Validate naming — also surface smart suggestions for how to name the message
+                // Validate naming â€” also surface smart suggestions for how to name the message
                 const sg = this.suggestFromSentence(stepTextOrig);
                 const hasParens = msgOrig.includes('(') || msgOrig.includes(')');
 
@@ -1135,7 +1759,7 @@ class CheckingEngine {
                 }
 
             } else {
-                // Not found — generate smart naming suggestions from the step sentence
+                // Not found â€” generate smart naming suggestions from the step sentence
                 const sg = this.suggestFromSentence(stepTextOrig);
 
                 issues.push({
@@ -1182,12 +1806,7 @@ class CheckingEngine {
         });
     }
 
-    /**
-     * Description <-> SSD semantic alignment (Step 2 -> Step 3).
-     * Uses the centralized semantic processor to detect main-flow steps
-     * that have no semantically matching SSD message, and SSD messages
-     * that do not semantically correspond to any main-flow step.
-     */
+
     static validateDescriptionSSDSemantics(descriptions, ssds, issues, analysis, targetId = null) {
         if (!descriptions || !ssds) return;
 
@@ -1746,16 +2365,6 @@ class CheckingEngine {
         });
     }
 
-    /**
-     * Sequence activation-bar validation (UML standard).
-     *
-     * The editor model may carry activation data as `semanticData.activations`
-     * (array of { participantId, startMessageId, endMessageId, depthLevel }),
-     * mirroring the SSD schema. When present:
-     *   - each activation must reference an existing lifeline/message → SEQUENCE_ACTIVATION_INVALID
-     *   - every synchronous call landing on an object lifeline must be covered
-     *     by an activation bar on that lifeline → SEQUENCE_ACTIVATION_BAR_MISSING
-     */
     static validateSequenceActivations(sequenceDiagrams, issues, analysis) {
         if (!sequenceDiagrams) return;
 
@@ -1819,18 +2428,7 @@ class CheckingEngine {
         });
     }
 
-    /**
-     * Sequence combined-fragment validation (loop / alt / opt / par / ...).
-     *
-     * The editor model may carry fragments as `semanticData.fragments` or
-     * `semanticData.combinedFragments` (array of { operator, guard, operands }).
-     * Checks:
-     *   - unknown operator                                       → SEQUENCE_COMBINED_FRAGMENT_INVALID
-     *   - loop/alt/opt/par fragments missing a guard condition    → SEQUENCE_COMBINED_FRAGMENT_MISSING_GUARD
-     *   - alt fragments with fewer than two operands              → SEQUENCE_COMBINED_FRAGMENT_INVALID
-     *   - scenario contains conditional/alternative steps but the
-     *     sequence diagram declares no combined fragment          → SEQUENCE_COMBINED_FRAGMENT_MISSING
-     */
+
     static validateSequenceCombinedFragments(sequenceDiagrams, descriptions, issues, analysis) {
         if (!sequenceDiagrams) return;
 
@@ -1851,7 +2449,7 @@ class CheckingEngine {
             const hasFragmentsData = Array.isArray(fragments);
             const hasFragments = hasFragmentsData && fragments.length > 0;
 
-            // ── Structural fragment validation (only when fragment data is present) ──
+            // â”€â”€ Structural fragment validation (only when fragment data is present) â”€â”€
             if (hasFragmentsData) {
                 fragments.forEach((frag, idx) => {
                     const operator = String(frag?.operator || frag?.type || '').toLowerCase().trim();
@@ -1897,7 +2495,7 @@ class CheckingEngine {
                 });
             }
 
-            // ── Cross-diagram: conditional scenario should be reflected in a fragment ──
+            // â”€â”€ Cross-diagram: conditional scenario should be reflected in a fragment â”€â”€
             const desc = (descriptions || {})[uc.id];
             if (!desc || !hasFragmentsData || hasFragments) return;
 
@@ -2051,22 +2649,7 @@ class CheckingEngine {
         });
     }
 
-    /**
-     * Class diagram structural validation (Phase 12). Only rules that fit this
-     * application's modeling format are applied (nodes carry label/attributes/
-     * methods; edges carry one of the relationship types below). Deliberately
-     * NOT added: aggregation-vs-composition multiplicity semantics, because the
-     * editor does not capture multiplicities to reason over.
-     *
-     * Checks:
-     *   - invalid class names                     → CLASS_NAME_INVALID
-     *   - attribute types missing                 → CLASS_ATTRIBUTE_TYPE_MISSING
-     *   - attribute visibility missing            → CLASS_ATTRIBUTE_VISIBILITY
-     *   - duplicate method signatures per class   → CLASS_DUPLICATE_METHOD
-     *   - dangling relationship endpoints         → CLASS_RELATIONSHIP_DANGLING
-     *   - circular inheritance                    → CLASS_INHERITANCE_CYCLE
-     *   - realization targeting a non-interface   → CLASS_IMPLEMENTATION_TARGET_NOT_INTERFACE
-     */
+
     static validateClassDiagramStructure(classDiagram, issues, analysis) {
         if (!classDiagram?.nodes?.length) return;
 
@@ -2076,7 +2659,6 @@ class CheckingEngine {
         const nodesById = new Map(classNodes.map((n) => [n.id, n]));
         const labelOf = (id) => nodesById.get(id)?.data?.label || id;
 
-        // ── Invalid class names ────────────────────────────────────────────
         classNodes.forEach((node) => {
             const label = (node.data?.label || '').trim();
             if (!label) return;
@@ -2094,7 +2676,7 @@ class CheckingEngine {
             }
         });
 
-        // ── Per-class attributes and methods ───────────────────────────────
+
         classNodes.forEach((node) => {
             const label = (node.data?.label || '').trim();
             if (!label) return;
@@ -2146,7 +2728,7 @@ class CheckingEngine {
             });
         });
 
-        // ── Relationship edges ─────────────────────────────────────────────
+
         const edges = classDiagram.edges || [];
         const inheritance = [];
         const VALID_RELATIONSHIP_TYPES = new Set([
@@ -2198,10 +2780,7 @@ class CheckingEngine {
                 });
             }
 
-            // Multiplicity on relationship ends (when multiplicity data is present,
-            // validate it; for composition/aggregation/association/... the editor
-            // can optionally declare sourceMultiplicity/targetMultiplicity on the
-            // edge data or as a label such as "1..*").
+
             const srcMult = edge.data?.sourceMultiplicity ?? edge.data?.fromMultiplicity;
             const tgtMult = edge.data?.targetMultiplicity ?? edge.data?.toMultiplicity;
             const edgeLabelMult = typeof edge.label === 'string' ? edge.label.trim() : '';
@@ -2231,7 +2810,7 @@ class CheckingEngine {
                         // Strip any prefix like "src: " or "1..*" tokens separated by spaces
                         const parts = raw.split(/\s*,\s*|\s+(?=\d|\*)/).map((p) => p.trim()).filter(Boolean);
                         parts.forEach((part) => {
-                            if (part.includes(' ')) return; // free text like "exactly two" — skip
+                            if (part.includes(' ')) return; // free text like "exactly two" â€” skip
                             if (!MULTIPLICITY_RE.test(part)) {
                                 issues.push({
                                     type: 'class-diagram',
@@ -2283,10 +2862,7 @@ class CheckingEngine {
         this._emitInheritanceCycles(inheritance, nodesById, issues);
     }
 
-    /**
-     * Report circular inheritance. An edge src→tgt participates in a cycle
-     * iff the target can reach the source via other inheritance edges.
-     */
+
     static _emitInheritanceCycles(edges, nodesById, issues) {
         if (edges.length === 0) return;
 
@@ -2328,26 +2904,7 @@ class CheckingEngine {
         });
     }
 
-    /**
-     * SSD operation <-> Class operation full-signature validation (Phase 10).
-     * For every SSD message this validates (in order):
-     *   1. An appropriate class exists            → MISSING_CLASS
-     *   2. The operation exists                    → MISSING_CLASS_OPERATION
-     *   3. The operation is semantically equivalent → CLASS_OPERATION_SEMANTIC_MATCH
-     *   4. Parameters are present & aligned        → CLASS_PARAMETER_MISMATCH
-     *   5. Parameter types are declared             → CLASS_PARAMETER_TYPE_MISSING
-     *   6. Return type is declared where required   → CLASS_RETURN_TYPE_MISSING
-     *   7. Visibility is valid                      → CLASS_METHOD_VISIBILITY
-     *   8. Parameter names are reasonable           → (baked into check 4)
-     *
-     * (Responsibility placement — check 9 — is delegated to
-     * `validateSSDClassResponsibility`, which is a single general,
-     * evidence-based rule, not a per-keyword special case.)
-     *
-     * Each issue carries a `context.result` label from the granular taxonomy:
-     * PASS | STRONG_MATCH | PARTIAL_MATCH | MISSING_CLASS | MISSING_METHOD |
-     * PARAMETER_MISMATCH | SEMANTIC_METHOD_MISMATCH | RESPONSIBILITY_WARNING
-     */
+
     static validateSSDClassOperations(classDiagram, ssds, issues, analysis) {
         if (!ssds) return;
 
@@ -2368,7 +2925,7 @@ class CheckingEngine {
 
                 const semantic = semanticProcessor.processSSDMessage(msg, ucId);
 
-                // Check 1 — an appropriate class exists.
+                // Check 1 â€” an appropriate class exists.
                 if (classes.length === 0) {
                     issues.push({
                         type: 'consistency',
@@ -2385,7 +2942,7 @@ class CheckingEngine {
                     return;
                 }
 
-                // Checks 2 & 3 — the operation exists and is semantically equivalent.
+                // Checks 2 & 3 â€” the operation exists and is semantically equivalent.
                 let best = null;
                 methods.forEach((m) => {
                     const mSemantic = SemanticRepresentation.fromClassMethod(m);
@@ -2416,7 +2973,7 @@ class CheckingEngine {
                 const { method, verdict } = best;
                 const paramNames = (method.parameters || []).map((p) => p.name).join(', ');
 
-                // Check 4 — parameters present & aligned (takes precedence over name nuance).
+                // Check 4 â€” parameters present & aligned (takes precedence over name nuance).
                 if (!verdict.checks.parameters.matched) {
                     issues.push({
                         type: 'consistency',
@@ -2449,7 +3006,7 @@ class CheckingEngine {
                     });
                 }
 
-                // Check 6 — return type defined where required.
+                // Check 6 â€” return type defined where required.
                 if (verdict.checks.returnType.required && !verdict.checks.returnType.present) {
                     issues.push({
                         type: 'consistency',
@@ -2465,7 +3022,7 @@ class CheckingEngine {
                     });
                 }
 
-                // Check 5 — parameter types declared where required.
+                // Check 5 â€” parameter types declared where required.
                 if (verdict.checks.paramTypes.missing.length > 0) {
                     issues.push({
                         type: 'consistency',
@@ -2481,7 +3038,7 @@ class CheckingEngine {
                     });
                 }
 
-                // Check 7 — visibility valid for an actor-invoked operation.
+                // Check 7 â€” visibility valid for an actor-invoked operation.
                 if (!verdict.checks.visibility.valid) {
                     issues.push({
                         type: 'consistency',
@@ -2502,8 +3059,8 @@ class CheckingEngine {
 
     /**
      * Derive evidence-based alternative responsibility homes from an operation's
-     * object noun. Purely constructive — these are the classes a student might
-     * reasonably create for that domain (Payment → Payment/PaymentService/...).
+     * object noun. Purely constructive â€” these are the classes a student might
+     * reasonably create for that domain (Payment â†’ Payment/PaymentService/...).
      */
     static _suggestResponsibilityClasses(noun) {
         const base = String(noun || '')
@@ -2516,19 +3073,7 @@ class CheckingEngine {
         return [cap, `${cap}Service`, `${cap}Controller`, `${cap}Manager`];
     }
 
-    /**
-     * SSD <-> Class responsibility placement (Step 3 -> Step 4). GENERAL rule —
-     * not hardcoded to any single domain (payment, auth, orders, ...).
-     *
-     * For each SSD operation:
-     *   1. Extract the operation's object noun(s) from the function name.
-     *   2. Find existing classes whose domain semantically matches that noun
-     *      (evidence the operation has a more natural home).
-     *   3. If the operation is owned by a class outside those candidates,
-     *      surface an INFO/WARNING hint with evidence-based suggestions.
-     *
-     * Emits CLASS_RESPONSIBILITY_MISMATCH (info). Never escalates to error.
-     */
+
     static validateSSDClassResponsibility(classDiagram, ssds, issues, analysis) {
         if (!classDiagram?.nodes?.length || !ssds) return;
 
@@ -2599,7 +3144,7 @@ class CheckingEngine {
                     const suggestedClass = candidateClasses[0].label;
                     const noun = nouns[0];
                     // Evidence-based possible homes: existing candidates first,
-                    // then derived alternatives — never the current owner.
+                    // then derived alternatives â€” never the current owner.
                     const suggestedClasses = [];
                     const seen = new Set();
                     candidateClasses.forEach((c) => {
@@ -2827,7 +3372,7 @@ class CheckingEngine {
                 }
             }
 
-            // ── Phase 14 structural checks (data-supported by the editor model) ──
+            // â”€â”€ Phase 14 structural checks (data-supported by the editor model) â”€â”€
             // Duplicate lifelines: same participant drawn twice in one interaction.
             const seenLifelines = new Map();
             semanticData.lifelines.forEach((ll) => {
@@ -2995,11 +3540,7 @@ class CheckingEngine {
         });
     }
 
-    /**
-     * Sequence <-> Class receiver ownership semantics (Step 5 -> Step 4).
-     * For each non-return message targeting an object lifeline, the operation
-     * should be owned by the class that the receiver lifeline maps to.
-     */
+
     static validateSequenceClassOwnership(sequenceDiagrams, classDiagram, issues, analysis) {
         if (!sequenceDiagrams || !classDiagram?.nodes?.length) return;
 
@@ -3068,10 +3609,7 @@ class CheckingEngine {
         });
     }
 
-    /**
-     * Convert legacy React Flow diagram data to semantic SSD model
-     * Centralized utility for SSD data transformation
-     */
+
     static convertLegacyToSemantic(diagramData) {
         try {
             // Extract lifelines from React Flow nodes

@@ -1,356 +1,304 @@
-# Feature Documentation
+# Backend Features
 
-## Overview
-This document provides detailed information about the key features of the UML Tutor Backend API, focusing on the validation and consistency checking system.
+This document explains the features and inner workings of the UML Tutor
+backend. It is written in plain English and describes exactly what the code
+does today. If something is not here, it does not run.
 
-## Core Validation System
+## 1. Validation System
 
-### Rule Registry (src/rules/ruleRegistry.js)
-The rule registry contains **124 validation rules** (117 active, 7 deprecated/disabled) that govern the quality and consistency of UML diagrams. Each rule is defined with comprehensive metadata including:
+### 1.1 Rule catalogue (`rules/ruleRegistry.js`)
 
-- **Code**: Unique identifier (e.g., "ATMR-001")
-- **Name**: Human-readable name
-- **Severity**: "error", "warning", or "info"
-- **Category**: Rule classification
-- **Description**: Detailed explanation of the rule
-- **Enabled**: Whether the rule is active
-- **Dependencies**: Other rules this rule depends on
-- **Check Function**: The actual validation logic
+The backend ships **143 rule definitions**, of which **136 are active** and 7
+are disabled. Each entry has: an id and code, a name, the diagram type it
+applies to, a severity (`error` / `warning` / `info`), a category, a
+description and a human-friendly message template. Some rules carry
+`dependencies` — see 1.3.
 
-### Rule Pipeline (src/rules/rulePipeline.js)
-The rule pipeline executes validation rules in a **dependency-aware manner**. It handles:
+The rules cover all five modeling artifacts a student produces:
 
-1. **Root Cause Detection**: Identifies primary violations
-2. **Dependency Resolution**: Determines rule execution order
-3. **Error Suppression**: Prevents cascading errors from overwhelming the output
-4. **Result Compilation**: Generates final validation report
+- **Use case diagram** — boundary and system name, actor and use case naming,
+  connectivity, duplicates, include/extend/generalize relationships,
+  multi-boundary, and the dynamic case-study consistency group.
+- **Use case description** — title, primary actor, preconditions,
+  postconditions, main flow, alternative flows.
+- **System sequence diagram (SSD)** — lifelines, messages, return messages,
+  semantic alignment with the description.
+- **Class diagram** — class naming, attributes, methods, relationships,
+  multiplicity, structural rules.
+- **Sequence diagram** — lifelines, operations existence, activation bars,
+  combined fragments (`alt`/`loop`/`opt`/`par`), message ordering.
+- **Cross-diagram consistency** — description ↔ SSD ↔ class operations ↔
+  sequence, actor-name consistency, SSD ↔ class operation + responsibility
+  placement.
 
-### Key Features
+Categories (as counted from the registry): structural 25, consistency 40,
+naming 16, completeness 21, UML standard 21, NLP 13, best practice 7.
 
-#### Dependency-Aware Processing
-The pipeline ensures that rules are executed in the correct order based on their dependencies. This prevents:
+Helpers exposed by the registry: `getRuleByCode`, `getRulesByDiagramType`,
+`getRulesByCategory`, `getEnabledRules`, `getDependencyChain`,
+`getAffectedByDependency`.
 
-- **Cascading Errors**: A single mistake causing multiple errors
-- **False Positives**: Errors triggered by other errors
-- **Noise**: Overwhelming error reports
+### 1.2 Runtime configuration (`rules/ruleConfig.js`)
 
-#### Error Suppression
-When a rule has downstream dependencies, those dependent rules are marked as "SKIPPED_DEPENDENCY". This provides:
+A small runtime config lets operators enable/disable rules and override
+severities or thresholds at run time: `loadConfig`, `isRuleEnabled`,
+`getSeverity`, `getThreshold` (default 0.5), `getConfig`, `resetConfig`.
 
-- **Clean Error Reports**: Only root causes are shown
-- **Focused Feedback**: Students get clear, actionable guidance
-- **Better UX**: Less frustration with overwhelming errors
+### 1.3 Pipeline (`rules/rulePipeline.js`)
 
-## Auto-Fix Suggestions (src/services/suggestionEngine.js)
+The pipeline is dependency-aware and runs the engine in phases:
 
-### Integration Points
-The suggestion engine integrates with:
+- `checkModelPhased(model)` — runs 6 phases in order: **diagram, description,
+  ssd, class-diagram, sequence-diagram, consistency**. A critical error early in
+  a phase prevents wasted downstream validation.
+- `checkModelWithPipeline(model, requirementModel?)` — after the engine runs,
+  it enriches issues and applies **cascade suppression**: when one root cause
+  explains many symptoms (for example every use case is flagged because the
+  boundary was never created), the downstream findings are collapsed so the
+  student sees the real problem instead of a wall of errors.
 
-- **Student Flow**: During diagram creation
-- **Teacher Flow**: During assignment review
-- **API Validation**: Via `/api/check` endpoint
+This keeps reports focused: root causes first, noise removed.
 
-### Suggestion Categories
-1. **Add Missing Elements**: Add missing actors, use cases, etc.
-2. **Fix Naming**: Rename incorrectly named elements
-3. **Correct Relationships**: Fix broken connections
-4. **Improve Descriptions**: Suggest better wording
-5. **Structural Fixes**: Reorganize diagram elements
+## 2. Validation Engine (`services/checkingEngine.js`)
 
-### Format
-Each suggestion includes:
-- **Type**: Category of suggestion
-- **Message**: User-friendly explanation
-- **Action**: Function to implement the fix
-- **Context**: Information about how to apply the suggestion
+The heart of the system is a **static `checkModel(...)`** that delegates to
+about 40 `validate*` methods. It accepts the full UML model and, optionally, a
+parsed requirement model. It evaluates:
 
-## API Endpoints
+- use case diagram structure and relationships;
+- use case descriptions and their flows;
+- SSD structure and description↔SSD semantics;
+- class diagram structure and SSD↔class operation mapping;
+- sequence structure, activations and combined fragments;
+- cross-diagram global consistency (mapping every use case's actors, methods,
+  lifelines and messages across the five artifacts);
+- the **dynamic case-study → use case diagram** consistency group (see §4).
 
-### POST /api/check
-Main validation endpoint that accepts UML models and returns validation results.
+It also exposes `analyzeDiagram` (used by the pipelines) and
+`buildCaseStudyReport` (the front-end report builder).
 
-**Request Body**
-```json
+## 3. Offline NLP Support (`nlp/`)
+
+All text analysis is deterministic and offline — no external AI calls.
+
+- **`similarity.js`** — Levenshtein distance, `similarity`/`fuzzyMatch`,
+  best-match search, keyword extraction, token normalization, lemmatization,
+  synonym groups, phrasal-verb matching, and two higher-level matchers used
+  everywhere: `actorRoleSimilarity` and `classifyUseCaseMatch`.
+- **`sentenceUtils.js`** — helpers to validate sentences and naming, classify
+  system steps, parse scenario steps, and parse method signatures / class
+  attributes.
+- **`semanticService.js`** — a shared `SemanticRepresentation` + processor so
+  SSD messages, sequence operations and class methods are compared by the same
+  rules across validation phases.
+- **`constants.js`** — shared dictionaries (verbs, internal vs external verbs,
+  stop words, placeholder names, system-invalid names, synonym groups,
+  lemmatization map) and thresholds (`MATCH_THRESHOLD` 0.5,
+  `PARTIAL_THRESHOLD` 0.25).
+
+### 3.1 Requirement parser (`nlp/promptRequirementParser.js`)
+
+`parseRequirementText(text)` turns free-text requirement prose into a
+structured model:
+
+```js
 {
-  "diagram": {...},           // UML diagram data
-  "useCaseDescription": {...}, // Use case descriptions
-  "classDiagram": {...},      // Class diagram data
-  "sequenceDiagrams": {...},  // Sequence diagrams
-  "systemSequenceDiagrams": {...} // SSD data
+  actors: [],                 // role nouns mentioned (normalized, singular)
+  useCases: [],               // derived capabilities with name + primaryActor
+  responsibilities: [],       // actor → capability pairs
+  requirements: { TYPE: [sentences] },  // non-functional prose, bucketed
+  coverage: 0..1,             // how completely the prose was understood
+  sources: [],                // raw sentences
+  reliable: true|false,       // is there enough text to check at all?
+  loginSupported: true|false, // does the text mention authentication?
+  context: { reasoning, signals },  // reliability explanation
 }
 ```
 
-**Response Body**
-```json
+Each derived use case carries `confidence` (0..1) and `highConfidence`
+(`confidence ≥ 0.75`). The parser splits conjoined action phrases (including
+comma-separated verb lists) into separate capabilities, re-attaches purpose
+clauses (`… to <action> …` becomes the goal), and normalizes plural role nouns
+to a single actor. It never contains a fixed assignment model.
+
+### 3.2 Requirement classifier (`nlp/requirementClassifier.js`)
+
+`classifyRequirementSentence` labels each sentence with one of the requirement
+types (functional, system step, supporting step, actor, domain entity,
+business rule, precondition, postcondition, constraint, non-functional,
+context, ambiguous). Only **functional** sentences may become expected use
+cases; everything else is bucketed under `requirements.<TYPE>` and is never
+turned into a fake use case.
+
+### 3.3 Reliability analysis (`analyzeCaseStudyContext`)
+
+A function in the parser scores five signals to decide whether the text is
+substantial enough to check:
+
+1. are there multiple descriptive sentences?
+2. is there enough content (non-stop) vocabulary?
+3. is there a functional (action) verb?
+4. does an actor perform an action?
+5. is the prose semantically complete (covers the actors it named)?
+
+Each signal appears in `context.signals`. If the text is too thin, `reliable`
+is `false` and the engine refuses to guess expected actors/use cases.
+
+## 4. Case-Study-Driven Use Case Diagram Checking
+
+This is the teacher-facing feature: the student draws a use case diagram, and
+the backend checks it against the **assignment's own text**.
+
+**Flow on every `run-check`:**
+
+1. `requirementService.getRequirementTextForAssignment` reads the assignment's
+   `requirementText` (falling back to `textContent`). There is no snapshot —
+   the text is re-parsed on every check, so edits can never go stale.
+2. `requirementService.getRequirementModelForSubmission` parses it with the NLP
+   parser above.
+3. `CheckingEngine.validateCaseStudyDiagramConsistency` compares the student's
+   diagram to the parsed model and emits `CASE_STUDY_*` issues.
+
+**Behaviour rules:**
+
+- **Reliability gate.** If the text cannot support a reliable expectation set,
+  exactly one `CASE_STUDY_INSUFFICIENT` warning is raised
+  (`specCode INSUFFICIENT_CONTEXT`) and nothing is enforced.
+- **Confidence gate.** Only derived use cases with `highConfidence` may become
+  *required*. A low-confidence hint becomes `LOW_CONFIDENCE_REQUIREMENT`
+  (info). A plain-noun derived name (no capability verb) becomes
+  `INVALID_USE_CASE_NAME` (info). Neither is ever enforced.
+- **Login as a precondition.** When the text mentions authentication, auth use
+  cases are skipped in both the required and unsupported checks.
+- **Actor tolerance.** Actors are matched with alias + fuzzy similarity. Exact
+  matches pass; near-matches surface a name-quality note; unrelated actors
+  produce an unsupported-actor warning.
+- **System boundary.** A missing, unnamed or generic boundary name produces a
+  `MISSING_SYSTEM_NAME` warning with a suggested name derived from the
+  assignment's domain words; a name that contradicts the domain produces a
+  system-name mismatch.
+- **Evidence on every finding.** Each issue carries `context` details such as
+  the required actor/use case, the best `matchedScore`, a confidence value and
+  an assignment-aware `suggestion`.
+
+**Codes emitted** (severity): actor missing (error), required use case missing
+(error), actor responsibility mismatch (warning), unsupported use case
+(warning), unsupported actor (warning), actor name mismatch (warning), system
+name mismatch (error), system name missing (warning), match found (info),
+low-confidence requirement (info), invalid use case name (info), insufficient
+context (warning).
+
+### 4.1 Case-study report shape
+
+`buildCaseStudyReport` returns the structure the front end renders directly:
+
+```js
 {
-  "success": true,
-  "data": {
-    "score": 85,
-    "maxScore": 100,
-    "errors": [...],
-    "warnings": [...],
-    "suggestions": [...],
-    "ruleExecutionDetails": [...] // For debugging
-  }
+  expected: { actors, useCases, systemCandidates },
+  findings,                  // specCode + legacyCode + severity + relatedId
+  counts:  { total, error, warning, info, byCode },
+  coverage: { actorCoverage, useCaseCoverage },
+  validation: { reliable, loginSupported, reasoning, signals },
+  actorStatus:   [{ actor, status: 'found'|'typo'|'missing', submitted, matchedScore }],
+  useCaseStatus: [{ useCase, primaryActor, confidence, highConfidence,
+                    status: 'found'|'missing'|'lowConfidence'|'invalid'|'optional',
+                    submitted, matchedScore }],
+  systemName: { status: 'found'|'invalid'|'missing'|'mismatch', submitted, expected, matchedScore },
+  overall: 'consistent' | 'warnings' | 'errors' | 'insufficient',
 }
 ```
 
-## Development Guidelines
+`overall` drives the banner in the checking panel; `'insufficient'` switches the
+panel to a validation-only view that explains *why* the check could not run.
 
-### Adding a New Validation Rule
+### 4.2 Assignment-aware suggestions (`nlp/suggestionGenerator.js`)
 
-#### Step 1: Define the Rule
-Add the rule definition to `src/rules/ruleRegistry.js`. Here's a template:
+`suggestionGenerator.js` converts raw findings into concrete fixes using the
+requirement text itself:
 
-```javascript
-const newRule = {
-  code: 'RULE-CODE',
-  name: 'Rule Name',
-  severity: 'error', // or 'warning', 'info'
-  category: 'category', // e.g., 'actor', 'useCase', 'relationship'
-  description: 'Human-readable description of what the rule checks',
-  enabled: true,
-  dependencies: ['DEP-1', 'DEP-2'], // Array of dependent rule codes
-  check: (model) => {
-    // Validation logic here
-    // Return error object if validation fails
-    // Return null if validation passes
-    if (/* validation fails */) {
-      return {
-        code: 'RULE-CODE',
-        message: 'User-friendly error message',
-        location: 'where the error occurred',
-        severity: 'error'
-      };
-    }
-    return null;
-  }
-};
-```
+- `deriveSystemNameCandidates(requirementModel)` — 1–4 plausible system names
+  from the assignment's domain vocabulary; a pure context noun (a place
+  word such as "department") is used as a modifier, never the primary name.
+- `generateAssignmentSuggestion(issue, requirementModel)` — produces messages
+  such as "name the system after the assignment topic…", "the actor X is not
+  part of the assignment; the roles are …", "rename this actor to the exact
+  role in the assignment".
+- `enrichIssueSuggestions(issues, requirementModel)` — bulk-writes those
+  suggestions onto a set of issues.
 
-#### Step 2: Configure the Rule
-Add the rule to `src/rules/ruleConfig.js` to enable/disable or adjust thresholds.
+## 5. Suggestion Engine (`services/suggestionEngine.js`)
 
-#### Step 3: Add Suggestions
-Add suggestion logic to `src/services/suggestionEngine.js`:
+A separate, older suggestion engine (not the NLP one) repairs and renames
+diagram elements:
 
-```javascript
-// In suggestionEngine.js
-suggestions = {
-  'RULE-CODE': (result, model) => [
-    {
-      type: 'add-element',
-      message: 'Add a "Customer" actor to represent system users',
-      action: () => {
-        // Implementation of the suggestion
-      }
-    }
-  ]
-};
-```
+- `generateSuggestions(result, model)` — maps validation codes to repair /
+  naming suggestion objects, deduplicated.
+- `suggestFunctionName` — proposes operation names for SSD messages.
+- `suggestOperationOwner` — proposes the correct class to own an operation.
 
-#### Step 4: Write Tests
-Create tests in `src/rules/__tests__/`:
+It is used by `checkingController` (manual `POST /api/checking/check`) and by
+the front-end fallback report.
 
-```javascript
-// In src/rules/__tests__/ruleRegistry.test.js
-describe('Rule Validation', () => {
-  test('should detect missing actor', () => {
-    const model = { /* test data */ };
-    const result = newRule.check(model);
-    expect(result).toBeTruthy();
-    expect(result.code).toBe('RULE-CODE');
-  });
-});
-```
+## 6. Submission & Grading (`services/submissionService.js`)
 
-### Testing Validation Rules
+A large workflow service covering the whole student/teacher cycle:
 
-#### Running Rule Tests
-```bash
-# Run all rule tests
-npm run rules:test
+- draft/save/submit artifacts (one use case diagram, one class diagram,
+  per-use-case descriptions, SSDs, sequence diagrams);
+- completion calculation and tutorial-mode requests (request/approve/reject);
+- run-check (authoritative report) and status with optional report;
+- teacher grading, remarks and feedback (with a safe score coercion so letter
+  grades never crash the maths);
+- submission exports and receipts;
+- per-student and per-teacher analytics with cache invalidation.
 
-# Run specific rule test
-npm run test:backend -- --testPathPattern=ruleRegistry
+`utils/submissionQueryUtils.js` holds schema-version-resilient reads
+(e.g. `findSubmissionWithArtifacts`) that avoid a Prisma flat-selector bug.
 
-# Run with coverage
-npm run test:backend -- --coverage
-```
+## 7. Communication & Data
 
-#### Test Structure
-Test files should include:
+- **Caching**: `utils/redis.js` + `utils/serviceCache.js` give a two-level
+  cache (memory + Redis) with in-flight dedup and prefix invalidation. When
+  Redis is absent the memory layer alone keeps the app functional.
+- **Notifications**: `services/notificationService.js` batches and flushes
+  queued notifications; `submissionService` triggers them on events.
+- **Files**: `utils/fileUpload.js` (multer) + optional Cloudinary CDN; class
+  resources and assignment/submission files are validated and cleaned up.
+- **Logging**: `utils/logger.js` (Winston + daily rotation).
 
-1. **Positive Tests**: Verify correct behavior when rule passes
-2. **Negative Tests**: Verify error detection when rule fails
-3. **Edge Cases**: Test boundary conditions
-4. **Integration Tests**: Test rule interactions with pipeline
+## 8. Controllers, Routes, Repositories
 
-### Code Quality Standards
+- `controllers/*` are thin HTTP handlers — they parse the request, call a
+  service, and respond with the standard `{ success, data }` envelope.
+- `routes/*` define the Express routers: auth, classes, assignments,
+  submissions, checking, notifications, student, resources.
+- `repositories/*` are thin Prisma data-access layers kept separate from
+  business logic.
 
-#### Commit Message Format
-Use conventional commit messages:
+## 9. API Surface
 
-```
-feat(rules): add validation rule for ATM minimum actors
-fix(rules): correct rule dependency ordering
-docs(rules): document new rule in registry
-```
+- `GET /health` — liveness.
+- `GET /api-docs` — Swagger UI (OpenAPI 3 spec built with `swagger-jsdoc`).
+- `POST /api/checking/check` — validate a model directly (no submission).
+- `/api/auth/*`, `/api/classes/*`, `/api/assignments/*`, `/api/submissions/*`,
+  `/api/notifications/*`, `/api/student/*`, `/api/resources/*`.
+- `POST /api/submissions/:id/run-check` — the authoritative grading check.
 
-#### File Naming
-Use kebab-case for file names:
+## 10. Tests
 
-```bash
-# GOOD
-src/rules/rule-registry.js
-src/services/suggestion-engine.js
-src/controllers/checking-controller.js
+All suites live in `src/tests/` and run under `npx jest` (29 suites, 304
+tests). The suites are pure unit tests — no database connection is required.
 
-# AVOID (inconsistent naming)
-src/rules/ruleRegistry.js
-src/services/suggestionEngine.js
-src/controllers/checkingController.js
-```
+Required coverage areas:
 
-#### Documentation
-Keep documentation in sync with code changes:
-
-- Update `docs/FEATURES.md` for new features
-- Update `docs/VALIDATION_FLOW.md` for process changes
-- Add examples to `examples/` directory
-
-## Quick Commands for Developers
-
-### Core Commands
-```bash
-# Run all validation tests
-npm run test:backend
-
-# Run rule-specific tests
-npm run rules:test
-
-# Generate documentation
-npm run docs:generate
-
-# Generate rule documentation
-npm run rules:generate-docs
-
-# Start development server
-npm run dev
-
-# Check code quality
-npm run lint
-```
-
-### API Testing
-```bash
-# Test validation endpoint
-curl -X POST http://localhost:3000/api/check \
-  -H "Content-Type: application/json" \
-  -d '{"diagram": {...}, "useCaseDescription": {...}}'
-
-# Test with sample data
-npm run test:backend -- --testPathPattern=checkModel
-```
-
-### Database Commands
-```bash
-# Generate Prisma client
-npm run prisma:generate
-
-# Run migrations
-npm run prisma:migrate
-
-# Push schema to database
-npm run prisma:push
-
-# Studio (GUI for database)
-npm run prisma:studio
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Issue: Rules not being executed**
-```bash
-# Check if rulePipeline is called in checkingController.js
-# Verify ruleRegistry is properly loaded
-# Ensure rules are enabled in ruleConfig.js
-```
-
-**Issue: Suggestions not appearing**
-```bash
-# Check suggestionEngine integration
-# Verify rule metadata includes suggestions
-# Test API endpoint manually
-```
-
-**Issue: Database connection problems**
-```bash
-# Verify DATABASE_URL in .env
-# Run database migrations
-# Check network connectivity
-```
-
-### Debug Commands
-```bash
-# View validation logs
-tail -f logs/combined.log
-
-# Check database connection
-psql $DATABASE_URL -c "SELECT 1"
-
-# Test rule execution
-node scripts/debug/test-rule-execution.js
-```
-
-## Support & Resources
-
-### Getting Help
-- **GitHub Issues**: Check existing issues for similar problems
-- **Development Documentation**: Review this document
-- **Code Examples**: Check `examples/` directory
-
-### Learning Resources
-- **Rule Registry**: `src/rules/ruleRegistry.js` - 124 rules (117 active) with examples
-- **API Reference**: `docs/API_REFERENCE.md` - detailed endpoint documentation
-- **Examples**: `examples/` - practical usage examples
-- **Tutorials**: `docs/GETTING_STARTED.md` - step-by-step guides
-
-## Project Architecture
-
-### Backend Layer
-1. **API Layer** (`controllers/`) - HTTP endpoints
-2. **Service Layer** (`services/`) - Business logic
-3. **Repository Layer** (`repositories/`) - Data access
-4. **Middleware Layer** (`middleware/`) - Request processing
-
-### Validation Layer
-1. **Rule Registry** (`rules/ruleRegistry.js`) - Rule definitions
-2. **Rule Pipeline** (`rules/rulePipeline.js`) - Execution engine
-3. **Rule Config** (`rules/ruleConfig.js`) - Configuration management
-
-### Supporting Services
-1. **Suggestion Engine** (`services/suggestionEngine.js`) - Auto-fix suggestions
-2. **Checking Engine** (`services/checkingEngine.js`) - Core validation
-3. **Submission Service** (`services/submissionService.js`) - Teacher flow
-
-## Future Development
-
-### Potential Improvements
-1. **Advanced Error Analysis**: Better error root cause detection
-2. **Machine Learning**: Intelligent pattern recognition
-3. **Real-time Collaboration**: Multiple user support
-4. **Mobile Support**: iOS/Android applications
-5. **Cloud Integration**: AWS/GCP deployment options
-
-### Research Areas
-- **NLP Integration**: Natural language processing for requirements
-- **Visual Analysis**: Automated diagram understanding
-- **Adaptive Learning**: Personalized feedback based on student progress
-- **Gamification**: Engaging validation with rewards and progress tracking
-
----
-
-**Note**: This documentation is a living document. Please contribute updates and improvements through the project's GitHub repository.
+- every validation phase: UCD (`ucdDescription`, `ucdRules`), description
+  (`alternativeFlows`, `missingRules`), SSD (`descriptionSSD`, `ssdPhase89`),
+  class (`classStructural`, `ssdClassDiagram`, `ssdClassOperations`,
+  `classSequence`), sequence (`sequencePhase131415`, `engineGaps`),
+  cross-diagram (`consistencyEngine`, `semanticService`).
+- the case-study engine and NLP (`caseStudyEngine`, `caseStudyNlpChecks`,
+  `caseStudyUcdValidation`, `requirementParser`, `requirementClassifier`,
+  `suggestionGenerator`).
+- rules and pipelines (`ruleRegistry`, `pipeline`, `modelFixtures`).
+- performance (`performance`) and regressions (`sequenceAutosave`,
+  `submissionQueryUtils`, `submissionServiceScore`).

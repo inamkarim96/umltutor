@@ -1,336 +1,95 @@
 # UML Tutor Project
 
-## Overview
-The UML Tutor project is a comprehensive educational platform designed to help students learn and practice UML (Unified Modeling Language) diagram creation. It provides real-time validation, consistency checking, and automated feedback to help students create high-quality UML diagrams.
+A web platform where students practise drawing UML diagrams. They create use
+case diagrams, use case descriptions, system sequence diagrams (SSDs), class
+diagrams and sequence diagrams. The platform validates each diagram, checks
+that the different diagrams agree with each other, and can check a use case
+diagram against the plain-text requirement of an assignment.
 
-## Key Features
+The project used to consist of a backend API plus a frontend. Only the backend
+runs automated checks; the frontend draws the diagrams and shows the reports.
 
-### Backend API (`umltutor-backend/`)
-- **Comprehensive Validation System**: 112 validation rules covering grammar, structure, consistency, and content
-- **Dependency-Aware Processing**: Smart error detection that suppresses cascading errors
-- **Auto-Fix Suggestions**: Real-time improvement suggestions for students
-- **Teacher Support**: Detailed reporting and scoring for assignment review
+## Repository Layout
 
-### Frontend Application (`umltutor-frontend/`)
-- **Interactive Diagram Editors**: Support for use case, sequence, class, and SSD diagrams
-- **Real-time Validation**: Instant feedback during diagram creation
-- **Tutorial Mode**: Guided learning with step-by-step validation
-- **Responsive Design**: Works on desktop and mobile devices
-
-## Architecture Overview
-
-### Backend Structure
 ```
-umltutor-backend/
-├── src/
-│   ├── rules/              # Validation rule system
-│   │   ├── ruleRegistry.js  # Complete rule definitions (1463 lines)
-│   │   ├── rulePipeline.js  # Dependency-aware execution engine
-│   │   └── ruleConfig.js    # Rule configuration management
-│   ├── services/           # Business logic
-│   │   ├── checkingEngine.js     # Core validation logic
-│   │   ├── suggestionEngine.js   # Auto-fix suggestions
-│   │   └── submissionService.js # Teacher flow integration
-│   ├── controllers/          # API endpoints
-│   │   └── checkingController.js # Main validation controller
-│   ├── middleware/           # Request processing
-│   ├── repositories/          # Data access layer
-│   └── config/               # Application configuration
-└── package.json
+umltutor/
+├── README.md                    # this file
+├── umltutor-backend/            # Node.js API (the source of truth for checking)
+│   ├── src/                     # routes, controllers, services, rules, nlp, ...
+│   ├── docs/                    # FEATURES.md, VALIDATION_FLOW.md
+│   └── README.md                # backend setup, folders, API endpoints
+└── umltutor-frontend/           # React single-page application (drawing + reports)
+    └── README.md                # frontend stack, screens, checking report
 ```
 
-### Frontend Structure
-```
-umltutor-frontend/
-├── src/
-│   ├── features/           # Feature-based modules
-│   │   ├── checking/        # Validation and checking logic
-│   │   ├── diagram/         # Diagram editing components
-│   │   ├── submissions/     # Submission and review
-│   │   └── ...other features
-│   ├── components/          # Reusable UI components
-│   ├── services/             # API and external service integrations
-│   ├── utils/                # Utility functions
-│   └── types/                # TypeScript type definitions
-└── package.json
-```
+## The Two Parts
 
-## Technology Stack
+### Backend (`umltutor-backend/`)
 
-### Backend
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web framework
-- **Prisma ORM** - Database access
-- **Zod** - Request validation
-- **Redis** - Caching (optional)
-- **Firebase** - Authentication
+Node.js + Express + Prisma API, written in plain JavaScript. It stores users,
+classes, assignments, submissions and every diagram artifact, and it runs all
+validation.
 
-### Frontend
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling
-- **Redux Toolkit** - State management
-- **React Flow** - Diagram editing
-- **Socket.io** - Real-time communication
+- **Validation engine** — one `checkModel` call runs ~40 checks across the five
+  diagram sections plus cross-diagram consistency, in 6 phases via
+  `rulePipeline.checkModelPhased`.
+- **Rule registry** — 143 rule definitions (136 active, 7 disabled): structural
+  25, consistency 40, naming 16, completeness 21, UML standard 21, NLP 13, best
+  practice 7.
+- **Dependency-aware pipeline** — enriches issues with root causes and
+  suppresses cascading errors.
+- **Offline NLP** — string similarity, sentence parsing, and requirement
+  analysis. Everything runs deterministically; there are no API calls and no
+  hardcoded assignment model.
+- **Case-study aware check** — the use case diagram is compared with the
+  assignment's own free-text requirement, parsed at runtime. It is confidence
+  gated: only high-confidence functional goals are enforced, login is treated
+  as a supported precondition, thin text is reported as "insufficient" instead
+  of guessed, and the report returns per-actor / per-use-case / system-name
+  statuses plus an overall verdict.
+- **Submission workflow** — drafts, artifacts, run-check, grading, feedback,
+  tutorial-mode requests, exports and analytics.
+- **Testing** — 29 Jest suites (304 tests) in `src/tests/`, run on a local
+  SQLite database. See the backend README's "Testing Notes".
+
+### Frontend (`umltutor-frontend/`)
+
+React 18 application (JavaScript with Babel, built by Webpack 5, styled with
+Tailwind CSS). It has editors for all five diagram types, two app modes
+(development and tutorial), Firebase login, a teacher area and a student area.
+The checking panel renders the backend's validation report — including the
+case-study consistency block with verdict banner, actor/use case/system-name
+status lists and suggestions. An in-browser checker exists only as a fallback
+when no backend report is available.
 
 ## Getting Started
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL (for production)
-- Redis (optional, for caching)
+Backend first (it is the part that validates):
 
-### Installation
 ```bash
-# Clone the repository
-git clone https://github.com/inamkarim96/umltutor
-
-# Navigate to project directory
-cd umltutor
-
-# Install dependencies for both frontend and backend
+cd umltutor-backend
 npm install
-```
-
-### Running the Application
-
-#### Local Development
-```bash
-# Start both backend and frontend
-npm run dev
-
-# Or run them separately
-npm run dev:backend
-npm run dev:frontend
-```
-
-#### Database Setup
-```bash
-# Generate Prisma client
 npm run prisma:generate
-
-# Run database migrations
-npm run prisma:migrate
-
-# Seed database (if needed)
-npm run prisma:seed
+cp .env.example .env   # add DATABASE_URL (SQLite works for tests)
+npm run prisma:push
+npm run dev            # API on http://localhost:3000
+npm test               # run the backend test suite
 ```
 
-#### Running Tests
+Then the frontend:
+
 ```bash
-# Run all backend tests
-npm run test
-
-# Run validation rule tests specifically
-npm run rules:test
-
-# Generate coverage report
-npm run test:backend -- --coverage
+cd umltutor-frontend
+npm install
+npm run dev            # webpack dev server
 ```
 
-## Development Workflow
+## Documentation
 
-### Common Tasks
-
-#### Adding a New Validation Rule
-1. **Define the Rule** (`src/rules/ruleRegistry.js`)
-2. **Configure Rule** (`src/rules/ruleConfig.js`)
-3. **Add Suggestions** (`src/services/suggestionEngine.js`)
-4. **Write Tests** (`src/rules/__tests__/`)
-
-#### Running Validation Tests
-```bash
-# Run all rule tests
-npm run rules:test
-
-# Run specific rule tests
-npm run test:backend -- --testPathPattern=ruleRegistry
-```
-
-#### Code Quality Standards
-```bash
-# Check code quality
-npm run lint
-
-# Check TypeScript (if applicable)
-npm run typecheck
-
-# Commit with conventional commit format
-git commit -m "feat(rules): add validation rule for specific issue"
-```
-
-## Project Structure Documentation
-
-### Backend API Documentation
-- **README.md**: Project overview and setup instructions
-- **FEATURES.md**: Detailed feature documentation
-- **VALIDATION_FLOW.md**: Validation pipeline architecture
-- **API_REFERENCE.md**: Endpoint documentation
-
-### Frontend Documentation
-- **README.md**: Project overview and setup instructions
-- **COMPONENTS.md**: Component documentation
-- **FEATURES.md**: Feature documentation
-- **API_REFERENCE.md**: API documentation
-
-### Development Guides
-- **CONTRIBUTING.md**: Contribution guidelines
-- **DEVELOPMENT.md**: Development setup and workflows
-- **TESTING.md**: Testing strategies and practices
-
-## Validation System
-
-### Core Components
-
-#### Rule Registry (`src/rules/ruleRegistry.js`)
-Contains **112 validation rules** organized by category:
-
-1. **Grammar Rules** (15 rules)
-   - Use case naming validation
-   - Actor naming validation
-   - Verb usage validation
-
-2. **Structural Rules** (25 rules)
-   - Diagram connectivity validation
-   - Relationship multiplicity validation
-   - Actor-connection validation
-
-3. **Consistency Rules** (35 rules)
-   - SSD consistency validation
-   - Main flow alignment
-   - Return message validation
-
-4. **Content Rules** (37 rules)
-   - Precondition validation
-   - Postcondition validation
-   - Description grammar validation
-
-#### Rule Pipeline (`src/rules/rulePipeline.js`)
-Executes validation rules in a dependency-aware manner, suppressing cascading errors and providing focused feedback.
-
-#### Suggestion Engine (`src/services/suggestionEngine.js`)
-Generates auto-fix suggestions for validation errors, integrated into both student and teacher flows.
-
-### Validation Flow
-
-1. **API Endpoint** (`POST /api/check`)
-   - Validates request body using Zod schemas
-   - Executes rule pipeline
-   - Generates suggestions
-   - Returns formatted results
-
-2. **Rule Execution Pipeline**
-   - Load rules from registry
-   - Resolve dependencies
-   - Execute rules in order
-   - Compile results
-   - Generate suggestions
-
-3. **Suggestion Integration**
-   - Student flow: During diagram creation
-   - Teacher flow: During assignment review
-   - API validation: Via `/api/check` endpoint
-
-## Testing
-
-### Test Structure
-```
-src/
-├── rules/
-│   ├── __tests__/           # Rule-specific tests
-│   │   ├── ruleRegistry.test.js
-│   │   └── rulePipeline.test.js
-│   └── ...other rule files
-├── services/
-│   └── __tests__/           # Service-specific tests
-└── ...other tests
-```
-
-### Running Tests
-```bash
-# Run all backend tests
-npm run test
-
-# Run validation rule tests specifically
-npm run rules:test
-
-# Run with coverage
-npm run test:backend -- --coverage
-```
-
-### Test Coverage
-- **Rule Registry Tests**: Verify rule structure and definitions
-- **Rule Pipeline Tests**: Verify dependency resolution and error suppression
-- **Suggestion Engine Tests**: Verify suggestion generation
-- **Integration Tests**: Verify end-to-end validation flow
-
-## Troubleshooting
-
-### Common Issues
-
-#### Issue: Validation Not Working
-**Cause**: Rule registry not loaded properly
-**Solution**: Ensure `src/rules/ruleRegistry.js` is properly imported
-
-#### Issue: Suggestions Not Appearing
-**Cause**: Suggestion engine not integrated
-**Solution**: Ensure suggestion engine is called in validation pipeline
-
-#### Issue: Database Connection Problems
-**Cause**: Database configuration issues
-**Solution**: Verify `DATABASE_URL` in `.env` file
-
-### Debug Commands
-```bash
-# View validation logs
-tail -f logs/combined.log
-
-# Check database connection
-psql $DATABASE_URL -c "SELECT 1"
-
-# Test API endpoint
-curl -X POST http://localhost:3000/api/check \
-  -H "Content-Type: application/json" \
-  -d '{"diagram": {...}, "useCaseDescription": {...}}'
-```
-
-## Support & Resources
-
-### Getting Help
-- **GitHub Issues**: https://github.com/inamkarim96/umltutor/issues
-- **Development Documentation**: Review project documentation
-- **Code Examples**: Check `examples/` directory
-
-### Learning Resources
-- **Rule Registry**: `src/rules/ruleRegistry.js` - 112 rules with examples
-- **API Reference**: `docs/API_REFERENCE.md` - detailed endpoint documentation
-- **Examples**: `examples/` - practical usage examples
-- **Tutorials**: `docs/GETTING_STARTED.md` - step-by-step guides
-
-## Project Status
-
-### ✅ Completed
-- [x] Comprehensive validation rule system (112 rules)
-- [x] Dependency-aware rule pipeline
-- [x] Auto-fix suggestion engine
-- [x] Teacher flow integration
-- [x] Test coverage (5 rule pipeline tests)
-
-### 🔄 In Progress
-- [ ] Full project documentation
-- [ ] API reference documentation
-- [ ] Developer guides
-- [ ] Examples collection
-
-### 📋 Upcoming
-- [ ] Contribution guidelines
-- [ ] Architecture decision records
-- [ ] Performance optimization
+- Backend: `umltutor-backend/README.md`, `umltutor-backend/docs/FEATURES.md`,
+  `umltutor-backend/docs/VALIDATION_FLOW.md`.
+- Frontend: `umltutor-frontend/README.md`.
 
 ## License
-MIT Licensed. See `LICENSE` file for details.
 
----
-
-**Note**: This project is actively maintained. Please report issues and suggest improvements through the official GitHub repository.
+MIT. See `LICENSE` for details.

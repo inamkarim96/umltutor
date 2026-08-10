@@ -12,9 +12,7 @@ const { findSubmissionWithArtifacts } = require('../utils/submissionQueryUtils')
 // Hoist prisma to module scope — avoids repeated dynamic require on every cache-miss
 const prisma = require('../config/prisma');
 
-/**
- * Assignment Service - optimized with batch operations, query optimization, and improved caching.
- */
+
 
 class AssignmentService {
   _extractArtifactsFromSubmission(submission) {
@@ -66,9 +64,9 @@ class AssignmentService {
       ...rest,
       evaluation: evaluation
         ? {
-            totalScore: evaluation.totalScore,
-            remarks: evaluation.remarks,
-          }
+          totalScore: evaluation.totalScore,
+          remarks: evaluation.remarks,
+        }
         : null,
     };
   }
@@ -92,9 +90,9 @@ class AssignmentService {
   async createAssignmentDefinition(data) {
     const existing = await assignmentRepository.findFirst({ where: { classId: Number(data.classId), title: data.title } });
     if (existing) {
-        const error = new Error(`An assignment with the name "${data.title}" already exists.`);
-        error.status = 400;
-        throw error;
+      const error = new Error(`An assignment with the name "${data.title}" already exists.`);
+      error.status = 400;
+      throw error;
     }
 
     const assignment = await assignmentRepository.create({
@@ -102,6 +100,7 @@ class AssignmentService {
       dueDate: data.dueDate,
       releaseDate: data.releaseDate || new Date(),
       textContent: data.textContent,
+      requirementText: data.requirementText || null,
       assignmentFileUrl: data.assignmentFileUrl,
       assignmentFileName: data.assignmentFileName,
       assignmentFileType: data.assignmentFileType,
@@ -115,9 +114,9 @@ class AssignmentService {
 
     // Batch notification for all students in class
     if (data.classId) {
-      const memberships = await classRepository.findMemberships({ 
-        where: { classId: Number(data.classId) }, 
-        select: { studentId: true } 
+      const memberships = await classRepository.findMemberships({
+        where: { classId: Number(data.classId) },
+        select: { studentId: true }
       });
       const studentIds = memberships.map(e => e.studentId);
       if (studentIds.length > 0) {
@@ -130,12 +129,12 @@ class AssignmentService {
         });
       }
     }
-    
+
     // Invalidate cache
     serviceCache.invalidatePrefix(`assignments:teacher:${data.teacherId}`);
     serviceCache.invalidatePrefix('assignments:class:');
     serviceCache.invalidatePrefix('assignments:student:');
-    
+
     return assignment;
   }
 
@@ -212,7 +211,7 @@ class AssignmentService {
     const sid = Number(studentId);
     let submission = await submissionRepository.findFirst({ where: { assignmentId: aid, studentId: sid } });
     if (!submission) {
-        submission = await submissionRepository.create({ assignmentId: aid, studentId: sid, status: 'draft' });
+      submission = await submissionRepository.create({ assignmentId: aid, studentId: sid, status: 'draft' });
     }
     return submission;
   }
@@ -221,56 +220,56 @@ class AssignmentService {
     const studentIdNum = Number(studentId);
     const cacheKey = `assignments:student:${studentIdNum}:list`;
     return serviceCache.cached(cacheKey, 120, async () => {
-    // 1. Get enrolled class IDs via student index (1ms)
-    const memberships = await prisma.classStudent.findMany({
-      where: { studentId: studentIdNum },
-      select: { classId: true },
-    });
-    if (memberships.length === 0) return [];
-    const classIds = memberships.map((m) => m.classId);
+      // 1. Get enrolled class IDs via student index (1ms)
+      const memberships = await prisma.classStudent.findMany({
+        where: { studentId: studentIdNum },
+        select: { classId: true },
+      });
+      if (memberships.length === 0) return [];
+      const classIds = memberships.map((m) => m.classId);
 
-    // 2. Fetch assignments for enrolled classes via classId index (1ms)
-    const assignments = await prisma.assignment.findMany({
-      where: { classId: { in: classIds } },
-      select: {
-        id: true,
-        title: true,
-        dueDate: true,
-        releaseDate: true,
-        maxScore: true,
-        type: true,
-        classId: true,
-        createdAt: true,
-        class: { select: { id: true, name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (assignments.length === 0) return [];
+      // 2. Fetch assignments for enrolled classes via classId index (1ms)
+      const assignments = await prisma.assignment.findMany({
+        where: { classId: { in: classIds } },
+        select: {
+          id: true,
+          title: true,
+          dueDate: true,
+          releaseDate: true,
+          maxScore: true,
+          type: true,
+          classId: true,
+          createdAt: true,
+          class: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (assignments.length === 0) return [];
 
-    const assignmentIds = assignments.map((a) => a.id);
-    // Batch fetch submissions for all assignments at once
-    const submissions = await submissionRepository.findMany({
-      where: { studentId: studentIdNum, assignmentId: { in: assignmentIds } },
-      select: {
-        assignmentId: true,
-        status: true,
-        evaluation: { select: { totalScore: true, remarks: true } },
-      },
-    });
-    const submissionByAssignment = new Map(submissions.map((s) => [s.assignmentId, s]));
+      const assignmentIds = assignments.map((a) => a.id);
+      // Batch fetch submissions for all assignments at once
+      const submissions = await submissionRepository.findMany({
+        where: { studentId: studentIdNum, assignmentId: { in: assignmentIds } },
+        select: {
+          assignmentId: true,
+          status: true,
+          evaluation: { select: { totalScore: true, remarks: true } },
+        },
+      });
+      const submissionByAssignment = new Map(submissions.map((s) => [s.assignmentId, s]));
 
-    const result = assignments.map((assignment) => {
-      const submission = submissionByAssignment.get(assignment.id);
-      return {
-        ...assignment,
-        deadline: assignment.dueDate?.toISOString() ?? null,
-        status: submission?.status || 'pending',
-        score: submission?.evaluation?.totalScore ?? null,
-        feedback: submission?.evaluation?.remarks ?? null,
-      };
-    });
+      const result = assignments.map((assignment) => {
+        const submission = submissionByAssignment.get(assignment.id);
+        return {
+          ...assignment,
+          deadline: assignment.dueDate?.toISOString() ?? null,
+          status: submission?.status || 'pending',
+          score: submission?.evaluation?.totalScore ?? null,
+          feedback: submission?.evaluation?.remarks ?? null,
+        };
+      });
 
-    return result;
+      return result;
     });
   }
 

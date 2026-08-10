@@ -191,6 +191,7 @@ async function findSubmissionDetailById(submissionId) {
           classId: true,
           createdBy: true,
           textContent: true,
+          requirementText: true,
           class: { select: { teacherId: true, name: true } },
         },
       },
