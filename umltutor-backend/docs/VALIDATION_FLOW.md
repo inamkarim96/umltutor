@@ -1,168 +1,131 @@
 # Validation Flow
 
-This document explains how a UML model is validated from the moment a student
-presses "check" until the report appears on screen. It is written in plain
-English.
+This document explains how student work is checked, from the moment the student
+requests a check until the report is shown. It is written in plain English and
+avoids technical detail.
 
 ## 1. Where Validation Happens
 
-There are three entry points, in order of importance:
+There are three ways a model gets validated:
 
-1. **Authoritative backend check** — `POST /api/submissions/:id/run-check`.
-   Resolves the assignment's requirement text, runs the full engine, and
-   stores/serves the report. Grading is based on this.
-2. **Per-model check API** — `POST /api/checking/check`. Validates a model
-   sent directly in the request body (optionally with a requirement text).
-3. **Front-end fallback** — `CheckingModePanel.performDynamicValidation` and a
-   small `ConsistencyChecker`. This runs in the browser only when no backend
-   report is available; it is a fallback, never the source of truth.
+1. **The main check (run-check).** The student's saved submission is read, the
+   assignment's requirement text is loaded, the full check runs, and the report
+   is saved and returned. Grading is based on this report.
+2. **A direct model check.** A model is sent to the back end on its own and
+   checked immediately, without involving a saved submission.
+3. **An in-browser fallback.** If no back-end report is available, the front end
+   can run a lightweight check in the browser. This is only a fallback and is
+   never treated as the official result.
+
+The back-end report is always the source of truth.
 
 ## 2. The Six Validation Phases
 
-`rulePipeline.checkModelPhased` runs the engine in six phases, in order:
+The engine runs its checks in six phases, one after another:
 
-1. **diagram** — use case diagram structure: boundary, names, connectivity,
-   relationships, duplicates, and the dynamic case-study group.
-2. **description** — use case description completeness and flow correctness.
-3. **ssd** — system sequence diagram structure and description↔SSD alignment.
-4. **class-diagram** — class structure, methods, relationships, multiplicity.
-5. **sequence-diagram** — lifelines, operations, activations, fragments.
-6. **consistency** — cross-diagram mapping across all five artifacts.
+1. **Use case diagram** — the boundary, names, connectivity, relationships and
+   duplicates, plus the case-study consistency group.
+2. **Use case description** — whether the description is complete and its flows
+   are written correctly.
+3. **System sequence diagram (SSD)** — the diagram structure and whether it
+   aligns with the description.
+4. **Class diagram** — classes, methods, relationships and multiplicities.
+5. **Sequence diagram** — lifelines, operations, activations and fragments.
+6. **Consistency** — whether all five artifacts agree with each other.
 
-A **critical error** in an early phase short-circuits the rest of that phase so
-the student is not flooded with irrelevant downstream errors.
+A serious error in an early phase stops the remaining checks for that phase, so
+the student is not overwhelmed with errors caused by the original mistake.
 
-## 3. Dependency-Aware Pipeline
+## 3. Root Causes Instead of Symptoms
 
-`rulePipeline.checkModelWithPipeline` runs after the engine and does two jobs:
+After the main checks run, one more step makes the report clearer:
 
-### 3.1 Issue enrichment
-Dependencies in the registry express "if rule B exists, it only fires because
-rule A fired". The pipeline reads these chains and annotates findings so the
-front end can show the *root cause* instead of the symptoms.
+- **Issue enrichment.** Dependencies between rules tell the engine which errors
+  are only knock-ons of an earlier error. These relationships are recorded so
+  the front end can point to the original cause.
+- **Cascade suppression.** When many errors share one root cause, the redundant
+  ones are collapsed into the single real problem. The result is a short report
+  that names the true issue instead of listing dozens of symptoms.
 
-### 3.2 Cascade suppression
-When several errors share one root cause, the pipeline collapses the redundant
-ones. Example outcome: instead of ten "missing connection" errors caused by a
-missing actor, the student sees the single real problem ("this actor does not
-exist"). This keeps reports short and focused.
+## 4. Suggestions
 
-## 4. Suggestion Generation
+Every finding can carry a written suggestion. Two engines produce them:
 
-Suggestions come from two independent engines:
+- a general one that maps validation results to repair and renaming advice;
+- an assignment-aware one that, during the case-study check, writes advice
+  taken directly from the assignment's own text (roles, expected capabilities,
+  possible system names).
 
-- `services/suggestionEngine.js` — repair/naming suggestions matched to
-  validation codes, deduplicated before display.
-- `nlp/suggestionGenerator.js` — assignment-aware suggestions used by the
-  case-study checks. When a requirement model exists, issue suggestions are
-  overwritten with concrete text pulled from that requirement model (role
-  names, derived capabilities, system-name candidates).
+The front end collects all suggestions and shows them once each, in plain
+language.
 
-Every issue may carry a `context.suggestion`; the front end collects and
-deduplicates those into a plain-language list.
+## 5. The Case-Study Check
 
-## 5. The Case-Study Check (Requirement → Use Case Diagram)
-
-This group validates the student's use case diagram against the assignment's
-own requirement prose. It is fully dynamic — there is no fixed case-study data
+This check compares the student's use case diagram with the assignment's own
+requirement text. It is fully dynamic — nothing about the case study is stored
 in the code.
 
-### 5.1 Parsing
-`requirementService` reads the assignment text and hands it to the
-`promptRequirementParser`, which produces a structured model (actors, use
-cases, requirement buckets, coverage). `requirementClassifier` decides which
-sentences are functional (action) statements; all other prose is stored under
-its requirement type and ignored by the check.
+**Parsing.** The assignment text is read and turned into a structured summary:
+which actors appear, which capabilities they perform, and how complete the text
+is. Only sentences that describe a real action are treated as candidate
+capabilities; all other prose is set aside and ignored.
 
-### 5.2 Reliability gate
-`analyzeCaseStudyContext` checks five signals. If the text is too thin
-(fragments, a short login-only story, gibberish), the engine:
+**Reliability gate.** Before anything is enforced, the engine decides whether
+the text is substantial enough to check. If it is too thin (a fragment, a
+one-line story, or unclear writing), the engine:
 
-- raises exactly one `CASE_STUDY_INSUFFICIENT` warning
-  (`specCode INSUFFICIENT_CONTEXT`),
-- includes `context.reasoning` and the per-signal breakdown,
-- returns without enforcing *any* expected actor or use case.
+- raises exactly one "insufficient context" warning,
+- explains which parts of the text were missing,
+- and enforces no expected actors or use cases at all.
 
-### 5.3 Confidence gate
-Each derived use case has `confidence` 0..1. Only `highConfidence`
-(`≥ 0.75`) use cases are enforced as `CASE_STUDY_USE_CASE_MISSING` when absent.
-Low-confidence capabilities and plain-noun names are informational only.
+**Confidence gate.** Each candidate capability has a confidence score from 0 to
+1. Only clearly supported capabilities are enforced as missing when absent.
+Weak hints and plain-noun names are reported as notes, never enforced.
 
-### 5.4 Login handling
-If the text mentions authentication (`loginSupported`), auth-labeled use cases
-are skipped in the required check and in the unsupported check. A student who
-draws "Login" on such an assignment is neither penalized for missing it nor
-for including it.
+**Login handling.** When the text mentions authentication, login use cases are
+neither required nor flagged as unsupported.
 
-### 5.5 Matching thresholds
-- Actor match: exact (`≥ 0.97`) passes; near (`≥ 0.72`) → name-quality info;
-  close-but-different (`≥ 0.4`) → name-mismatch warning; otherwise →
-  unsupported-actor warning.
-- Use case match: `≥ 0.48` → `MATCH_FOUND` info (with `relatedId` to the drawn
-  node); below → missing error.
-- Unsupported use case: a drawn use case matching all requirements below `0.4`
-  is unsupported.
-- System name: a submitted name that scores below `0.5` against the
-  requirement domain is a mismatch.
+**Matching.** Actors and use cases in the student's diagram are matched to the
+expected ones by meaning, not exact spelling. Close matches pass or get a
+name-quality note; clearly unrelated items get a warning. Every comparison
+records a score so the front end can show how close the match was.
 
-Every matching value is attached to the finding as `context.matchedScore`.
+**Report.** The check produces a report containing the expected actors, use
+cases and system-name candidates; per-element statuses; and an overall verdict
+of "consistent", "warnings", "errors" or "insufficient". For thin texts, the
+report switches to a validation-only view that explains why the check could not
+run.
 
-### 5.6 Report
-`buildCaseStudyReport` compiles:
+## 6. End-to-End Flow
 
-- `expected` actors, use cases and system-name candidates;
-- a `findings` array (`specCode` + legacy `CASE_STUDY_*` code + severity +
-  `relatedId`);
-- `counts` and `coverage`;
-- `validation` (reliable / loginSupported / reasoning / signals);
-- per-element `actorStatus[]`, `useCaseStatus[]` and `systemName` statuses;
-- an `overall` verdict (`consistent | warnings | errors | insufficient`).
+Here is the full journey of a run-check request:
 
-The front end renders the verdict banner, status rows, and (for
-`insufficient`) a validation-only explanation of what text signals were
-missing.
-
-## 6. End-to-End Walkthrough (run-check)
-
-```
-student clicks "Run Checker"
-   │
-   ▼
-POST /api/submissions/:id/run-check
-   │
-   ├─ submissionService loads the submission artifacts
-   ├─ requirementService resolves + parses the assignment requirement text
-   ├─ checkingEngine.checkModel(model, section, targetId, requirementModel)
-   │     ├─ phased validation (6 phases, §2)
-   │     ├─ dynamic case-study consistency check (§5)
-   │     └─ buildCaseStudyReport(...)
-   ├─ rulePipeline.checkModelWithPipeline: enrichment + suppression (§3)
-   ├─ suggestion engines write assignment-aware suggestions (§4)
-   └─ report saved → served to the front end
-```
+1. The student clicks the "Run Checker" button.
+2. The back end loads the student's saved artifacts.
+3. It reads and parses the assignment's requirement text.
+4. The validation engine checks the whole model in the six phases.
+5. The case-study consistency check compares the use case diagram to the
+   parsed requirement text and builds its report.
+6. The pipeline enriches the findings with root causes and removes cascading
+   noise.
+7. The suggestion engines write plain-language advice.
+8. The finished report is saved and returned to the front end, which renders it.
 
 ## 7. Front-End Rendering
 
-`CheckingModePanel.jsx` consumes the report:
-
-- a summary line per active section (use case diagram, description, SSD);
-- a "suggestions" list (deduplicated);
-- the CASE-STUDY CONSISTENCY block when a `caseStudyReport` is present:
-  overall banner, system boundary status, per-actor and per-use-case statuses,
-  expected chips, and findings grouped by severity — or, for thin assignment
-  text, an explanation of what was missing.
-
-The backend report is authoritative. The in-browser checker is used only as a
-fallback when no report exists.
+The checking panel displays a summary for each artifact, a deduplicated list of
+suggestions, and — when the back end supplied a case-study report — the overall
+verdict, the system boundary status, per-actor and per-use-case statuses, the
+expected elements, and the findings grouped by severity. If the assignment text
+was too thin, it instead shows the validation-only explanation.
 
 ## 8. Reference
 
 - Rule definitions: `src/rules/ruleRegistry.js`
 - Phase and suppression logic: `src/rules/rulePipeline.js`
 - Core engine: `src/services/checkingEngine.js`
-- Requirement parsing/classification: `src/nlp/promptRequirementParser.js`,
+- Requirement parsing and classification: `src/nlp/promptRequirementParser.js`,
   `src/nlp/requirementClassifier.js`
-- Case-study report: `src/services/checkingEngine.js` →
-  `buildCaseStudyReport`
+- Case-study report: `src/services/checkingEngine.js`
 - Assignment-aware suggestions: `src/nlp/suggestionGenerator.js`
 - Requirement resolution: `src/services/requirementService.js`

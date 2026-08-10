@@ -260,49 +260,63 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
             });
         };
 
-        // Helper: Render Evaluation Feedback Table in vector PDF text
+        // Helper: Render Evaluation Feedback Table in vector PDF text.
+        // All issues are rendered (not truncated), and long lists flow across pages.
         const renderEvaluationTable = (secKey, startY) => {
             const secIssues = getIssuesForSection(secKey);
             let y = startY;
 
-            if (y > pageHeight - 45) {
-                pdf.addPage();
-                renderSectionHeader(`${secKey} Evaluation Report`);
-                y = 30;
-            }
+            const ensureSpace = (needed) => {
+                if (y + needed > pageHeight - 15) {
+                    pdf.addPage();
+                    renderSectionHeader(`${secKey} Evaluation Report`);
+                    y = 30;
+                }
+            };
+
+            ensureSpace(35);
 
             pdf.setFillColor(...BG_LIGHT);
             pdf.setDrawColor(...BORDER_COLOR);
-            pdf.roundedRect(15, y, pageWidth - 30, Math.max(35, 15 + (secIssues.length || 1) * 8), 2, 2, 'FD');
+            pdf.roundedRect(15, y, pageWidth - 30, 26, 2, 2, 'FD');
 
             pdf.setTextColor(...PRIMARY);
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(10);
             pdf.text('AUTOMATED EVALUATION & CHECKING DIAGNOSTICS', 20, y + 8);
-
             pdf.setTextColor(...TEXT_DARK);
-            pdf.setFontSize(8.5);
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Total items inspected for this section: ${secIssues.length}`, 20, y + 17);
+
+            y += 32;
 
             if (secIssues.length === 0) {
+                ensureSpace(12);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setTextColor(...GREEN_COLOR);
-                pdf.text('✓ Validation Passed: All requirements & syntax rules satisfied for this section.', 20, y + 18);
+                pdf.text('✓ Validation Passed: All requirements & syntax rules satisfied for this section.', 20, y);
+                y += 14;
             } else {
-                let iy = y + 16;
-                secIssues.slice(0, 5).forEach((issue) => {
+                secIssues.forEach((issue) => {
+                    const msgLines = pdf.splitTextToSize(issue.message || 'Diagnostic rule check', pageWidth - 70);
+                    const blockHeight = 8 + 7 * msgLines.length;
+
+                    ensureSpace(blockHeight + 4);
+
                     pdf.setFont('helvetica', 'bold');
                     pdf.setTextColor(issue.severity === 'error' ? 239 : 245, issue.severity === 'error' ? 68 : 158, 11);
-                    pdf.text(`[${issue.severity ? issue.severity.toUpperCase() : 'CHECK'}]`, 20, iy);
+                    pdf.text(`[${issue.severity ? issue.severity.toUpperCase() : 'CHECK'}]`, 20, y);
 
                     pdf.setFont('helvetica', 'normal');
                     pdf.setTextColor(...TEXT_DARK);
-                    const msgLines = pdf.splitTextToSize(issue.message || 'Diagnostic rule check', pageWidth - 70);
-                    pdf.text(msgLines, 42, iy);
-                    iy += 7 * msgLines.length;
+                    pdf.text(msgLines, 42, y);
+                    y += 7 * msgLines.length + 4;
                 });
+                y += 6;
             }
 
-            return y + Math.max(35, 15 + (secIssues.length || 1) * 8) + 10;
+            return y;
         };
 
         // ═════════════════════════════════════════════════════════════════════
@@ -403,7 +417,27 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                     y += 15;
                 } else {
                     descEntries.forEach(([id, desc], dIdx) => {
-                        if (y > pageHeight - 60) {
+                        // Pre-compute wrapped lines so the box height is accurate
+                        const titleLine = `Use Case 2.${dIdx + 1}: ${desc.useCaseName || 'Untitled'}`;
+                        const bodyWidth = pageWidth - 60;
+                        const actorLine = `Primary Actor: ${desc.primaryActor || 'Not specified'}`;
+                        const preLines = pdf.splitTextToSize(`Preconditions: ${desc.preconditions || 'None'}`, bodyWidth);
+                        const postLines = pdf.splitTextToSize(`Postconditions: ${desc.postconditions || 'None'}`, bodyWidth);
+
+                        // Numbered main-flow lines
+                        const flowLines = [];
+                        if (Array.isArray(desc.mainFlow) && desc.mainFlow.length > 0) {
+                            desc.mainFlow.forEach((s, i) => {
+                                const line = `${i + 1}. ${(typeof s === 'string' ? s : s.action) || ''}`;
+                                flowLines.push(...pdf.splitTextToSize(line, bodyWidth));
+                            });
+                        } else {
+                            flowLines.push('(no main flow defined)');
+                        }
+
+                        const boxHeight = 56 + preLines.length * 5 + postLines.length * 5 + flowLines.length * 5;
+
+                        if (y + boxHeight > pageHeight - 20) {
                             pdf.addPage();
                             renderSectionHeader(`${title} (Continued)`);
                             y = 30;
@@ -411,31 +445,28 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
 
                         pdf.setFillColor(...BG_LIGHT);
                         pdf.setDrawColor(...BORDER_COLOR);
-                        pdf.roundedRect(15, y, pageWidth - 30, 48, 2, 2, 'FD');
+                        pdf.roundedRect(15, y, pageWidth - 30, boxHeight, 2, 2, 'FD');
 
                         pdf.setTextColor(...PRIMARY);
                         pdf.setFont('helvetica', 'bold');
                         pdf.setFontSize(11);
-                        pdf.text(`Use Case 2.${dIdx + 1}: ${desc.useCaseName || 'Untitled'}`, 20, y + 8);
+                        pdf.text(titleLine, 20, y + 8);
 
                         pdf.setTextColor(...TEXT_DARK);
                         pdf.setFontSize(9);
-                        pdf.text(`Primary Actor: ${desc.primaryActor || 'Not specified'}`, 20, y + 16);
-                        pdf.text(`Preconditions: ${desc.preconditions || 'None'}`, 20, y + 23);
+                        pdf.text(actorLine, 20, y + 16);
+                        pdf.text(preLines, 20, y + 24);
 
+                        let iy = y + 24 + preLines.length * 5;
+                        pdf.text(postLines, 20, iy);
+                        iy += postLines.length * 5 + 4;
                         pdf.setFont('helvetica', 'bold');
-                        pdf.text('Main Success Scenario:', 20, y + 31);
+                        pdf.text('Main Success Scenario:', 20, iy);
+                        iy += 6;
                         pdf.setFont('helvetica', 'normal');
+                        pdf.text(flowLines, 20, iy);
 
-                        if (Array.isArray(desc.mainFlow) && desc.mainFlow.length > 0) {
-                            const stepsText = desc.mainFlow.map((s, i) => `${i + 1}. ${s.action || s}`).join('  |  ');
-                            const wrappedSteps = pdf.splitTextToSize(stepsText, pageWidth - 70);
-                            pdf.text(wrappedSteps, 20, y + 38);
-                        } else {
-                            pdf.text('1. User initiates request  2. System validates input  3. System completes operation', 20, y + 38);
-                        }
-
-                        y += 55;
+                        y += boxHeight + 10;
                     });
                 }
 
@@ -505,6 +536,239 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
             }
 
             renderEvaluationTable(sectionKey, yAfterDiagram);
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // CASE-STUDY CONSISTENCY REPORT (mirrors the checking panel block)
+        // ═════════════════════════════════════════════════════════════════════
+        const csReport = report?.caseStudyReport || report?.checkResult?.caseStudyReport;
+        if (csReport) {
+            pdf.addPage();
+            renderSectionHeader('6. Case-Study Consistency');
+
+            const cs = csReport;
+            const findings = cs.findings || [];
+            const expected = cs.expected || {};
+            const validation = cs.validation || {};
+            const overall = cs.overall
+                || (findings.some(f => f.severity === 'error') ? 'errors'
+                    : (findings.some(f => f.severity === 'warning') ? 'warnings' : 'consistent'));
+
+            const csStatusColor = {
+                found: [16, 185, 129],
+                typo: [245, 158, 11],
+                mismatch: [245, 158, 11],
+                lowConfidence: [245, 158, 11],
+                invalid: [245, 158, 11],
+                optional: [107, 114, 128],
+                missing: [239, 68, 68],
+            };
+            const csEnsureSpace = (needed) => {
+                if (ycs + needed > pageHeight - 15) {
+                    pdf.addPage();
+                    renderSectionHeader('6. Case-Study Consistency (Continued)');
+                    ycs = 30;
+                }
+            };
+
+            let ycs = 36;
+
+            // Insufficient context view (mirror of unreliable branch)
+            if (validation.reliable === false) {
+                const signalNames = {
+                    hasMultipleSentences: 'a few descriptive sentences',
+                    hasContentTokens: 'specific content words',
+                    hasFunctionalVerb: 'an action (functional) verb',
+                    hasActorAction: 'actors performing actions',
+                    hasSemanticCompleteness: 'enough assignment coverage',
+                };
+                const present = Object.keys(signalNames).filter(k => validation.signals?.[k]);
+                const absent = Object.keys(signalNames).filter(k => !validation.signals?.[k]);
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(245, 158, 11);
+                pdf.setFontSize(10);
+                pdf.text('! The assignment text is too short for a reliable consistency check', 20, ycs);
+                ycs += 9;
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(...TEXT_DARK);
+                pdf.setFontSize(9);
+                if (validation.loginSupported) {
+                    csEnsureSpace(8);
+                    pdf.text('Login-related wording was recognised, but a login alone is a precondition, not a complete case-study brief.', 20, ycs);
+                    ycs += 8;
+                }
+                if (validation.reasoning) {
+                    csEnsureSpace(8);
+                    pdf.text(pdf.splitTextToSize(`Why: ${validation.reasoning}`, pageWidth - 40), 20, ycs);
+                    ycs += 8 * pdf.splitTextToSize(validation.reasoning, pageWidth - 40).length;
+                }
+                if (present.length > 0) {
+                    csEnsureSpace(8);
+                    pdf.text(`Detected: ${present.map(k => signalNames[k]).join(', ')}.`, 20, ycs);
+                    ycs += 7;
+                }
+                if (absent.length > 0) {
+                    csEnsureSpace(8);
+                    pdf.text(`Missing: ${absent.map(k => signalNames[k]).join(', ')}.`, 20, ycs);
+                    ycs += 7;
+                }
+                pdf.setTextColor(...TEXT_MUTED);
+                csEnsureSpace(12);
+                pdf.text('No expected actors or use cases are asserted for an assignment this thin.', 20, ycs);
+                ycs += 12;
+            } else {
+                // Verdict banner
+                const bannerMsg = overall === 'consistent'
+                    ? '✓ Diagram matches the assignment requirements'
+                    : overall === 'warnings'
+                        ? '! Diagram is mostly consistent — review the warnings below'
+                        : '✗ Diagram does not fully match the assignment requirements';
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...(overall === 'consistent' ? GREEN_COLOR : overall === 'warnings' ? [245, 158, 11] : [239, 68, 68]));
+                pdf.setFontSize(11);
+                pdf.text(bannerMsg.toUpperCase(), 20, ycs);
+                ycs += 12;
+
+                // System boundary
+                const sys = cs.systemName || {};
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...TEXT_DARK);
+                pdf.setFontSize(9);
+                pdf.text('System boundary:', 20, ycs);
+                pdf.setFont('helvetica', 'normal');
+                const sysStatus = sys.status || 'missing';
+                pdf.setTextColor(...(sysStatus === 'found' ? GREEN_COLOR : csStatusColor[sysStatus] || [107, 114, 128]));
+                const sysText = sysStatus === 'found' && sys.submitted
+                    ? ` ${sys.submitted}`
+                    : ` ${sys.submitted || 'no name'}`;
+                pdf.text(sysText, 62, ycs);
+                pdf.setTextColor(...TEXT_MUTED);
+                if (sys.status === 'missing' && sys.expected) pdf.text(`— try "${sys.expected}"`, 62 + pdf.getTextWidth(sysText), ycs);
+                if (sys.status === 'mismatch') pdf.text(`— assignment suggests "${sys.expected}"${typeof sys.matchedScore === 'number' ? ` (match ${Math.round(sys.matchedScore * 100)}%)` : ''}`, 62 + pdf.getTextWidth(sysText), ycs);
+                ycs += 9;
+
+                const statusGlyphText = (status) => (status === 'found' ? '✓' : (status === 'typo' || status === 'mismatch' || status === 'lowConfidence' || status === 'invalid') ? '!' : '✗');
+                const statusGreen = (status) => status === 'found';
+                const statusAmber = (status) => status === 'typo' || status === 'mismatch' || status === 'lowConfidence' || status === 'invalid';
+
+                // Actors
+                if ((cs.actorStatus || []).length) {
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...TEXT_DARK);
+                    csEnsureSpace(9);
+                    pdf.text('Actors vs assignment:', 20, ycs);
+                    ycs += 9;
+                    pdf.setFont('helvetica', 'normal');
+                    cs.actorStatus.forEach((a) => {
+                        csEnsureSpace(7);
+                        const gAmber = statusAmber(a.status);
+                        const gGreen = statusGreen(a.status);
+                        pdf.setTextColor(...(gGreen ? GREEN_COLOR : gAmber ? [245, 158, 11] : [239, 68, 68]));
+                        let line = `${statusGlyphText(a.status)} ${a.actor}`;
+                        if (a.status === 'typo' && a.actor) line += ` — use exact role "${a.actor}"`;
+                        if (a.status === 'missing' && a.submitted) line += ` — diagram has "${a.submitted}" (match ${Math.round(a.matchedScore * 100)}%)`;
+                        if (a.status === 'found' && a.submitted) line += ` (match ${Math.round(a.matchedScore * 100)}%)`;
+                        pdf.text(pdf.splitTextToSize(line, pageWidth - 40), 20, ycs);
+                        ycs += 7;
+                    });
+                }
+
+                // Use cases
+                if ((cs.useCaseStatus || []).length) {
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...TEXT_DARK);
+                    csEnsureSpace(9);
+                    ycs += 2;
+                    pdf.text('Use cases vs assignment:', 20, ycs);
+                    ycs += 9;
+                    pdf.setFont('helvetica', 'normal');
+                    cs.useCaseStatus.forEach((u) => {
+                        csEnsureSpace(7);
+                        const gAmber = statusAmber(u.status);
+                        const gGreen = statusGreen(u.status);
+                        pdf.setTextColor(...(gGreen ? GREEN_COLOR : gAmber ? [245, 158, 11] : [239, 68, 68]));
+                        let line = `${statusGlyphText(u.status)} ${u.useCase}`;
+                        if (typeof u.confidence === 'number') line += ` (confidence ${Math.round(u.confidence * 100)}%)`;
+                        if (u.status === 'missing' && u.submitted) line += ` — found "${u.submitted}" (match ${Math.round(u.matchedScore * 100)}%)`;
+                        if (u.status === 'found' && u.submitted) line += ` — "${u.submitted}"`;
+                        if (u.status === 'lowConfidence') line += ' — hint only, not required';
+                        if (u.status === 'invalid') line += ' — not an action phrase';
+                        if (u.status === 'optional') line += ' — login/precondition, not required';
+                        pdf.text(pdf.splitTextToSize(line, pageWidth - 40), 20, ycs);
+                        ycs += 7;
+                    });
+                }
+
+                // Expected chips
+                ycs += 3;
+                if ((expected.actors || []).length) {
+                    csEnsureSpace(8);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...TEXT_DARK);
+                    pdf.text('Expected actors:', 20, ycs);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setTextColor(...PRIMARY);
+                    pdf.text(expected.actors.join(', '), 55, ycs);
+                    ycs += 8;
+                }
+                if ((expected.useCases || []).length) {
+                    csEnsureSpace(8);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...TEXT_DARK);
+                    pdf.text('Expected use cases:', 20, ycs);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setTextColor(...PRIMARY);
+                    pdf.text(expected.useCases.map((u) => (typeof u === 'string' ? u : u.name)).join(', '), 62, ycs);
+                    ycs += 8;
+                }
+                if ((expected.systemCandidates || []).length) {
+                    csEnsureSpace(8);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...TEXT_DARK);
+                    pdf.text('Suggested system names:', 20, ycs);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setTextColor(...PRIMARY);
+                    pdf.text(expected.systemCandidates.slice(0, 3).join(', '), 66, ycs);
+                    ycs += 10;
+                }
+
+                // Findings grouped by severity
+                const renderFindings = (sev, label, glyph, color) => {
+                    const list = findings.filter((f) => f.severity === sev);
+                    if (list.length === 0) return;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...TEXT_DARK);
+                    csEnsureSpace(8);
+                    ycs += 2;
+                    pdf.text(`${label}:`, 20, ycs);
+                    ycs += 8;
+                    pdf.setFont('helvetica', 'normal');
+                    list.forEach((f) => {
+                        const ctx = f.context || {};
+                        const lines = pdf.splitTextToSize(`${glyph} ${f.message}`, pageWidth - 40);
+                        csEnsureSpace(7 * lines.length + 4);
+                        pdf.setTextColor(...color);
+                        pdf.text(lines, 20, ycs);
+                        ycs += 7 * lines.length + 3;
+                    });
+                };
+
+                renderFindings('error', 'Errors', '✗', [239, 68, 68]);
+                renderFindings('warning', 'Warnings', '!', [245, 158, 11]);
+                renderFindings('info', 'Info', '•', TEXT_MUTED);
+
+                // Counts summary
+                if ((cs.counts || {}).total > 0) {
+                    csEnsureSpace(10);
+                    ycs += 4;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(...TEXT_MUTED);
+                    pdf.text(`${cs.counts.total} case-study finding(s) — ${cs.counts.error || 0} error(s), ${cs.counts.warning || 0} warning(s), ${cs.counts.info || 0} info`, 20, ycs);
+                    ycs += 10;
+                }
+            }
         }
 
         // Add page numbers footer to all pages
@@ -624,4 +888,156 @@ export const exportDiagramAsImage = async (activeSection, format) => {
     } else {
         triggerDownload(dataUrl, `uml-${activeSection}-diagram.${format === 'jpeg' || format === 'jpg' ? 'jpg' : 'png'}`);
     }
+};
+
+// Build a line-based snapshot of the report (issues + case-study block) as plain text
+const buildReportText = (report) => {
+    if (!report) return '';
+    const lines = [];
+
+    const pretty = (value) => (value === undefined || value === null || value === '' ? 'N/A' : String(value));
+
+    const pushSection = (title) => lines.push('\n' + '='.repeat(60) + `\n${title}\n` + '='.repeat(60));
+
+    const issues = Array.isArray(report.issues) ? report.issues : [];
+    if (issues.length > 0) {
+        pushSection('VALIDATION FINDINGS');
+        issues.forEach((issue, idx) => {
+            const sev = (issue.severity || 'check').toUpperCase();
+            lines.push(`[${idx + 1}] [${sev}] ${issue.message || ''}`);
+            const ctx = issue.context || {};
+            if (ctx.suggestion) lines.push(`    Suggestion: ${ctx.suggestion}`);
+            if (ctx.matchedScore !== undefined) lines.push(`    Match: ${Math.round(ctx.matchedScore * 100)}%`);
+            lines.push('');
+        });
+    }
+
+    const cs = report.caseStudyReport || report.checkResult?.caseStudyReport;
+    if (cs) {
+        pushSection('CASE-STUDY CONSISTENCY');
+        const validation = cs.validation || {};
+        const overall = cs.overall
+            || (cs.findings?.some(f => f.severity === 'error') ? 'errors'
+                : (cs.findings?.some(f => f.severity === 'warning') ? 'warnings' : 'consistent'));
+
+        lines.push(`Overall verdict: ${overall.toUpperCase()}`);
+        lines.push(`Reliable check: ${validation.reliable === false ? 'No — assignment text too short' : 'Yes'}`);
+        if (validation.reliable === false) {
+            if (validation.reasoning) lines.push(`Why: ${validation.reasoning}`);
+            const signalNames = {
+                hasMultipleSentences: 'a few descriptive sentences',
+                hasContentTokens: 'specific content words',
+                hasFunctionalVerb: 'an action (functional) verb',
+                hasActorAction: 'actors performing actions',
+                hasSemanticCompleteness: 'enough assignment coverage',
+            };
+            const present = Object.keys(signalNames).filter(k => validation.signals?.[k]);
+            const absent = Object.keys(signalNames).filter(k => !validation.signals?.[k]);
+            if (present.length) lines.push(`Detected: ${present.map(k => signalNames[k]).join(', ')}.`);
+            if (absent.length) lines.push(`Missing: ${absent.map(k => signalNames[k]).join(', ')}.`);
+        }
+
+        const sys = cs.systemName || {};
+        lines.push(`\nSystem boundary: ${sys.submitted || 'no name'} — ${(sys.status || 'missing').toUpperCase()}`);
+        if (sys.status === 'missing' && sys.expected) lines.push(`  Suggested system name: "${sys.expected}"`);
+        if (sys.status === 'mismatch') lines.push(`  Assignment suggests: "${sys.expected}"${typeof sys.matchedScore === 'number' ? ` (match ${Math.round(sys.matchedScore * 100)}%)` : ''}`);
+
+        if ((cs.actorStatus || []).length) {
+            lines.push('\nActors vs assignment:');
+            cs.actorStatus.forEach((a) => {
+                let line = `  [${(a.status || 'unknown').toUpperCase()}] ${a.actor}`;
+                if (a.status === 'typo') line += ' — use exact role';
+                if (a.status === 'missing' && a.submitted) line += ` — diagram has "${a.submitted}" (match ${Math.round(a.matchedScore * 100)}%)`;
+                if (a.status === 'found') line += ` (match ${Math.round(a.matchedScore * 100)}%)`;
+                lines.push(line);
+            });
+        }
+
+        if ((cs.useCaseStatus || []).length) {
+            lines.push('\nUse cases vs assignment:');
+            cs.useCaseStatus.forEach((u) => {
+                let line = `  [${(u.status || 'unknown').toUpperCase()}] ${u.useCase}`;
+                if (typeof u.confidence === 'number') line += ` (confidence ${Math.round(u.confidence * 100)}%)`;
+                if (u.status === 'found' && u.submitted) line += ` — "${u.submitted}"`;
+                lines.push(line);
+            });
+        }
+
+        const expected = cs.expected || {};
+        if ((expected.actors || []).length) lines.push(`\nExpected actors: ${expected.actors.join(', ')}`);
+        if ((expected.useCases || []).length) lines.push(`Expected use cases: ${expected.useCases.map(u => (typeof u === 'string' ? u : u.name)).join(', ')}`);
+        if ((expected.systemCandidates || []).length) lines.push(`Suggested system names: ${expected.systemCandidates.slice(0, 3).join(', ')}`);
+
+        const findings = cs.findings || [];
+        if (findings.length) {
+            lines.push('\nFindings:');
+            findings.forEach((f) => {
+                const sev = (f.severity || 'info').toUpperCase();
+                lines.push(`  [${sev}] ${f.message || ''}`);
+            });
+        }
+        if ((cs.counts || {}).total > 0) {
+            lines.push(`\n${cs.counts.total} case-study finding(s) — ${cs.counts.error || 0} error(s), ${cs.counts.warning || 0} warning(s), ${cs.counts.info || 0} info`);
+        }
+    }
+
+    return lines.join('\n');
+};
+
+export const exportReportAsText = async (mode, activeModel, report, userInfo = {}) => {
+    const lines = [];
+    lines.push('UML DESIGN & EVALUATION REPORT');
+    lines.push('='.repeat(60));
+    lines.push(`Student: ${userInfo.studentName || 'Student Workspace'}`);
+    lines.push(`Assignment: ${userInfo.assignmentTitle || 'UML Software Design'}`);
+    lines.push(`Course / Class: ${userInfo.className || 'Software Engineering'}`);
+    lines.push(`Date Generated: ${new Date().toLocaleDateString()}`);
+    lines.push(`Mode: ${mode === 'tutorial' ? 'Guided Tutorial Mode' : 'Development Mode'}`);
+
+    const totalScore = report?.score ?? report?.totalScore ?? report?.summary?.totalScore ?? null;
+    if (totalScore !== null) lines.push(`Overall Score: ${totalScore} / 100`);
+    lines.push('');
+
+    const descs = activeModel?.descriptions || activeModel?.useCaseDescriptions || {};
+    if (Object.keys(descs).length > 0) {
+        lines.push('='.repeat(60));
+        lines.push('USE CASE DESCRIPTIONS');
+        lines.push('='.repeat(60));
+        Object.entries(descs).forEach(([id, description]) => {
+            lines.push(`\nUse Case: ${description.useCaseName || 'Untitled'}`);
+            lines.push(`Primary Actor: ${description.primaryActor || 'Not specified'}`);
+            lines.push(`Preconditions: ${description.preconditions || 'None'}`);
+            lines.push(`Postconditions: ${description.postconditions || 'None'}`);
+            lines.push('Main Success Scenario:');
+            if (Array.isArray(description.mainFlow)) {
+                description.mainFlow.forEach((step, i) => {
+                    lines.push(`  ${i + 1}. ${(typeof step === 'string' ? step : step.action) || ''}`);
+                });
+            }
+            lines.push('');
+        });
+    }
+
+    lines.push(buildReportText(report));
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    triggerDownload(blob, `uml-${mode}-report-${timestamp}.txt`);
+};
+
+export const exportReportAsJSON = async (mode, activeModel, report, userInfo = {}) => {
+    const exportData = {
+        version: '1.1',
+        exportedAt: new Date().toISOString(),
+        mode: mode,
+        studentName: userInfo.studentName || null,
+        assignmentTitle: userInfo.assignmentTitle || null,
+        className: userInfo.className || null,
+        model: activeModel,
+        report: report,
+    };
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    triggerDownload(blob, `uml-${mode}-report-${timestamp}.json`);
 };

@@ -1,199 +1,112 @@
 # UML Tutor Backend
 
-Backend API for the UML Tutor learning platform. It validates UML diagrams,
-keeps several diagram types consistent with each other, and can check a use case
-diagram against the free-text case-study requirement of an assignment.
+The back end of the UML Tutor learning platform. It stores all student and
+teacher data and runs every automated check on the UML diagrams students draw.
+In the overall system it is the **source of truth**: the diagrams, grades,
+reports and suggestions shown in the app all come from here.
 
-This is a Node.js / Express / Prisma API. All code is plain JavaScript
-(CommonJS), and the checks are deterministic and offline — there is **no
-hardcoded case-study model**. Anything an assignment says is parsed from its own
-text at runtime.
+The checks are deterministic and offline. There are no calls to external AI
+services, and no hardcoded assignment model — whenever an assignment's text
+needs to be checked, it is read and understood at that moment.
+
+The back end is built with Node.js, Express and Prisma, written in plain
+JavaScript.
 
 ## Quick Start
 
-### Install
+- **Install** — `npm install`, then generate the database client and create a
+  `.env` file from the example with your database and security keys.
+- **Database** — sync the Prisma schema to your database and start the server
+  in development mode.
+- **Tests** — run the Jest suites with `npx jest`. The tests are pure unit
+  tests and do not need a database.
 
-```bash
-npm install
-npm run prisma:generate
-cp .env.example .env   # create one if missing (keys: DATABASE_URL, JWT_SECRET, ...)
-npm run prisma:push    # sync the Prisma schema to the database
-npm run dev            # nodemon -> src/server.js (default port 3000)
-```
+Optional integrations the app can use when configured:
 
-The app also needs these optional integrations:
+- **Firebase** — for user authentication.
+- **Redis** — for the two-level cache. Without it, the application falls back
+  to an in-memory cache alone.
+- **Cloudinary** — for hosting uploaded files. Without it, files are kept on
+  disk.
 
-- **Firebase** for authentication (`FIREBASE_SERVICE_ACCOUNT_PATH` or
-  `FIREBASE_SERVICE_ACCOUNT_JSON`, plus a `firebase-service-account.json`).
-- **Redis** for the two-level cache (`REDIS_URL`). It falls back to an
-  in-memory cache alone when Redis is unavailable.
-- **Cloudinary** for file CDN (`CLOUDINARY_*` env keys). Without it, files are
-  kept on disk under `uploads/`.
+## What Each Area of the Code Does
 
-### Run Tests
+The code is organised into separate areas, each with a clear job:
 
-The test suites are pure unit tests (no database connection needed) and are
-configured entirely by the npm scripts — no separate Jest config file is
-required.
+- **app and entry files** — set up the web application, its middleware, routes
+  and documentation.
+- **controllers** — the thin layer between incoming web requests and the
+  business logic. They receive a request, ask a service to do the work, and
+  send back the response.
+- **routes** — the definitions of the web endpoints (authentication, classes,
+  assignments, submissions, notifications, students, resources).
+- **repositories** — the data-access layer. They keep database calls separate
+  from business logic.
+- **services** — where the real work happens. This is where validation,
+  submissions, grading, requirements and notifications are handled.
+- **rules** — the collection of validation rules and the logic that runs them.
+- **nlp** — the offline text-analysis helpers: comparing words, parsing
+  sentences, and understanding assignment requirement text.
+- **middleware** — general handling for user authentication, rate limiting,
+  request checking and errors.
+- **utils** — shared helpers: caching, file uploads, logging and more.
+- **fixtures** — example shapes used by the tests. Never served to production.
+- **tests** — the Jest test suites.
 
-```bash
-npx jest            # run all Jest suites in src/tests/
-npm run test:watch  # watch mode
-npm run test:coverage
-```
+## The Main Parts
 
-Note: the `npm test` script additionally runs `prisma db push`, which needs the
-`DATABASE_URL` in the environment to match the schema provider. If you only want
-to run the suites, use `npx jest` as above.
+### Validation
 
-There are **29 test suites** (304 tests) in `src/tests/`.
+The core of the back end. A single validation call runs dozens of checks across
+all five artifacts a student produces — the use case diagram, use case
+descriptions, system sequence diagrams, class diagram and sequence diagrams —
+plus checks that all of them agree with one another. The checks run in six
+phases so a serious early mistake stops later, pointless checks.
 
-### Deployment
+The rules the engine uses are kept in a readable catalogue of more than 140
+definitions. Rules can be switched on or off and their severity changed at run
+time. After the main checks, an extra step traces knock-on errors back to their
+root cause so reports show the real problem instead of a wall of symptoms.
 
-- `Dockerfile` — two-stage Node 18 build; runs `prisma generate`, starts on port 5000.
-- `vercel.json` + `api/index.js` — serverless entry that exports the Express app.
-- `k8s/deployment.yaml` — Kubernetes manifest.
-- `.github/workflows/deploy.yml` — builds a GHCR image on push to `main`.
+### The Case-Study Check
 
-## What Every Folder Does
+A special check for teachers: the student's use case diagram is compared with
+the assignment's own written text. Because the text is understood fresh each
+time, nothing is hardcoded. The check only enforces capabilities the text
+clearly supports, treats login as a normal part of the story, tolerates small
+typos in actor names, and refuses to guess when the text is too thin to check.
+It ends by producing a report the front end renders directly.
 
-```
-src/
-├── app.js                # Express app: middleware, route mounts, /api-docs, /health
-├── server.js             # Entry point: HTTP + Socket.IO, init, listen
-├── config/               # Prisma client, Firebase admin, paths, Swagger
-├── controllers/          # Thin HTTP handlers -> forward to services
-├── routes/               # Express routers (auth, classes, assignments, submissions, ...)
-├── services/             # Business logic (the actual work happens here)
-├── repositories/         # Thin Prisma data-access layer
-├── rules/                # Rule registry + dependency-aware pipeline + runtime config
-├── nlp/                  # Offline NLP: similarity, sentence utils, requirement parsing
-├── middleware/           # Auth, rate limiting, Zod validation, error handling
-├── utils/                # Cache, uploads, errors, JWT, logger, misc helpers
-├── fixtures/             # Shape/templates used by tests (not served to production)
-└── tests/                # Jest test suites
-```
+### Submission, Grading and Communication
 
-### services/ — the core
+These services handle the day-to-day workflow: saving and submitting artifacts,
+checking how complete a submission is, grading with remarks and feedback,
+exporting submissions and receipts, and producing analytics. Around that, the
+back end handles notifications, caching, file storage and logging.
 
-- `checkingEngine.js` — the **validation engine**. One `checkModel` call runs
-  ~40 `validate*` steps across the five model sections: use case diagram,
-  use case description, system sequence diagrams (SSDs), class diagram and
-  sequence diagrams, plus cross-diagram consistency. It also holds the
-  dynamic case-study → use case diagram check and builds the case-study report.
-- `rulePipeline.js` is in `rules/`, but it drives the engine: it runs `checkModelPhased`
-  (6 phases) and `checkModelWithPipeline` (enriches issues and suppresses
-  cascading errors where one root cause explains several symptoms).
-- `submissionService.js` — the student/teacher submission workflow: drafts,
-  artifacts, completion, run-check, grading, feedback, tutorial-mode requests,
-  exports and analytics.
-- `requirementService.js` — resolves an assignment's requirement text and
-  parses it into a structured requirement model on demand (never stored).
-- `suggestionEngine.js` — turns validation findings into repair/renaming
-  suggestions.
-- Plus per-domain services: `authService`, `classService`, `assignmentService`,
-  `announcementService`, `notificationService`, `resourceService`,
-  `studentService`, `ssdValidationService`.
+## How Data Is Organised
 
-### nlp/ — offline natural-language support
+The data model stores users, classes, assignments and submissions, together
+with the diagram artifacts a student saves (one use case diagram, one class
+diagram, and per-use-case descriptions, system sequence diagrams and sequence
+diagrams). Each assignment may carry a free-text requirement that the
+case-study check uses.
 
-- `similarity.js` — string similarity, fuzzy match, lemma mapping, synonyms,
-  function/use-case classification used by most validators.
-- `sentenceUtils.js` — sentence and method/attribute parsing helpers.
-- `semanticService.js` — shared semantic representation + SSD/operation
-  comparison used across the sequence/class/SSD phases.
-- `promptRequirementParser.js` — parses free-text requirement prose into a
-  structured model (actors, use cases, requirements buckets, coverage).
-- `requirementClassifier.js` — classifies each requirement sentence into a type
-  (functional, actor, context, domain entity, business rule, constraint, ...).
-- `suggestionGenerator.js` — assignment-aware suggestions and
-  system-name candidates derived from the requirement text.
-- `constants.js` — shared word dictionaries and thresholds.
+## Web Endpoints
 
-### rules/
+The back end exposes endpoints for every part of the workflow:
 
-- `ruleRegistry.js` — the full catalogue of **143 rule definitions** (136
-  active, 7 disabled). Categories: structural 25, consistency 40, naming 16,
-  completeness 21, UML standard 21, NLP 13, best practice 7. Rules span the use
-  case diagram, descriptions, SSDs, class diagram, sequence diagram and
-  cross-diagram checks. Helpers: `getRuleByCode`, `getRulesByDiagramType`, ...
-- `rulePipeline.js` — `checkModelPhased` (6 phases: diagram, description, ssd,
-  class-diagram, sequence-diagram, consistency) and `checkModelWithPipeline`
-  (issue enrichment + cascade suppression).
-- `ruleConfig.js` — runtime enable/disable and threshold overrides.
+- the authoritative grading check, plus a direct "check this model" endpoint;
+- authentication, classes, assignments, submissions, notifications, students
+  and resources;
+- Swagger documentation of the whole interface.
 
-### middleware/ and utils/
+## Testing
 
-- `routeMiddleware.js` — Firebase token auth + role authorization.
-- `validationMiddleware.js` — Zod schema validation for body/query/params.
-- `errorHandler.js` — `AppError` hierarchy, async wrapper, 404 handler.
-- `rateLimiter.js` — global and per-route rate limits.
-- `utils/redis.js` + `serviceCache.js` — two-level cache (memory + Redis).
-- `utils/fileUpload.js` + `cloudinary.js` — multer uploads + optional CDN.
-- `utils/errors.js`, `logger.js`, `jwt.js`, `password.js`, `startup.js`,
-  `tokenCache.js`, `userCache.js`, `tutorialRequestUtils.js`,
-  `submissionQueryUtils.js`.
-
-## Domain Model (Prisma)
-
-15 models: `User`, `Class`, `ClassStudent`, `Assignment`, `Submission`,
-`SubmissionExport`, `UseCaseDiagram`, `UseCaseDescription`, `SSDDiagram`,
-`ClassDiagram`, `SequenceDiagram`, `Evaluation`, `Notification`,
-`Announcement`, `Resource`.
-
-Each submission stores up to one use case diagram, one class diagram, and
-per-use-case descriptions, SSDs and sequence diagrams. `Assignment` carries the
-free-text `requirementText` used by the case-study check.
-
-## API Endpoints
-
-- `POST /api/checking/check` — validate a UML model (optionally with a
-  `requirementText` the case-study check uses).
-- `POST /api/submissions/:id/run-check` — authoritative run: resolves the
-  assignment's requirement text, runs the full engine, returns the report.
-- Auth: `/api/auth/*` — register, logout, profile, change password, account.
-- Classes: `/api/classes/*` and `/api/student/classes/*` — CRUD, join, students,
-  analytics, announcements, resources.
-- Assignments: `/api/assignments/*`, `/api/student/assignments/*`.
-- Submissions: `/api/submissions/*` — draft/save, status, detail, grade,
-  feedback, tutorial-mode requests, exports, analytics.
-- Notifications: `/api/notifications/*`.
-- Docs: Swagger UI at `/api-docs`.
-
-## The Case-Study Drive (no hardcoding)
-
-The use case diagram check never uses a fixed assignment model. On every
-`run-check`:
-
-1. The assignment's free text is parsed into a structured requirement model
-   (actors, use cases, requirement-type buckets).
-2. Only **functional** sentences describing a role performing an action become
-   expected use cases. Descriptive/context/domain/business-rule prose is kept
-   aside and never turned into fake use cases.
-3. A **reliability gate** decides whether the text is substantial enough to
-   check at all. Thin fragments produce a single "insufficient context" warning
-   and the report switches to a validation-only view — nothing is guessed.
-4. A **confidence score (0..1)** is attached to every derived use case. Only
-   high-confidence goals (`≥ 0.75`) are enforced as missing; low-confidence
-   hints and plain-noun names are reported as informational notes.
-5. **Login is treated as a supported precondition.** When the assignment
-   mentions authentication, auth use cases are neither required nor flagged as
-   unsupported.
-6. Actors are matched with alias + fuzzy similarity, so misspellings do not
-   produce false "missing actor" errors.
-7. `buildCaseStudyReport` returns per-actor, per-use-case and system-boundary
-   statuses plus an overall verdict (`consistent | warnings | errors |
-   insufficient`) that drives the front-end report.
-
-## Testing Notes
-
-- Run with `npx jest` (the `npm test` script first tries a `prisma db push`,
-  which only works when `DATABASE_URL` matches the schema provider — the suites
-  themselves do not need a database).
-- Suites cover every validation phase (UCD, description, SSD, class, sequence,
-  cross-diagram), the rule registry reconciliation, NLP parsing/classification,
-  suggestion engine/generator, performance, and several regression bugs
-  (autosave, submission query flat-selector, score coercion of letter grades).
+The test suites in `src/tests/` are unit tests with no database dependency.
+They cover every validation phase, the rule catalogue, text analysis, the
+case-study engine, the suggestion engines, performance, and several past bugs
+to stop them from coming back.
 
 ## License
 

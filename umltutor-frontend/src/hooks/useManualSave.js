@@ -6,7 +6,7 @@ import {
 } from '../features/diagram';
 import { selectCurrentMode } from '../features/modes';
 import { selectIsGuest } from '../features/auth';
-import { exportCombinedModel, exportModelAsJSON, exportDescriptionAsText, exportDiagramAsImage } from '../utils/exportUtils';
+import { exportCombinedModel, exportModelAsJSON, exportDescriptionAsText, exportDiagramAsImage, exportReportAsText, exportReportAsJSON } from '../utils/exportUtils';
 
 
 /**
@@ -58,6 +58,10 @@ export const useManualSave = (activeSection) => {
         try {
             if (format === 'combined') {
                 result = await exportCombinedModel(activeModel, mode, report, userInfo);
+            } else if (format === 'report-json') {
+                await exportReportAsJSON(mode, activeModel, report, userInfo);
+            } else if (format === 'report-txt') {
+                await exportReportAsText(mode, activeModel, report, userInfo);
             } else if (format === 'json') {
                 await exportModelAsJSON(mode, activeModel);
             } else if (format === 'txt' || format === 'pdf' || format === 'docx' || format === 'jpeg' || format === 'png' || format === 'svg') {

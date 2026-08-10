@@ -798,6 +798,49 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                   <button
                     onClick={async () => {
                       setIsExporting(true);
+                      try {
+                        const exportReport = currentSubmission?.fullReport || checkingState.results;
+                        await exportToFile('report-txt', exportReport, { studentName: model?.studentName || '', assignmentTitle: model?.title || '' });
+                        successToast('Report exported as TXT');
+                      } catch (err) {
+                        errorToast('Export failed: ' + err.message);
+                      } finally {
+                        setIsExporting(false);
+                        setShowExportDropdown(false);
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-bold font-body text-ink transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5 font-extrabold font-heading">
+                      <File size={12} />
+                      <span>Download Report (.txt)</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setIsExporting(true);
+                      try {
+                        const exportReport = currentSubmission?.fullReport || checkingState.results;
+                        await exportToFile('report-json', exportReport, { studentName: model?.studentName || '', assignmentTitle: model?.title || '' });
+                        successToast('Report exported as JSON');
+                      } catch (err) {
+                        errorToast('Export failed: ' + err.message);
+                      } finally {
+                        setIsExporting(false);
+                        setShowExportDropdown(false);
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-bold font-body text-ink transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5 font-extrabold font-heading">
+                      <File size={12} />
+                      <span>Download Report (.json)</span>
+                    </div>
+                  </button>
+                  <div className="border-t border-black/5 my-1"></div>
+                  <button
+                    onClick={async () => {
+                      setIsExporting(true);
                       setIsCombinedExporting(true);
                       try {
                         const studentName = model?.studentName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '') || (user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '') || user?.name || user?.fullName || currentSubmission?.studentName || '';
