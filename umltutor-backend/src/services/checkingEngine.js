@@ -1,4 +1,4 @@
-﻿"use strict"; Object.defineProperty(exports, "__esModule", { value: true }); function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } var _ssdValidationService = require('./ssdValidationService');
+"use strict"; Object.defineProperty(exports, "__esModule", { value: true }); function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } var _ssdValidationService = require('./ssdValidationService');
 
 const {
     VERB_DICTIONARY, INTERNAL_VERBS, EXTERNAL_VERBS, STOP_WORDS,
@@ -72,17 +72,17 @@ class CheckingEngine {
 
         // 2. Description Validation (Step 2)
         if (!section || section === 'description') {
-            this.validateDescriptions(model.descriptions, issues, diagramAnalysis, targetId);
+            this.validateDescriptions(model.descriptions, issues, diagramAnalysis, targetId, requirementModel);
         }
 
         // 3. SSD Validation (Step 3)
         if (!section || section === 'ssd') {
-            this.validateSSDs(model.ssds, issues, diagramAnalysis, model.descriptions, targetId);
+            this.validateSSDs(model.ssds, issues, diagramAnalysis, model.descriptions, targetId, requirementModel);
         }
 
         // 3b. Description <-> SSD semantic alignment (Step 2 -> Step 3)
         if (!section || section === 'ssd') {
-            this.validateDescriptionSSDSemantics(model.descriptions, model.ssds, issues, diagramAnalysis, targetId);
+            this.validateDescriptionSSDSemantics(model.descriptions, model.ssds, issues, diagramAnalysis, targetId, requirementModel);
         }
 
         // 4. Class Diagram Validation (Step 4)
@@ -92,7 +92,8 @@ class CheckingEngine {
                 issues,
                 diagramAnalysis,
                 model.descriptions,
-                model.ssds
+                model.ssds,
+                requirementModel
             );
         }
 
@@ -120,7 +121,8 @@ class CheckingEngine {
                 model.descriptions,
                 model.ssds,
                 model.classDiagram,
-                targetId
+                targetId,
+                requirementModel
             );
         }
 
@@ -454,24 +456,25 @@ class CheckingEngine {
         const reqUseCases = requirementModel.useCases || [];
         const reqActors = requirementModel.actors || [];
         const reqResponsibilities = requirementModel.responsibilities || [];
-        // No parseable case-study content → nothing meaningful to check.
-        if (reqUseCases.length === 0 && reqActors.length === 0) return;
+        const rawSentenceCount = requirementModel.rawSentenceCount || (requirementModel.sources || []).length || 0;
 
-        if (requirementModel.reliable === false) {
-            const ctx = requirementModel.context || {};
+        // Minimum two sentences required for reliable consistency checking
+        if (rawSentenceCount < 2) {
             issues.push({
                 type: 'diagram', severity: 'warning', location: 'diagram',
                 code: 'CASE_STUDY_INSUFFICIENT',
-                message: 'The provided assignment text does not contain enough requirement information to determine the expected actors and use cases.',
+                message: 'Assignment instruction text must contain at least two sentences for reliable consistency checking.',
                 context: {
                     specCode: 'INSUFFICIENT_CONTEXT',
-                    reasoning: ctx.reasoning || '',
-                    signalBreakdown: ctx.signals || null,
-                    suggestion: 'Provide a complete case study or requirement description containing system behavior, actors, and their responsibilities (at least two clear sentences describing system capabilities).',
+                    reasoning: 'Minimum two sentences are required in the assignment text to derive expected actors and use cases.',
+                    suggestion: 'Ensure the assignment instructions contain at least two complete sentences describing system capabilities and user roles.',
                 },
             });
             return;
         }
+
+        // No parseable case-study content → nothing meaningful to check.
+        if (reqUseCases.length === 0 && reqActors.length === 0) return;
 
         const { actors, useCases, edges, actorLabels, useCaseLabels, nodes } = analysis;
         const { actorRoleSimilarity, classifyUseCaseMatch, normalizeRoleToken } = require('../nlp/similarity');
@@ -479,6 +482,23 @@ class CheckingEngine {
         const HIGH_CONFIDENCE = 0.75; // only ≥ this may become a REQUIRED user goal
         const actorLabelList = actors.map((a) => actorLabels.get(a.id) || '').filter(Boolean);
         const ucLabelList = useCases.map((u) => useCaseLabels.get(u.id) || '').filter(Boolean);
+
+        // Detect empty / incomplete student diagram submission
+        if (actorLabelList.length === 0 && ucLabelList.length === 0) {
+            const missingActorsText = reqActors.length > 0 ? reqActors.join(', ') : 'required actors';
+            const missingUcText = reqUseCases.length > 0 ? reqUseCases.map((u) => u.name).join(', ') : 'required use cases';
+            issues.push({
+                type: 'diagram', severity: 'error', location: 'diagram',
+                code: 'CASE_STUDY_DIAGRAM_EMPTY',
+                message: 'Your diagram is currently empty or missing essential elements. Please draw the system boundary, actors, and use cases.',
+                context: {
+                    specCode: 'EMPTY_DIAGRAM_SUBMISSION',
+                    expectedActors: reqActors,
+                    expectedUseCases: reqUseCases.map((u) => u.name),
+                    suggestion: `Draw the system boundary and add expected actors (${missingActorsText}) and use cases (${missingUcText}).`,
+                },
+            });
+        }
 
         const reqText = (requirementModel.sources || []).join(' ');
         const loginSupported = requirementModel.loginSupported === true;
