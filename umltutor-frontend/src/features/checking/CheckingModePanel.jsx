@@ -1243,17 +1243,7 @@ const CheckingModePanel = ({
                             );
 
                             const severityLine = (finding) => {
-                                const ctx = finding.context || {};
-                                const detail =
-                                    ctx.expectedActor || ctx.actor
-                                        ? ` expected: ${ctx.expectedActor || ctx.actor}`
-                                        : (ctx.expected ? ` expected: ${ctx.expected}` : '');
-                                const submitted =
-                                    ctx.submittedActor ? `, submitted: ${ctx.submittedActor}` :
-                                    (ctx.submittedSystem ? `, submitted: ${ctx.submittedSystem}` : '');
-                                const score =
-                                    typeof ctx.matchedScore === 'number' ? ` (match ${Math.round(ctx.matchedScore * 100)}%)` : '';
-                                return `${finding.message}${detail}${submitted}${score}`;
+                                return finding.message || '';
                             };
 
                             const statusGlyph = (status) => {
@@ -1328,7 +1318,7 @@ const CheckingModePanel = ({
                                                         <span className="text-slate-400"> — try "{sys.expected}"</span>
                                                     )}
                                                     {sys.status === 'mismatch' && (
-                                                        <span className="text-slate-400"> — assignment suggests "{sys.expected}"{typeof sys.matchedScore === 'number' ? ` (match ${Math.round(sys.matchedScore * 100)}%)` : ''}</span>
+                                                        <span className="text-slate-400"> — assignment suggests "{sys.expected}"</span>
                                                     )}
                                                 </>
                                             )}
@@ -1342,10 +1332,9 @@ const CheckingModePanel = ({
                                         const g = statusGlyph(a.status);
                                         return (
                                             <div key={`as-${i}`} className={`${g.cls} text-xs font-body`}>
-{g.glyph} {a.actor}
-                                        {a.status === 'typo' && a.actor ? ` — use exact role "${a.actor}"` : ''}
-                                        {a.status === 'missing' && a.submitted ? ` — diagram has "${a.submitted}" (match ${Math.round(a.matchedScore * 100)}%)` : ''}
-                                        {a.status === 'found' && a.submitted ? ` (match ${Math.round(a.matchedScore * 100)}%)` : ''}
+                                                {g.glyph} {a.actor}
+                                                {a.status === 'typo' && a.actor ? ` — use exact role "${a.actor}"` : ''}
+                                                {a.status === 'missing' && a.submitted ? ` — diagram has "${a.submitted}"` : ''}
                                             </div>
                                         );
                                     })}
@@ -1356,37 +1345,66 @@ const CheckingModePanel = ({
                                     </div>
                                     {(cs.useCaseStatus || []).map((u, i) => {
                                         const g = statusGlyph(u.status);
-                                        const conf = typeof u.confidence === 'number' ? Math.round(u.confidence * 100) : null;
                                         return (
-                                            <div key={`us-${i}`} className={`${g.cls} text-xs font-body`}>
-                                                {g.glyph} {u.useCase}
-                                                {conf !== null ? ` (confidence ${conf}%)` : ''}
-                                                {u.status === 'missing' && u.submitted ? ` — found "${u.submitted}" (match ${Math.round(u.matchedScore * 100)}%)` : ''}
-                                                {u.status === 'found' && u.submitted ? ` — "${u.submitted}"` : ''}
-                                                {u.status === 'lowConfidence' ? ' — hint only, not required' : ''}
-                                                {u.status === 'invalid' ? ' — not an action phrase' : ''}
-                                                {u.status === 'optional' ? ' — login/precondition, not required' : ''}
+                                            <div key={`us-${i}`} className={`${g.cls} text-xs font-body flex items-center flex-wrap gap-1 py-0.5`}>
+                                                <span>{g.glyph} <strong>{u.useCase}</strong></span>
+                                                {u.primaryActor && (
+                                                    <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                                                        → Actor: <strong className="text-indigo-700">{u.primaryActor}</strong>
+                                                    </span>
+                                                )}
+                                                {u.status === 'missing' && u.submitted ? <span className="text-amber-700 text-[11px]"> — found "{u.submitted}"</span> : ''}
+                                                {u.status === 'found' && u.submitted ? <span className="text-emerald-700 text-[11px]"> — matched "{u.submitted}"</span> : ''}
+                                                {u.status === 'lowConfidence' ? <span className="text-slate-400 text-[11px]"> — hint only</span> : ''}
+                                                {u.status === 'invalid' ? <span className="text-amber-600 text-[11px]"> — not an action phrase</span> : ''}
+                                                {u.status === 'optional' ? <span className="text-slate-400 text-[11px]"> — precondition</span> : ''}
                                             </div>
                                         );
                                     })}
 
-                                    <div className="text-slate-600 text-xs">
-                                        <span className="font-bold text-slate-700">Expected actors:</span>{' '}
-                                        {(expected.actors || []).length
-                                            ? expected.actors.map((a, i) => renderExpectedChip(a, `ea-${i}`))
-                                            : <span className="text-slate-400">none parsed</span>}
-                                    </div>
-                                    <div className="text-slate-600 text-xs">
-                                        <span className="font-bold text-slate-700">Expected use cases:</span>{' '}
-                                        {(expected.useCases || []).length
-                                            ? expected.useCases.map((u, i) => renderExpectedChip(u.name, `eu-${i}`))
-                                            : <span className="text-slate-400">none parsed</span>}
-                                    </div>
-                                    <div className="text-slate-600 text-xs">
-                                        <span className="font-bold text-slate-700">Suggested system names:</span>{' '}
-                                        {(expected.systemCandidates || []).length
-                                            ? expected.systemCandidates.slice(0, 3).map((s, i) => renderExpectedChip(s, `es-${i}`))
-                                            : <span className="text-slate-400">none</span>}
+                                    <div className="pt-1 space-y-2">
+                                        <div className="text-slate-700 text-xs">
+                                            <div className="font-bold text-slate-700 mb-1">Expected actors:</div>
+                                            {(expected.actors || []).length ? (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {expected.actors.map((a, i) => (
+                                                        <span key={`ea-${i}`} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
+                                                            {a}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : <span className="text-slate-400">none parsed</span>}
+                                        </div>
+
+                                        <div className="text-slate-700 text-xs">
+                                            <div className="font-bold text-slate-700 mb-1">Expected use cases:</div>
+                                            {(expected.useCases || []).length ? (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {expected.useCases.map((u, i) => {
+                                                        const name = typeof u === 'string' ? u : u.name;
+                                                        const actor = typeof u === 'object' ? u.primaryActor : null;
+                                                        return (
+                                                            <span key={`eu-${i}`} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm">
+                                                                {name} {actor ? <span className="ml-1 text-[10px] text-purple-600 font-normal">({actor})</span> : ''}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : <span className="text-slate-400">none parsed</span>}
+                                        </div>
+
+                                        <div className="text-slate-700 text-xs">
+                                            <div className="font-bold text-slate-700 mb-1">Suggested system names:</div>
+                                            {(expected.systemCandidates || []).length ? (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {expected.systemCandidates.slice(0, 3).map((s, i) => (
+                                                        <span key={`es-${i}`} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                                                            {s}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : <span className="text-slate-400">none</span>}
+                                        </div>
                                     </div>
 
                                     {findings.filter(f => f.severity === 'error').length > 0 && (

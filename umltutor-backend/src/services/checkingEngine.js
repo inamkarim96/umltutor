@@ -1225,7 +1225,7 @@ class CheckingEngine {
                             type: 'consistency',
                             severity: 'warning',
                             code: 'USE_CASE_NAME_MISMATCH',
-                            message: `Description name "${desc.useCaseName}" partially matches diagram name "${nodeLabel}" (confidence ${(semantic.score * 100).toFixed(0)}%).`,
+                            message: `Description name "${desc.useCaseName}" partially matches diagram name "${nodeLabel}".`,
                             relatedId: node.id,
                             location: 'description',
                             context: { suggestion: 'Align the use case name in the description to match the diagram for full consistency.', confidence: semantic.score }
@@ -1423,6 +1423,35 @@ class CheckingEngine {
                 });
             }
         });
+
+        // Reverse consistency check: Descriptions defined for use cases missing in the diagram
+        if (descriptions && typeof descriptions === 'object' && !targetId) {
+            Object.entries(descriptions).forEach(([descKey, desc]) => {
+                if (!desc || !desc.useCaseName || !desc.useCaseName.trim()) return;
+                const descNameNorm = normalizeName(desc.useCaseName);
+                if (!descNameNorm || descNameNorm === 'unnamed') return;
+
+                const isMatchedInDiagram = useCases.some((node) => {
+                    const label = this.getNodeLabel(node.id, useCaseLabels);
+                    const normLabel = normalizeName(label);
+                    if (normLabel === descNameNorm) return true;
+                    const semantic = evaluateFunctionMatch(desc.useCaseName, label);
+                    return semantic.matchType === 'STRONG' || semantic.matchType === 'EXACT';
+                });
+
+                if (!isMatchedInDiagram) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'DESCRIPTION_MISSING_DIAGRAM_USE_CASE',
+                        message: `Use Case Description exists for "${desc.useCaseName}", but this use case is missing from the Use Case Diagram.`,
+                        relatedId: descKey,
+                        location: 'description',
+                        context: { suggestion: `Add the use case "${desc.useCaseName}" to the Use Case Diagram or align the description title.` }
+                    });
+                }
+            });
+        }
     }
 
     static validateSSDs(ssds, issues, analysis, descriptions, targetId = null) {

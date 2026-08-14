@@ -347,9 +347,8 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
         pdf.setFont('helvetica', 'bold');
         pdf.text('REPORT DETAILS', 120, 64);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(`Date Generated: ${new Date().toLocaleDateString()}`, 120, 73);
-        pdf.text(`Mode: ${mode === 'tutorial' ? 'Guided Tutorial Mode' : 'Development Mode'}`, 120, 81);
-        if (userInfo.teacherName) pdf.text(`Instructor: ${userInfo.teacherName}`, 120, 89);
+        pdf.text(`Mode: ${mode === 'tutorial' ? 'Guided Tutorial Mode' : 'Development Mode'}`, 120, 73);
+        if (userInfo.teacherName) pdf.text(`Instructor: ${userInfo.teacherName}`, 120, 81);
 
         // Executive Evaluation Summary Card
         let totalScore = report?.score ?? report?.totalScore ?? report?.summary?.totalScore ?? null;
@@ -646,7 +645,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 pdf.text(sysText, 62, ycs);
                 pdf.setTextColor(...TEXT_MUTED);
                 if (sys.status === 'missing' && sys.expected) pdf.text(`— try "${sys.expected}"`, 62 + pdf.getTextWidth(sysText), ycs);
-                if (sys.status === 'mismatch') pdf.text(`— assignment suggests "${sys.expected}"${typeof sys.matchedScore === 'number' ? ` (match ${Math.round(sys.matchedScore * 100)}%)` : ''}`, 62 + pdf.getTextWidth(sysText), ycs);
+                if (sys.status === 'mismatch') pdf.text(`— assignment suggests "${sys.expected}"`, 62 + pdf.getTextWidth(sysText), ycs);
                 ycs += 9;
 
                 const statusGlyphText = (status) => (status === 'found' ? '✓' : (status === 'typo' || status === 'mismatch' || status === 'lowConfidence' || status === 'invalid') ? '!' : '✗');
@@ -668,8 +667,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                         pdf.setTextColor(...(gGreen ? GREEN_COLOR : gAmber ? [245, 158, 11] : [239, 68, 68]));
                         let line = `${statusGlyphText(a.status)} ${a.actor}`;
                         if (a.status === 'typo' && a.actor) line += ` — use exact role "${a.actor}"`;
-                        if (a.status === 'missing' && a.submitted) line += ` — diagram has "${a.submitted}" (match ${Math.round(a.matchedScore * 100)}%)`;
-                        if (a.status === 'found' && a.submitted) line += ` (match ${Math.round(a.matchedScore * 100)}%)`;
+                        if (a.status === 'missing' && a.submitted) line += ` — diagram has "${a.submitted}"`;
                         pdf.text(pdf.splitTextToSize(line, pageWidth - 40), 20, ycs);
                         ycs += 7;
                     });
@@ -690,8 +688,8 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                         const gGreen = statusGreen(u.status);
                         pdf.setTextColor(...(gGreen ? GREEN_COLOR : gAmber ? [245, 158, 11] : [239, 68, 68]));
                         let line = `${statusGlyphText(u.status)} ${u.useCase}`;
-                        if (typeof u.confidence === 'number') line += ` (confidence ${Math.round(u.confidence * 100)}%)`;
-                        if (u.status === 'missing' && u.submitted) line += ` — found "${u.submitted}" (match ${Math.round(u.matchedScore * 100)}%)`;
+                        if (u.primaryActor) line += ` → Actor: ${u.primaryActor}`;
+                        if (u.status === 'missing' && u.submitted) line += ` — found "${u.submitted}"`;
                         if (u.status === 'found' && u.submitted) line += ` — "${u.submitted}"`;
                         if (u.status === 'lowConfidence') line += ' — hint only, not required';
                         if (u.status === 'invalid') line += ' — not an action phrase';
@@ -940,15 +938,14 @@ const buildReportText = (report) => {
         const sys = cs.systemName || {};
         lines.push(`\nSystem boundary: ${sys.submitted || 'no name'} — ${(sys.status || 'missing').toUpperCase()}`);
         if (sys.status === 'missing' && sys.expected) lines.push(`  Suggested system name: "${sys.expected}"`);
-        if (sys.status === 'mismatch') lines.push(`  Assignment suggests: "${sys.expected}"${typeof sys.matchedScore === 'number' ? ` (match ${Math.round(sys.matchedScore * 100)}%)` : ''}`);
+        if (sys.status === 'mismatch') lines.push(`  Assignment suggests: "${sys.expected}"`);
 
         if ((cs.actorStatus || []).length) {
             lines.push('\nActors vs assignment:');
             cs.actorStatus.forEach((a) => {
                 let line = `  [${(a.status || 'unknown').toUpperCase()}] ${a.actor}`;
                 if (a.status === 'typo') line += ' — use exact role';
-                if (a.status === 'missing' && a.submitted) line += ` — diagram has "${a.submitted}" (match ${Math.round(a.matchedScore * 100)}%)`;
-                if (a.status === 'found') line += ` (match ${Math.round(a.matchedScore * 100)}%)`;
+                if (a.status === 'missing' && a.submitted) line += ` — diagram has "${a.submitted}"`;
                 lines.push(line);
             });
         }
@@ -957,7 +954,7 @@ const buildReportText = (report) => {
             lines.push('\nUse cases vs assignment:');
             cs.useCaseStatus.forEach((u) => {
                 let line = `  [${(u.status || 'unknown').toUpperCase()}] ${u.useCase}`;
-                if (typeof u.confidence === 'number') line += ` (confidence ${Math.round(u.confidence * 100)}%)`;
+                if (u.primaryActor) line += ` → Actor: ${u.primaryActor}`;
                 if (u.status === 'found' && u.submitted) line += ` — "${u.submitted}"`;
                 lines.push(line);
             });
@@ -965,7 +962,7 @@ const buildReportText = (report) => {
 
         const expected = cs.expected || {};
         if ((expected.actors || []).length) lines.push(`\nExpected actors: ${expected.actors.join(', ')}`);
-        if ((expected.useCases || []).length) lines.push(`Expected use cases: ${expected.useCases.map(u => (typeof u === 'string' ? u : u.name)).join(', ')}`);
+        if ((expected.useCases || []).length) lines.push(`Expected use cases: ${expected.useCases.map(u => (typeof u === 'string' ? u : `${u.name}${u.primaryActor ? ` (Actor: ${u.primaryActor})` : ''}`)).join(', ')}`);
         if ((expected.systemCandidates || []).length) lines.push(`Suggested system names: ${expected.systemCandidates.slice(0, 3).join(', ')}`);
 
         const findings = cs.findings || [];
@@ -991,7 +988,6 @@ export const exportReportAsText = async (mode, activeModel, report, userInfo = {
     lines.push(`Student: ${userInfo.studentName || 'Student Workspace'}`);
     lines.push(`Assignment: ${userInfo.assignmentTitle || 'UML Software Design'}`);
     lines.push(`Course / Class: ${userInfo.className || 'Software Engineering'}`);
-    lines.push(`Date Generated: ${new Date().toLocaleDateString()}`);
     lines.push(`Mode: ${mode === 'tutorial' ? 'Guided Tutorial Mode' : 'Development Mode'}`);
 
     const totalScore = report?.score ?? report?.totalScore ?? report?.summary?.totalScore ?? null;
