@@ -34,6 +34,42 @@ const createAssignmentDefinition = async (req, res, next) => {
             return res.status(400).json({ success: false, error: { message: 'Missing required fields' } });
         }
 
+        const parsedReleaseDate = new Date(releaseDate);
+        const parsedDueDate = new Date(finalDueDate);
+
+        if (isNaN(parsedReleaseDate.getTime()) || isNaN(parsedDueDate.getTime())) {
+            return res.status(400).json({ success: false, error: { message: 'Invalid release date or deadline format' } });
+        }
+
+        // Assignment creation constraint: Release date must be today or a future date, not a past date.
+        // Allow a 24-hour buffer to prevent timezone difference false rejections.
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        if (parsedReleaseDate.getTime() < oneDayAgo) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Assignment release date cannot be in the past. It must be created on today or a future date.' }
+            });
+        }
+
+        // Deadline/due date cannot be in the past (allow 5-minute tolerance for client-server clock drift)
+        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+        if (parsedDueDate.getTime() < fiveMinutesAgo) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Assignment deadline / due date cannot be in the past.' }
+            });
+        }
+
+        // Due date cannot be earlier than release date
+        const releaseDay = new Date(parsedReleaseDate);
+        releaseDay.setHours(0, 0, 0, 0);
+        if (parsedDueDate.getTime() < releaseDay.getTime()) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Assignment deadline cannot be earlier than the release date.' }
+            });
+        }
+
         let cdnUrl = req.file ? await fileUpload.uploadToCDN(req.file, 'assignments') : null;
         let fileInfo = req.file ? fileUpload.getFileInfo(req.file) : null;
 

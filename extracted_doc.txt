@@ -1,0 +1,1444 @@
+ Analysis Modeling Tool and Assignment Checking Aid
+A Final Year Project 
+Bachelor of Science in Computer Science
+Submitted By
+Inam karim
+Registration No: 04072212031
+Supervised By
+DR. ONAIZA MAQBOOL
+Department of Computer Science
+Quaid-e-Azam University Islamabad
+Spring 2022-2026
+CERTIFICATE OF APPROVAL
+It is hereby certified that the project entitled “Analysis Modeling Tool and Assignment checking Aid” authored by Inam Karim, has been approved by the Department of Computer Science, Quaid-e-Azam University, Islamabad. This work is accepted in partial fulfillment of the requirements for the degree of bachelor’s in computer science.
+The project was conducted under the guidance of Dr. Onaiza Maqbool. The undersigned have reviewed the work and recommend its acceptance. 
+Supervisor: ____________________________ 
+Dr. Onaiza Maqbool 
+Department of Computer Science 
+Quaid-i-Azam University, Islamabad.
+Abstract
+Modeling is an essential part of software development and software engineering education, but has been difficult for many students to comprehend and use UML notions skillfully. UMLTutor is a smart, web-based learning environment that aims to improve the modeling abilities of students by offering guided practice, automatic feedback, and on-the-spot validation. The system accommodates the development and assessment of various UML diagrams e.g. Use Case Diagrams, Use Case Descriptions, and System Sequence Diagrams (SSDs) in two different modes: Development Mode, and Tutorial Mode. UMLTutor enables students to graphically model their system knowledge and receive instant consistency checks and correction feedback. Teachers enjoy assignment tracking, analytics dashboards, and organised feedback tools. Smart autocompletion, feedback versioning, and performance analytics are also provided, facilitating learning and effective assessment. By integrating natural UI design with automatic UML validation and instant feedback, UMLTutor seeks to close the gap between theoretical knowledge of Modeling and skill learning, thus proving to be a useful utility for both students and teachers in educational institutions.
+Table of Contents
+Contents
+CHAPTER 17
+SOFTWARE PROJECT MANAGEMENT PLAN7
+1.1 Background1
+1.2 Problem Statement1
+1.3 Proposed Solution1
+1.4 Objectives2
+1.5 Scope2
+1.5.1 Project Deliverables3
+1.5.2 Work Breakdown Structure and Task Scheduling4
+1.6 Development Approach8
+1.7 Main Users8
+1.7.1 Student8
+1.7.2 Teacher8
+1.8 High-Level System Workflow8
+1.9 Role of Semantic Consistency Checking9
+1.10 Automated Checking and Consistency Checking9
+1.11 Tools and Techniques9
+1.11.1 Development Process and Infrastructure9
+1.11.2 Backend Development Tools10
+1.11.3 Frontend Development Tools11
+1.12 Related Work11
+1.13 Summary12
+CHAPTER 213
+SOFTWARE REQUIREMENTS SPECIFICATION13
+2.1 Introduction10
+2.1.1 Purpose10
+2.1.2 Scope10
+2.1.3 Objectives10
+2.2 Overall Description10
+2.2.1 Product Perspective10
+2.2.2 Product Functions11
+2.2.3 User Characteristics11
+2.2.4 Constraints11
+2.3 Specific Requirements11
+2.3.1 External Interfaces11
+2.3.2 Performance Requirements12
+2.3.3 Functional Requirements12
+2.3.4 Reliability and Availability13
+2.3.5 Security Requirements13
+2.3.6 Usability Requirements13
+2.4 Main Use Cases14
+2.4.1 Use Case Diagram15
+2.4.2 Use Case Descriptions16
+UC01  Login16
+UC02  Manage Class16
+UC03  Manage Assignment17
+UC04  View Assignment17
+UC05 Create and Edit UML Models18
+UC06 Use Development Mode18
+UC07 Use Tutorial Mode19
+UC08 Submit Assignment19
+UC09 Check Assignment20
+UC10  Review Submission20
+UC11  View Results and Feedback21
+2.5 System Sequence Diagrams (SSDs)21
+2.6 Data Flow Diagram (DFD)27
+2.6.1 Level 0  Context Diagram27
+2.6.2 Level 1 Main Processes28
+2.6.3 Checking Data Flow29
+2.7 Data Requirements29
+2.7.1 Data Dictionary30
+2.8 Summary30
+CHAPTER 331
+SOFTWARE DESIGN DESCRIPTION31
+3.1 Introduction31
+3.2 System Architecture31
+3.3 Technology Stack32
+3.3.1 Frontend32
+3.3.2 Backend32
+3.3.3 Database32
+3.4 Frontend Design32
+3.4.1Student-Facing Pages33
+3.4.2Teacher-Facing Pages33
+3.5 UML Modeling Design34
+3.5.1 UMLTutor Software Architecture Class Diagram34
+ 3.6.4 UMLTutor Software Design Sequence Diagrams35
+3.6 Backend Architecture36
+3.6.1 Routes and Controllers36
+3.6.2 Services and Repositories36
+3.6.3 Middleware and Security37
+3.7 Authentication and Authorization Design37
+3.8 Requirement Processing and Automated Checking Design37
+3.8.1 Semantic Consistency Checking37
+3.8.2 Validation Rule System38
+3.8.3 Six-Phase Checking Pipeline38
+3.8.4 Cross-Artifact Semantic Matching38
+3.8.5 Suggestion Engine38
+3.9 Requirement Traceability Matrix39
+3.10 Tutorial Mode and Frontend Checking Fallback40
+3.11 Notification and Classroom Communication Design40
+3.12 Database Design41
+3.13 Caching, Security, and Performance Design42
+3.14 Error Handling and API Response Design42
+3.15 Deployment Architecture42
+3.16 Design Principles43
+3.17 Summary43
+CHAPTER 444
+IMPLEMENTATION44
+4.1 Introduction45
+4.2 Backend Implementation45
+4.3 Frontend Implementation46
+4.4 Database Implementation47
+4.5 Checking Engine Implementation47
+4.6 Deployment Implementation47
+4.7 Summary48
+CHAPTER 549
+SOFTWARE TEST DOCUMENTATION49
+5.1 Introduction49
+5.2 Test Approach49
+5.2.1 Unit and Integration Testing49
+5.2.2 API, Functional, and Security Testing49
+5.2.3 UML Checking Testing49
+5.3 Test Plan50
+5.3.1 Features to be Tested50
+5.4 Test Data50
+5.5 Test Case Format50
+5.6 Test Case Summary51
+5.7 Test-to-Requirement Traceability53
+5.8 Representative Test Cases54
+TC01: Student Login54
+TC02: Teacher Login and Role Access55
+TC03: Invalid Authentication55
+TC04: Create and Save Use Case Diagram56
+TC05: Create and Save Use Case Description56
+TC06: Create and Save SSD57
+TC07: Create and Save Class Diagram57
+TC08: Create and Save Sequence Diagram58
+TC09: Semantic Consistency Matching58
+TC10: Use Case Diagram Checking59
+TC11: Use Case Description Checking59
+TC12: SSD Checking60
+TC13: Class Diagram Checking60
+TC14: Sequence Diagram Checking60
+TC15: Cross-Diagram Consistency Checking61
+TC16: Checking Rule Dependency Handling61
+TC17: Tutorial Validation62
+TC18: Assignment Submission62
+TC19: Teacher Review and Evaluation63
+TC20: Notification63
+TC21: Unauthorized API Access64
+TC22: Database Save and Retrieval64
+TC23: Report Generation65
+5.9 Test Execution, Logs, and Incident Reporting65
+5.10 Checking Engine Test Coverage65
+5.11 Regression Testing and Test Environment66
+5.12 Summary66
+CHAPTER 667
+CONCLUSION AND FUTURE WORK67
+6.1 Conclusion68
+6.2 Main Contributions68
+6.3 Limitations69
+6.4 Future Work69
+6.4.1 Checking and Modeling Depth69
+6.4.2 Requirement Processing and Feedback69
+6.4.3 Learning and Teaching Support70
+6.4.4 Collaboration, History, and Reporting70
+6.4.5 Performance, Deployment, and Scale70
+6.5 Lessons Learned70
+6.6 Final Conclusion70
+Appendix A: Sample of Implemented Validation Rules72
+Appendix B: Test Log and Incident Report Template72
+References72
+Document Control
+List of Figures
+Figure 1.1 – UMLTutor Task Schedule Timeline (Gantt Chart)
+Figure 2.1 – UMLTutor Use Case Diagram
+Figures 2.4.1 – 2.4.11 – System Sequence Diagrams (SSDs) for UC01–UC11
+Figure 2.2 – Data Flow Diagram Level 0 (Context Diagram)
+Figure 2.3a 3.3.b – Data Flow Diagram Level 1 (Process Diagram)
+Figure 3.1 – UMLTutor High-Level System Architecture
+Figure 3.2 – UMLTutor Software Architecture Class Diagram
+Figure 3.3 – UMLTutor Software Execution Sequence Diagram (Automated & Consistency Checking Pipeline)
+Figure 3.4 – UMLTutor Relational Database Design (ERD)
+List of Key Abbreviations
+Missing
+CHAPTER 1
+SOFTWARE PROJECT MANAGEMENT PLAN
+1.1 Background
+Both Software Engineering and Computer Science students employ the Unified Modeling Language (UML) in understanding, designing and documenting software systems. There are various types of UML diagrams that serve to represent system requirements, structure and behavior.
+A number of UML diagrams may be created by students for a particular software system. UML diagrams are inter-related, and any error in one diagram will be reflected in the other. Checking all of these artifacts manually also takes significant time for teachers.
+UMLTutor is a web-based learning tool designed for UML education, modeling, automatic verification, and evaluation. It provides a platform for the creation, modification, saving, and submission of UML models by students and classroom management capabilities for the teachers. The system supports five main UML artifacts:
+Use Case Diagram
+Use Case Description
+System Sequence Diagram (SSD)
+Class Diagram
+Sequence Diagram
+It also provides class and assignment management, tutorial support, automated checking, consistency checking across artifacts, assignment submission, teacher evaluation, feedback, notifications, announcements, and reports.
+1.2 Problem Statement
+It is often challenging for students to create UML diagrams and ensure consistency between them because while every artifact corresponds to a different view of the system, the information provided by these views is related. For instance, there should be an actor or a use case represented both in a Use Case Diagram and the respective Use Case Description and System Sequence Diagram, and Class Diagram information is related to what is depicted in the Sequence Diagram.
+Performing these consistency checks manually requires time and does not provide an easy way to give fast and consistent feedback to the student from the instructor. There should be some system which will allow for creating UML diagrams in a consistent environment for students and instructors.
+1.3 Proposed Solution
+UMLTutor provides a web-based environment for UML modeling, learning, and assessment. Students can create and edit the five UML artifacts listed above, and the system checks their work using predefined rules, including checks for consistency between related artifacts.
+Teachers can attach a requirement or case-study description to an assignment; this text is shown to students as the basis for their modeling task. Separately, the checking engine uses text-processing and semantic-comparison techniques parsing, stop-word removal, keyword matching, and synonym/similarity matching to validate the student's own UML work: comparing Use Case Description steps against SSD messages, and SSD messages against Class Diagram operations, to confirm the artifacts are consistent with each other.
+1.4 Objectives
+For students, the system aims to provide an interactive UML modeling environment covering all five artifacts, help them identify and correct problems through available checking and tutorial guidance, support assignment submission, and allow them to view feedback and checking results.
+For teachers, the system aims to support class and assignment management, allow requirement or case-study text to be attached to assignments, reduce the manual effort required to check UML work, and provide automated checking and consistency reports to support evaluation.
+1.5 Scope
+The scope of UMLTutor covers:
+User authentication and role management
+Class management
+Assignment management
+Creation and editing of five UML artifacts
+Attaching requirement or case-study text to assignments
+Automated UML checking and cross-diagram consistency checking
+Tutorial support
+Assignment submission, teacher review, and feedback
+Reports
+Announcements and learning resources
+The system is intended for educational use in Software Engineering and Computer Science courses, and focuses on helping students build and improve UML models while reducing the manual effort needed for checking and evaluation.
+1.5.1 Project Deliverables
+The UMLTutor project encompasses several key software deliverables, documentation artifacts, test suites, and database migration scripts. The table below outlines all primary deliverables produced as part of this system:
+Deliverable
+Description
+UMLTutor Web Application
+Complete web-based UML learning and assessment system
+UML Editors
+Editors for Use Case Diagram, Use Case Description, SSD, Class Diagram, and Sequence Diagram
+Automated Checking Engine
+Rule-based checking of individual UML artifacts
+Consistency Checking
+Cross-artifact semantic consistency checking (Use Case Description, SSD, and Class Diagram)
+Requirement Text Handling
+Attaching and displaying requirement/case-study text on assignments
+Assignment System
+Class, assignment, submission, and teacher review functionality
+Tutorial System
+Request-based, teacher-approved step-by-step guided UML practice
+Testing Suite
+Backend unit and integration tests (Jest / Supertest)
+Project Documentation
+SRS, SDD, testing and project documentation
+1.5.2 Work Breakdown Structure and Task Scheduling
+Figure 1.1 – UMLTutor Task Schedule Timeline (Gantt Chart)
+The gantt chart does not seem to be for incremental model
+1.6 Development Approach
+UMLTutor was developed using an incremental development approach: the system was built and improved in stages, with each increment adding or improving functionality while earlier functionality was tested and refined. This approach suited a project with several related but separable areas UML editors, assignment management, automated checking, consistency checking, submission, and evaluation.
+1.7 Main Users
+1.7.1 Student
+Students use UMLTutor to view assignments and requirement text, create and edit UML models, request tutorial support, submit assignments, and view checking results, feedback, and reports.
+1.7.2 Teacher
+Teachers use UMLTutor to manage classes and assignments, provide requirement or case-study information, review student submissions, run or view automated and consistency checking, provide feedback, and support students through tutorial activities.
+1.8 High-Level System Workflow
+UMLTutor provides two working modes for students: 
+Development Mode and Tutorial Mode.
+ In Development Mode, students are free to develop the required UML artifacts without being interrupted by the system in every step. Regardless of the chosen mode, students can always run an automatic checking of their work in order to detect rule violation and inconsistencies in the work before its submission. Students can submit their work once done.
+Students requiring some guidance during work have the option of Tutorial Mode. A student needs to make a request to use Tutorial Mode on the work he/she intends to submit, and a teacher needs to approve the request in order for step-by-step guidance to be available. If approved, the system will guide the student through the tasks one after another, check the completed step, correct it if necessary and then let him/her proceed.
+Once a student has submitted his/her work, the teacher can launch the checking engine and run it against the UML artifacts submitted. The system will generate a report on the consistency, which the teacher uses together with the work to check the student's work. After reviewing the work, the corresponding report is provided to the student.
+1.9 Role of Semantic Consistency Checking
+An assignment may include requirement or case-study text that is shown to students as the basis for their modeling task. UMLTutor's checking engine uses text-processing and semantic-matching techniques parsing, stop-word removal, and synonym/similarity comparison to confirm that a student's UML artifacts are consistent with one another: matching Use Case Description steps to the corresponding SSD messages, and SSD messages to Class Diagram operations. This semantic matching between a student's own artifacts, rather than free-text parsing of the requirement or case-study description, is what supports the automated and consistency checking described in the next section.
+1.10 Automated Checking and Consistency Checking
+Automated checking applies predefined rules to a student's UML work to identify problems in an individual model, for example checking whether required elements or relationships follow the defined rules. Consistency checking compares related information between artifacts for example, comparing a Use Case Diagram with its Use Case Description and System Sequence Diagram, or a Class Diagram with a related Sequence Diagram to identify differences or conflicts between related UML artifacts. A consistency report can be generated both while a student is working, through in-editor checking, and by the teacher running the checking engine against the submitted work.
+1.11 Tools and Techniques
+This section lists the tools and techniques used to build, test, and deploy UMLTutor, based on the project's own configuration files (package.json, GitHub Actions workflow, Prisma schema, and Kubernetes manifests).
+1.11.1 Development Process and Infrastructure
+Area
+Details
+Version Control and Collaboration
+The project source code is managed with Git and hosted on GitHub as a single repository containing two workspaces, umltutor-backend and umltutor-frontend. Development progress was tracked against the schedule and milestones shown in Figure 1.1.
+Continuous Integration and Deployment
+A GitHub Actions workflow (.github/workflows/deploy.yml) automatically builds Docker images for both the backend and frontend services on every push to the main branch and publishes them to the GitHub Container Registry (ghcr.io).
+Containerization and Orchestration
+Docker is used to containerize the backend and frontend services. Kubernetes manifests (k8s-full-stack.yaml and umltutor-backend/k8s/deployment.yaml) define how these services, together with the PostgreSQL database and supporting components, are deployed and scaled in a cluster environment.
+1.11.2 Backend Development Tools
+Tool
+Purpose
+Node.js and Express
+REST API framework and routing
+Prisma ORM and Prisma CLI (migrate, studio, generate)
+Schema design, migrations, and inspection of the PostgreSQL database
+Firebase Admin SDK
+Verification of user authentication tokens
+Zod
+Request payload validation
+JSON Web Tokens (JWT)
+Session / authorization handling
+ioredis (Redis client)
+Optional caching
+Socket.IO
+Real-time server-side support
+Multer and Cloudinary
+File upload handling and storage
+Winston and winston-daily-rotate-file
+Application logging
+Helmet, CORS, and express-rate-limit
+Baseline API security
+Swagger (swagger-jsdoc / swagger-ui-express)
+Interactive API documentation
+Jest and Supertest
+Unit and integration testing, run against an isolated test database
+1.11.3 Frontend Development Tools
+Tool
+Purpose
+React with Redux Toolkit
+UI framework and application state management
+React Flow
+Interactive canvas editors for the five UML diagram types
+Axios
+HTTP communication with the backend REST API
+React Hook Form and Zod
+Form handling and client-side validation
+Tailwind CSS
+Styling
+Webpack
+Module bundling
+Firebase client SDK
+Authentication on the client side
+jsPDF and html2canvas
+Exporting diagrams and reports
+1.12 Related Work
+Several existing tools support UML modeling or software-engineering education, and it is useful to place UMLTutor in that context. Provide refences to the software listed in the sections beow
+General-purpose UML modeling tools such as diagrams.net, Lucidchart, and StarUML provide diagram creation and modeling features, but they are not designed specifically around UML classroom assignments, student submissions, and the cross-diagram checking workflow provided by UMLTutor.
+Learning-management systems (for example, Moodle or Google Classroom) support assignment distribution and submission, but have no built-in understanding of UML and cannot check a UML diagram’s structure or its consistency with other diagrams.
+Automated code and static-analysis tools (linters, style checkers) apply a similar idea — rule-based automated checking  to source code rather than to UML diagrams, and do not address modeling education.
+UMLTutor is positioned differently from these tools: it combines a purpose-built UML editor, an assignment/classroom workflow, and a rule-based checking engine that also checks semantic consistency between a student’s own related diagrams of the same system. This combination — modeling, classroom management, and automated cross-diagram checking in one system — is the specific gap UMLTutor is intended to fill.
+1.13 Summary
+UMLTutor is an online tutoring system for the purpose of Software Engineering and Computer Science education. It offers a common ground for UML modeling, learning, verification, consistency verification, assignment submission, and teacher evaluation in five types of UML artifacts, including Use Case Diagram, Use Case Description, System Sequence Diagram, Class Diagram, and Sequence Diagram. The cross-artifact consistency is provided by means of text processing and semantic matching in the verification process, and not as a standalone module for the user. The requirements for the software are described in the following chapter.
+CHAPTER 2
+SOFTWARE REQUIREMENTS SPECIFICATION
+2.1 Introduction
+2.1.1 Purpose
+This Software Requirements Specification (SRS) defines the functional and non-functional requirements of UMLTutor. It explains what the system provides to students and teachers and provides the basis for the design, implementation, and testing described in the following chapters.
+2.1.2 Scope
+UMLTutor is a web-based educational system for Software Engineering and Computer Science education. This enables the students to design, edit, save and interact with five UML diagrams: Use Case Diagram, Use Case Description, System Sequence Diagram (SSD), Class Diagram, and Sequence Diagram. The system offers assignment-based modeling, possible text of requirements or case study, validation of diagrams, tutorial help, submission and review by the teachers.
+Teachers may attach optional requirement or case-study text to an assignment for students to read; the checking process itself relies on text-processing and semantic-matching techniques applied between a student's own UML artifacts, rather than on parsing the attached text.
+2.1.3 Objectives
+For students, the system shall provide an interactive modeling environment across all five UML artifacts, support free modeling in Development Mode, provide step-by-step guidance in Tutorial Mode, allow students to submit completed assignments, and allow them to view available checking results and feedback.
+For teachers, the system shall support class and assignment management, allow requirement or case-study information to be provided with assignments, allow submitted work to be checked, and support review of checking results, consistency reports, and student submissions.
+2.2 Overall Description
+2.2.1 Product Perspective
+UMLTutor is a web-based educational application combining UML modeling, learning, automated checking, consistency checking, assignment management, submission, and evaluation. The frontend provides the interface through which students and teachers work with UML editors, assignments, classes, tutorial support, submissions, checking results, and reports. Backend services handle application logic, checking operations, and communication with the database.
+2.2.2 Product Functions
+User authentication and role-based access.
+Class and assignment management.
+Creation, editing, saving, and submission of all five UML artifacts.
+Development Mode for free UML modeling.
+Tutorial Mode for guided, step-by-step modeling and correction.
+Semantic consistency matching between related UML artifacts to support checking.
+Automated UML checking using predefined validation rules.
+Cross-diagram consistency checking between related UML artifacts.
+Teacher review of submitted assignments and checking results.
+Feedback and report viewing.
+2.2.3 User Characteristics
+Students are expected to have basic knowledge of Software Engineering and UML. They use UMLTutor to view assignments, create UML models, work in Development Mode or Tutorial Mode, submit assignments, and review available results and feedback.
+Teachers are expected to have knowledge of UML and Software Engineering. They use UMLTutor to manage classes and assignments, provide requirement or case-study information, review student submissions, run the checking process, and review checking and consistency results.
+2.2.4 Constraints
+The system is accessed through a web interface over HTTP/HTTPS.
+Users must authenticate before accessing protected features, and access depends on the user's role.
+Automated checking depends on the information available in the submitted UML artifacts.
+Requirement and case-study processing depends on the quality and clarity of the provided text.
+The application requires its backend and database services to be running for normal operation.
+2.3 Specific Requirements
+2.3.1 External Interfaces
+The system provides a web-based user interface for students and teachers. Students interact with UML editors, assignments, tutorial activities, submissions, and available results. Teachers interact with classes, assignments, submitted work, checking functions, reports, and feedback.
+The frontend communicates with backend services through application APIs. Authentication and protected operations are handled according to the user's role.
+2.3.2 Performance Requirements
+These are not verifiable requirements
+The system should respond to normal user actions within a reasonable time under the expected educational workload.
+UML editing operations should provide a responsive interface during normal use.
+Checking operations should process submitted UML artifacts and return results without unnecessary delay.
+Database operations should be handled efficiently to support classes, assignments, UML artifacts, submissions, and checking results.
+2.3.3 Functional Requirements
+FR01 User Authentication and Role Management: The system shall allow users to authenticate and shall provide access according to their assigned role.
+FR02  Class Management: The system shall allow teachers to create and manage classes and allow students to access the classes available to them.
+FR03 Assignment Management: The system shall allow teachers to create and manage assignments and optionally attach requirement or case-study text.
+FR04 View Assignment: The system shall allow students to view assignment information, requirements, deadlines, and other relevant details.
+FR05 Create and Edit UML Models: The system shall allow students to create, edit, save, and manage Use Case Diagrams, Use Case Descriptions, SSDs, Class Diagrams, and Sequence Diagrams.
+FR06 Development Mode: The system shall provide a Development Mode in which students can create and edit UML artifacts freely without being forced to complete the task step by step.
+FR07 Tutorial Mode: The system shall provide step-by-step tutorial guidance. The system shall check the student's work at the current step, provide correction when required, and allow the student to continue when the current step is completed correctly.
+FR05 is also mentioned under development mode
+FR08 Submit Assignment: The system shall allow students to submit their completed UML work and make the submission available for teacher review.
+FR09 Semantic Consistency Matching: The system shall apply text-processing and semantic-matching techniques to compare a student's UML artifacts against one another (for example, Use Case Description steps against SSD messages, and SSD messages against Class Diagram operations) to support the checking process.
+FR10 Automated UML Checking: The system shall apply predefined checking rules to the student's UML work to identify structural, naming, completeness, and other defined problems.
+FR11 Cross-Diagram Consistency Checking: The system shall compare related information across the five UML artifacts and identify inconsistencies according to the defined consistency rules.
+FR12 Teacher Review: The system shall allow teachers to review submitted UML work and the generated checking and consistency results.
+FR13 Feedback and Results: The system shall allow teachers to provide feedback and shall allow students to view feedback and checking results made available to them.
+FR14 Reports: The system shall generate and display relevant checking and consistency results for review and evaluation.
+2.3.4 Reliability and Availability
+The system should preserve saved UML work and assignment data correctly.
+Submitted work and checking results should remain available to authorized users.
+The system should handle invalid operations without causing loss of stored data.
+Protected services should be available when the required backend and database services are running.
+2.3.5 Security Requirements
+The system shall authenticate users before allowing access to protected functions.
+Student and teacher functions shall be separated according to role.
+The system shall prevent unauthorized users from accessing protected assignments, submissions, checking results, and management functions.
+User input and API requests shall be validated before being processed.
+2.3.6 Usability Requirements
+The UML editors should provide a clear and understandable interface for creating and editing UML artifacts.
+Tutorial Mode should provide understandable guidance and correction messages.
+Teachers should be able to review submissions and checking results without unnecessary steps.
+Students should be able to understand available feedback and use it to improve their UML work.
+2.4 Main Use Cases
+The UMLTutor Use Case Diagram focuses on major user-level interactions rather than internal checking operations. Activities such as requirement analysis, text parsing, individual consistency rules, report generation, and feedback processing are treated as parts of broader system operations and are not represented as separate user-facing use cases.
+ID
+Use Case
+Primary Actor
+UC01
+Login
+Student / Teacher
+UC02
+Manage Class
+Teacher
+UC03
+Manage Assignment
+Teacher
+UC04
+View Assignment
+Student
+UC05
+Create and Edit UML Models
+Student
+UC06
+Use Development Mode
+Student
+UC07
+Use Tutorial Mode
+Student
+UC08
+Submit Assignment
+Student
+UC09
+Check Assignment
+Teacher
+UC10
+Review Submission
+Teacher
+UC11
+View Results and Feedback
+Student
+Table 2.1 – UMLTutor Use Case table
+2.4.1 Use Case Diagram
+Figure 2.1 – UMLTutor Use Case Diagram
+The diagram shows Student and Teacher as the main actors and the eleven major user-level use cases listed above.
+2.4.2 Use Case Descriptions
+Each use case listed in Section 2.4 is described below using a standard use case description table: primary actor, preconditions, main success scenario, postconditions, and (where applicable) an alternative scenario.
+UC01  Login
+Field
+Description
+Primary Actor
+Student / Teacher
+Preconditions
+The user has a registered account.
+Main Success Scenario
+The user opens the login interface. 
+The user provides the required authentication information. 
+The system validates the authentication information. 
+The system authenticates the user and determines the user's role.
+The system provides access to the appropriate dashboard.
+Postconditions
+The user is authenticated and can access authorized functions.
+Alternative Scenario
+1. If authentication fails, the system rejects the login attempt and displays an appropriate error.
+UC02  Manage Class
+Field
+Description
+Primary Actor
+Teacher
+Preconditions
+The teacher is authenticated.
+Main Success Scenario
+The teacher opens class management. 
+The teacher creates or updates class information. 
+The teacher saves the changes. 
+The system stores the class information.
+Postconditions
+The class information is stored and available to authorized users.
+UC03  Manage Assignment
+Field
+Description
+Primary Actor
+Teacher
+Preconditions
+The teacher is authenticated and has access to a class.
+Main Success Scenario
+The teacher opens assignment management. 
+The teacher creates or updates an assignment. 
+The teacher provides assignment information and may attach requirement or case-study text. 
+The teacher saves the assignment. 
+The system stores the assignment.
+Postconditions
+The assignment is stored and available to students according to its settings.
+UC04  View Assignment
+Field
+Description
+Primary Actor
+Student
+Preconditions
+The student is authenticated and has access to the assignment.
+Main Success Scenario
+The student opens the assignment. 
+The system displays assignment information, requirements, and other available details. 
+The student reviews the information before working on the assignment.
+Postconditions
+The student can access the information needed to complete the assignment.
+UC05 Create and Edit UML Models
+Field
+Description
+Primary Actor
+Student
+Preconditions
+The student is authenticated and has access to the assignment.
+Main Success Scenario
+The student opens the UML modeling area. 
+ The student selects the required UML artifact. 
+The student creates or edits the model using the appropriate editor. 
+The student saves the UML work.
+The system stores the updated artifact.
+Postconditions
+The student's UML artifact is saved and associated with the assignment.
+Alternative Scenario
+1. The student can repeat the process for any of the five supported artifacts.
+UC06 Use Development Mode
+Field
+Description
+Primary Actor
+Student
+Preconditions
+The student is authenticated and has access to an assignment.
+Main Success Scenario
+The student opens Development Mode. 
+The system provides access to the UML modeling tools. 
+The student creates and edits UML artifacts freely. 
+The student saves the work. 
+The student can submit the completed assignment.
+Postconditions
+The student's UML work can be completed and submitted without step-by-step tutorial restrictions.
+UC07 Use Tutorial Mode
+Field
+Description
+Primary Actor
+Student
+Preconditions
+The student is authenticated and tutorial support is available for the relevant task.
+Main Success Scenario
+The student starts Tutorial Mode. 
+The system presents the current task or modeling step.
+The student creates or edits the required UML element. 
+The system checks the student's work at the current step. 
+If the work is correct, the system allows the student to continue.
+If correction is required, the system provides guidance or correction.
+The student updates the work and the system checks the current step again.
+Postconditions
+The student progresses through the tutorial with step-by-step guidance and correction.
+Alternative Scenario
+1. If the current step remains incorrect, the system keeps the student at the current step and provides further guidance.
+UC08 Submit Assignment
+Field
+Description
+Primary Actor
+Student
+Preconditions
+The student has completed the required UML work and can submit the assignment.
+Main Success Scenario
+The student selects the submission option. 
+ The system validates the submission information. 
+The system stores the submission. 
+The system makes the submission available to the teacher.
+Postconditions
+The assignment is submitted and available for teacher review.
+UC09 Check Assignment
+Field
+Description
+Primary Actor
+Teacher
+Preconditions
+The student has submitted the assignment and the teacher is authenticated.
+Main Success Scenario
+The teacher opens the submitted assignment. 
+The teacher selects the checking option. 
+The system processes the submitted UML artifacts. 
+The system applies predefined automated checking rules. 
+The system performs applicable cross-diagram consistency checks, including semantic matching between related artifacts.
+The system generates checking and consistency results. 
+The teacher views the generated results.
+Postconditions
+Checking results and the consistency report are available for teacher review.
+UC10  Review Submission
+Field
+Description
+Primary Actor
+Teacher
+Preconditions
+A student submission is available.
+Main Success Scenario
+The teacher opens the submission. 
+The teacher reviews the student's UML artifacts.
+The teacher reviews the automated checking results and consistency report.
+The teacher evaluates the submitted work. 
+The teacher records relevant feedback or evaluation information. 
+The system stores the review information.
+Postconditions
+The submission has been reviewed and the available feedback/evaluation information is stored.
+UC11  View Results and Feedback
+Field
+Description
+Primary Actor
+Student
+Preconditions
+Checking results or teacher feedback have been made available.
+Main Success Scenario
+The student opens the relevant submitted assignment.
+The system displays available checking results, consistency report, and teacher feedback.
+The student reviews the results and feedback.
+Postconditions
+The student can use the available results and feedback to understand and improve the UML work.
+2.5 System Sequence Diagrams (SSDs)
+System Sequence Diagrams describe the interaction between an external actor and UMLTutor for the main flow of a user-level use case. SSDs should focus on user-to-system messages and system responses rather than internal implementation details such as database queries, individual checking rules, or text-processing algorithms.
+SSDs are provided below for the major interactions listed in Section 2.4, including login, class and assignment management, UML modeling, Development Mode, Tutorial Mode, submission, assignment checking, teacher review, and viewing results.
+For UC09  Check Assignment, the SSD shows the teacher starting the checking process and the system returning the generated checking and consistency results. Internal operations such as requirement text processing, rule execution, and consistency comparison are represented as system processing rather than separate actors.
+UC01: Login
+Figure 2.4.1 – System Sequence Diagram (SSD) for UC01: Login
+UC02: Manage Class
+Figure 2.4.2 – System Sequence Diagram (SSD) for UC02: Manage Class
+UC03: Manage Assignment
+Figure 2.4.3 – System Sequence Diagram (SSD) for UC03: Manage Assignment
+UC04: View Assignment
+Figure 2.4.4 – System Sequence Diagram (SSD) for UC04: View Assignment
+UC05: Create and Edit UML Models
+Figure 2.4.5 – System Sequence Diagram (SSD) for UC05: Create and Edit UML Models
+UC06: Use Development Mode
+Figure 2.4.6 – System Sequence Diagram (SSD) for UC06: Use Development Mode
+UC07: Use Tutorial Mode
+Figure 2.4.7 – System Sequence Diagram (SSD) for UC07: Use Tutorial Mode
+UC08: Submit Assignment
+Figure 2.4.8 – System Sequence Diagram (SSD) for UC08: Submit Assignment
+UC09: Check Assignment
+Figure 2.4.9 – System Sequence Diagram (SSD) for UC09: Check Assignment
+UC10: Review Submission
+Figure 2.4.10 – System Sequence Diagram (SSD) for UC10: Review Submission
+UC11: View Results and Feedback
+Figure 2.4.11 – System Sequence Diagram (SSD) for UC11: View Results and Feedback
+2.6 Data Flow Diagram (DFD)
+2.6.1 Level 0  Context Diagram
+Figure 2.2 – Data Flow Diagram Level 0 (Context Diagram)
+At the context level, UMLTutor is represented as the central system with Student and Teacher as the main external entities. Students provide authentication information, assignment requests, UML work, tutorial interactions, and submissions, and receive assignment information, tutorial guidance, checking results, feedback, and other available information. Teachers provide class and assignment information, requirement or case-study text, checking requests, and review information, and receive student submissions and checking results.
+2.6.2 Level 1 Main Processes
+Flows are named as processes, and store notation should be different from  external entity notation
+Figure 2.3a – Data Flow Diagram Level 1, Part A (Modeling, Tutorial, and Submission)
+Authentication and Role Management: handles user authentication and role-based access.
+Class and Assignment Management: stores and manages classes, assignments, and assignment requirements.
+UML Modeling: receives diagram edits and stores the five UML artifact types.
+Tutorial Support: provides step-by-step tutorial activities and correction.
+Submission: stores completed student work for teacher review.
+Automated and Consistency Checking: processes submitted UML artifacts, applies checking rules, performs semantic matching between related artifacts, and generates checking results.
+Teacher Review and Feedback: stores teacher review information and makes available results or feedback accessible to the student.
+Figure 2.3b – Data Flow Diagram Level 1, Part B (Automated Checking and Teacher Review)
+2.6.3 Checking Data Flow
+The checking process compares a student's own UML artifacts against one another rather than parsing free-text requirements. The flow is: submitted UML artifacts (Use Case Diagram, Use Case Description, SSD, Class Diagram, Sequence Diagram) -> text-processing and semantic-matching techniques applied between related artifacts -> automated checking and consistency checking -> checking results and report.
+2.7 Data Requirements
+UMLTutor shall store the information required to support users, classes, assignments, UML artifacts, submissions, checking results, evaluations, notifications, and other implemented system operations. The detailed database structure and relationships are described in Chapter 3.
+2.7.1 Data Dictionary
+Data Entity
+Description
+User
+Registered user information and role.
+Class
+Class information and student-class relationships.
+Assignment
+Assignment information, including optional requirement/case-study text.
+Use Case Diagram
+Use Case Diagram data associated with a student's work.
+Use Case Description
+Use Case Description data associated with the assignment/model.
+System Sequence Diagram
+SSD data associated with the relevant UML work.
+Class Diagram
+Class Diagram data associated with the student's work.
+Sequence Diagram
+Sequence Diagram data associated with the student's work.
+Submission
+Student submission information and status.
+Evaluation / Checking Result
+Automated checking results and teacher evaluation information.
+Notification
+System notifications sent to users.
+2.8 Summary
+In this chapter, Software Requirements Specification for UMLTutor was presented. The system acts as a common platform for modeling with UML, studying, submission of assignments, automatic checking, cross-diagram checking, and teacher's evaluation with regard to five UML artifacts such as Use Case Diagram, Use Case Description, System Sequence Diagram, Class Diagram, and Sequence Diagram. Students may perform their activities in Development mode or Tutorial mode. Teachers may control the assignments, check the submissions, and start the checking process. The texts of requirements and case studies may be checked to generate useful information. In the next chapter, the software design of UMLTutor will be presented.
+CHAPTER 3
+SOFTWARE DESIGN DESCRIPTION
+3.1 Introduction
+The purpose of this chapter is to cover the software design of the UMLTutor application. In this chapter, we discuss how the requirements covered in Chapter 2 are incorporated in the application using the frontend, backend, database, UML modeling, verification, and submission components. This is a web application built for Software Engineering and Computer Science students and includes mostly the following three components.
+System Architecture
+The tools and platforms can be mentioned in implementation, and removed from design
+Figure 3.1 – UMLTutor High-Level System Architecture
+UMLTutor follows a layered web-application architecture: the frontend communicates with backend APIs over HTTP, and the backend communicates with the database and supporting services. Firebase Authentication is used for sign-in, Redis can be used as an optional cache, and Cloudinary can be used for optional file storage.
+Technology Stack
+Should be mentioned in implementation
+3.3.1 Frontend
+React 18, React Router, Redux Toolkit, React Flow (diagram editor), Axios, React Hook Form, Zod, Webpack, Tailwind CSS, Firebase client SDK, and jsPDF/html-to-image/html2canvas for export. The frontend source code is implemented using JavaScript and JSX.
+3.3.2 Backend
+Node.js, Express.js, Prisma ORM, PostgreSQL, Firebase Admin SDK, Zod, JWT utilities, Redis, Socket.IO server implementation, Multer and Cloudinary for file management, Swagger for API documentation, Winston for logging, and Jest/Supertest for testing. The backend is implemented in JavaScript using the CommonJS modules.
+3.3.3 Database
+PostgreSQL using the Prisma ORM as the database, which has users, classes, assignments, submissions, all five types of UML artifacts, evaluations, notifications, announcements, resources, and submission exports (see section 3.9).
+3.4 Frontend Design
+The frontend follows a feature-based React structure, organised into components, contexts, features, hooks, pages, services, styles, and utils. The features directory contains the major application areas: authentication, assignments, checking, classroom management, the five UML editors, submissions, teacher functions, the tutorial workflow, and notifications.
+The student interface provides a dashboard, class and assignment views, practice areas for each of the five UML artifacts, tutorial support, submission, and report/feedback views. The teacher interface provides a dashboard, class and assignment management, submission review, checking, and grading.
+Student-Facing Pages
+Teacher-Facing Pages
+In both cases the general workflow follows the same pattern: log in, open the relevant class or assignment, work with the UML artifacts or submissions, run or review checking, and then submit or grade and view feedback.
+UML Modeling Design
+Is your design object oriented or structured? If object oriented, why are you using a dfd
+3.5.1 UMLTutor Software Architecture Class Diagram
+Figure 3.2 – UMLTutor Software Architecture Class Diagram
+Figure 3.2 shows the object-oriented structure of the UMLTutor backend, organized into Controller, Service, NLP Utility, and Repository layers; the relational database design is documented separately in Figure 3.4 (Section 3.12). Below is the software architectural class breakdown:
+ 3.6.4 UMLTutor Software Design Sequence Diagrams
+Figure 3.3 – UMLTutor Software Execution Sequence Diagram (Automated & Consistency Checking Pipeline)
+Software Design Sequence Diagrams describe the object-level message exchange across application layers during major system execution workflows.
+UMLTutor provides five separate editors, one per supported UML artifact, all built on React Flow so diagrams are stored as nodes and edges that the checking engine can later process.
+Use Case Diagram: supports actors, use cases, a system boundary, and relationships.
+Use Case Description: textual detail (primary actor, preconditions, postconditions, main scenario, alternative flows) linked to a use case through relatedId, so the checking engine can compare the diagram against its description.
+System Sequence Diagram (SSD): actor and system lifelines and messages, linked to a use case; checked together with its Use Case Description.
+Class Diagram: classes and their UML relationships; the checking engine also examines methods, attributes, and relationships.
+Sequence Diagram: participants, messages, activations, and combined fragments, linked to a use case and compared against the Class Diagram and earlier artifacts.
+3.6 Backend Architecture
+The backend follows a layered folder structure: routes define the API surface; controllers handle HTTP-level request/response logic; services hold the main application logic; repositories separate database access (via Prisma) from that logic; and middleware handles cross-cutting concerns.
+3.6.1 Routes and Controllers
+Route groups exist for authentication, checking, classes, assignments, submissions, notifications, and students, plus /health for a status check and /api-docs for Swagger documentation. Matching controllers exist for authentication, assignments, checking, classes, notifications, resources, students, submissions, and announcements.
+3.6.2 Services and Repositories
+Key services include authService, assignmentService, classService, checkingEngine, notificationService, ssdValidationService, studentService, submissionService, suggestionEngine, resourceService, and announcementService, together with the semanticService/similarity/sentenceUtils modules in the nlp/ folder. The checking engine drives the main UML checking process, delegating structural SSD checks to ssdValidationService and semantic term comparison between a student's own artifacts to the nlp/ modules; repositories for assignments, classes, notifications, submissions, submission exports, and users keep database access out of the controllers.
+3.6.3 Middleware and Security
+Middleware handles authentication (verifying Firebase ID tokens), role-based authorization, request logging, validation, error handling, and rate limiting. Additional API-level protections include Helmet, CORS configuration, and centralized error handling, so validation, authentication, and other application errors are returned through a consistent response format.
+3.7 Authentication and Authorization Design
+UMLTutor uses Firebase Authentication: the frontend uses the Firebase client SDK to sign a user in, the backend uses the Firebase Admin SDK to verify the resulting ID token on each API request, and the authenticated user is then looked up in PostgreSQL to determine their role. Role-based authorization then controls access
+ for example, student routes require the STUDENT role, while teacher management and review routes require the TEACHER role.
+3.8 Requirement Processing and Automated Checking Design
+3.8.1 Semantic Consistency Checking
+UMLTutor's checking engine does not parse an assignment's attached requirement or case-study text into a separate model. Instead, semantic matching is applied between a student's own UML artifacts, so that related information stays consistent as it moves from one diagram to another.
+The backend's nlp/ folder (semanticService, sentenceUtils, similarity, and constants) provides this support: parsing a Use Case Description step or an SSD message into its component parts, normalizing and comparing terms (evaluateFunctionMatch, fuzzyMatch, normalizeName), and comparing method signatures between an SSD message and a Class Diagram operation (compareParameterLists, compareClassOperation). This is what allows the checking engine to confirm, for example, that a step written in a Use Case Description is reflected by a matching message in the corresponding SSD, and that an SSD message corresponds to an operation defined on the right class. The requirement or case-study text a teacher attaches to an assignment is stored and shown to students as context for their modeling task, but it is not itself parsed by the checking engine.
+3.8.2 Validation Rule System
+The backend uses a centralized rule registry as well as a rule pipeline that takes into consideration the dependencies among the rules. There are 124 rules in the registry currently, out of which 117 are active and classified according to the area of UML and the type of checking they do (structural, consistency, naming, completeness, UML standards, and best practices).
+The pipeline makes use of the dependency knowledge about the rules to ensure that the absence of some required element does not create a bunch of errors unrelated to the actual problem; the steps followed in this process are the loading of rules, resolving of their dependencies, running of required rules, identifying the root cause, suppressing the unnecessary errors, and finally generating the results.
+3.8.3 Six-Phase Checking Pipeline
+Checking is organised into six phases, run in order:
+Use Case Diagram: system boundary, actor and use case presence and naming, connectivity, relationships, and duplicates;
+Use Case Description: primary actor, pre/postconditions, main flow, alternative flows, and orphan/duplicate descriptions;
+System Sequence Diagram: SSD completeness, actor/system lifelines, message direction and structure, and semantic alignment with the description;
+Class Diagram: class structure, relationships, methods, attributes, and SSD-operation compatibility;
+Sequence Diagram:  lifelines, messages, call/return structure, activations, and class-operation relationships;
+Cross-Diagram Consistency: checking relationships across all five artifacts together, which is central to UMLTutor's purpose of keeping different UML views of the same system consistent.
+3.8.4 Cross-Artifact Semantic Matching
+Within the phases above, the checking engine performs targeted semantic comparisons between related artifacts rather than checking each diagram only in isolation: Use Case Description steps are matched against the corresponding SSD's messages (validateDescriptionSSDSemantics), and SSD messages are matched against the operations defined on the relevant class in the Class Diagram (validateSSDClassOperations). Matching uses fuzzy/synonym comparison rather than requiring an exact wording match, since students commonly phrase the same step or operation slightly differently across artifacts.
+3.8.5 Suggestion Engine
+After checking, UMLTutor's suggestionEngine generates suggestions for detected issues from the identified rule code, producing a suggested improvement shown to the student or teacher to help explain how the UML model can be corrected.
+3.9 Requirement Traceability Matrix
+The table below connects the functional requirements from Chapter 2 to the design components responsible for implementing them, showing how the requirements map onto the architecture described in this chapter.
+Functional Requirement
+Design Components
+FR01 User Authentication and Role Management
+authController, authService, Firebase Admin SDK, routeMiddleware (authenticate)
+FR02 Class Management
+classController, classService, classRepository
+FR03 Assignment Management
+assignmentController, assignmentService, assignmentRepository
+FR04 View Assignment
+assignmentController.getStudentAssignments, assignmentService
+FR05 Create and Edit UML Models
+React Flow editors (five UML artifacts), submissionController, submissionService
+FR06 Development Mode
+Frontend UML editors (free editing), submissionController
+FR07 Tutorial Mode
+Frontend tutorial workflow (validators, progress sidebar), request/approve/reject-tutorial endpoints
+FR08 Submit Assignment
+submissionController.submitAssignment, submissionService, submissionRepository
+FR09 Semantic Consistency Matching
+nlp/semanticService, nlp/similarity, nlp/sentenceUtils
+FR10 Automated UML Checking
+checkingEngine (CheckingEngine), ruleRegistry, rulePipeline
+FR11 Cross-Diagram Consistency Checking
+checkingEngine (Phase 6: Cross-Diagram Consistency), ssdValidationService
+FR12 Teacher Review
+submissionController (runSubmissionCheck, gradeSubmission, saveSubmissionFeedback)
+FR13 Feedback and Results
+submissionController, Evaluation model, frontend results/feedback views
+FR14 Reports
+Evaluation model, submissionExportRepository, submission export endpoints
+3.10 Tutorial Mode and Frontend Checking Fallback
+The frontend’s tutorial workflow (navigation bar, progress sidebar, validation panel, workspace, and validators) can use checking results to guide a student step by step: create an element, validate the current step, show guidance, let the student correct the work, then move to the next step. The frontend also contains a local consistency checker used as a fallback for tutorial or preview situations when a backend report is not available but the backend checking report remains authoritative for grading and scoring.
+3.11 Notification and Classroom Communication Design
+Notifications, announcements, and resources help in facilitating communication on a daily basis between teachers and students. Notification will be created for the user whenever an event related to him/her happens (for instance, approval of a tutorial, feedback submission, etc.), and the frontend either polls or refreshes such data so that the student can see his/her notifications. Announcement and Resource are associated with a Class, and not with any assignment. This means that a teacher can send out announcements/files to all the students belonging to his/her class. There is also provision for socket.io on the backend which can help in sending push notifications without having to poll always.
+3.12 Database Design
+Figure 3.4 – UMLTutor Relational Database Design (ERD)
+The database implementation takes place in PostgreSQL using Prisma ORM. The following figure illustrates the key entities and their relations.
+User represents a student or a teacher: if the User is a teacher then he manages Classes and evaluates the students’ submissions (Evaluation). If the User is a student then he joins classes (ClassStudent) and creates Submissions. Class includes Students, Assignments, Announcements and Resources. Assignment belongs to a Class and may have a requirement/case study description; one Assignment can have many Submissions. Each Submission belongs to one Student and one Assignment, and has relations to all UML artifacts: one Use Case Diagram, any number of Use Case Descriptions, SSDs and Sequence Diagrams (each of which corresponds to a particular use case by means of relatedId attribute) and one Class Diagram. Evaluation includes the grade, remarks and validation report created by a teacher on a particular Submission. Notification, Announcement and Resource help teachers and students to communicate inside the classroom, while SubmissionExport entity stores the exported report files (in PDF, PNG, JPEG, SVG, JSON and TXT formats).
+3.13 Caching, Security, and Performance Design
+The in-memory caching is used in the backend part of the application; additionally, Redis can be used as an optional shared cache, and in case Redis is not available then the application will continue to work with the in-memory cache. API security consists of Firebase token verification, role-based authorization, Helmet, CORS, rate-limiting, request validation and centralized error handling. The performance-oriented features include database indexes, request/user caching, Firebase token caching, database connection keep-alive, logging of requests processing time and response compression.
+3.14 Error Handling and API Response Design
+On the backend there is one centralized error-handling middleware so that errors from any layer (validation, authentication, database, or checking) are converted into a consistent json response shape, instead of each route handling errors differently. A typical error response contains a success flag, an error code or category, a human-readable message, and, for validation errors, details identifying which field failed and why. This enables the frontend to show user friendly messages (i.e. "assignment requirement text is required" instead of a generic failure) and maintains consistent logging via Winston throughout the entire backend.
+3.15 Deployment Architecture
+The project contains docker configuration for both frontend and backend and Kubernetes manifests (k8s-full-stack.yaml) for a full-stack deployment. This allows us to build the application as container images and deploy them consistently across different environments (local development, staging, or production) where the frontend, backend, and PostgreSQL database can all run as individual services. The environment-specific configuration (database connection string, Firebase credentials, Redis and Cloudinary settings) is passed through environment variables instead of hard-coded so the same container images can be reused across environments.
+3.16 Design Principles
+Separation of responsibilities frontend, backend, database, checking logic, and supporting services each have a distinct role.
+Reusable checking rules are maintained in one central rule registry.
+Dependency-aware validation rule dependencies reduce unnecessary cascading errors.
+Role-based access student and teacher’s and abilities are kept separate by role.
+Semantic consistency checking the system compares a student's own artifacts against one another rather than relying on a single fixed case study or free-text parsing.
+Educational feedback checking results and suggestions are designed to help students improve, not only to flag mistakes.
+3.17 Summary
+In this chapter we presented the design of the current implementation of UMLTutor, consisting of a React frontend, a Node.js/Express backend and a PostgreSQL database accessed by Prisma. The checking system is one of the central parts of the design, built on top of a 124-rule registry (117 enabled) and a six-phase, dependency-aware pipeline, along with the semantic consistency matching (nlp/ modules) that supports it. The database holds users, classes, assignments, submissions, the five types of UML artifacts, evaluations, notifications, announcements, resources and submission exports. This design links the requirements of Chapter 2 and the implementation described in the next chapter.
+CHAPTER 4
+IMPLEMENTATION
+4.1 Introduction
+This chapter explains the implementation of the design of Chapter 3. UMLTutor is developed as two separate workspaces in one repository, using Node.js/JavaScript: umltutor-backend (a Node.js/Express REST API) and umltutor-frontend (a React single-page application) with a common PostgreSQL database that is accessed through Prisma ORM.
+4.2 Backend Implementation
+The backend source is organised under umltutor-backend/src into the following folders, matching the layered architecture described in Section 3.6:
+Folder
+Contents
+controllers/
+Express route handlers (AuthController, AssignmentController, SubmissionController, CheckingController, ClassController) that parse requests, call services, and shape responses.
+services/
+Business logic: authService, assignmentService, classService, checkingEngine, notificationService, resourceService, announcementService, submissionService, suggestionEngine, ssdValidationService, studentService.
+repositories/
+Prisma-based data access for assignments, classes, notifications, submissions, submission exports, and users, keeping raw database queries out of the controllers and services.
+rules/
+The rule registry (ruleRegistry.js, 124 rules), the dependency-aware pipeline (rulePipeline.js), and rule configuration (ruleConfig.js).
+nlp/
+Text-processing and semantic-matching utilities (semanticService.js, sentenceUtils.js, similarity.js, constants.js) used by the checking engine to compare a student's own UML artifacts.
+routes/
+Express route definitions per resource (authRoutes, assignmentRoutes, checkingRoutes, classRoutes, notificationRoutes, studentRoutes, submissionRoutes).
+middleware/
+Cross-cutting request handling: authentication (Firebase token verification), request logging, and error handling.
+config/
+Environment and third-party service configuration (database connection, Firebase Admin SDK, Cloudinary, logging).
+utils/
+Shared helper functions used across services and controllers.
+app.js configures the Express application (JSON body parsing, CORS, Helmet, rate limiting, Swagger documentation, and route mounting), while server.js starts the HTTP server and, where configured, the Socket.IO real-time layer. Prisma Client is generated from prisma/schema.prisma and used throughout the repositories and services for type-safe database access.
+4.3 Frontend Implementation
+The frontend source is organised under umltutor-frontend/src using a feature-based structure:
+Folder
+Contents
+features/
+One folder per application area, including auth, classroom, assignments, diagram, ssd, description, class-diagram, sequence-diagram, checking, modes, tutorial, submissions, notifications, and teacher. Each feature folder groups its own components, hooks, and logic.
+pages/
+Top-level routed pages (LandingPage, WorkspacePage, AssignmentDetails) plus student- and teacher-specific page groups.
+components/
+Shared, reusable UI components used across multiple features.
+contexts/ and hooks/
+React context providers (for example, authentication state) and shared custom hooks.
+services/
+Axios-based API client functions that call the backend REST endpoints.
+nlp/
+A lightweight client-side mirror of the backend's semantic-matching utilities (constants.js, sentenceUtils.js, similarity.js), used for immediate in-editor and tutorial-mode feedback before a full server-side check is run.
+config/, styles/, types/, utils/
+Application configuration, Tailwind/global styles, shared type helpers, and general utilities.
+Each of the five UML artifact types (Use Case Diagram, Use Case Description, SSD, Class Diagram, Sequence Diagram) has its own editor built with React Flow for the diagram-based artifacts, backed by Redux Toolkit state and Axios calls to the corresponding backend endpoints. The features/modes folder implements the Development Mode / Tutorial Mode switch described in Sections 1.8 and 2.4; the features/checking folder implements the in-editor CheckingModePanel described in Section 3.10.
+4.4 Database Implementation
+The database schema is defined in umltutor-backend/prisma/schema.prisma and implemented incrementally through Prisma migrations rather than as a single fixed schema:
+add_verification_and_google_id  added account verification and Google sign-in support to the User model.
+add_firebase_uid added the firebaseUid field used to link a User record to Firebase Authentication.
+tutorial_request_fields  added the tutorialRequested / tutorialApproved / tutorialRejected fields on Submission that implement the Tutorial Mode approval workflow described in Section 1.8.
+submission_exports  added the SubmissionExport model and its relation to Submission, used for downloadable exports of a student's work.
+Prisma Client is generated from this schema and provides the typed database access used throughout the repositories layer described in Section 4.2. The full entity-relationship design is shown in Figure 3.4.
+4.5 Checking Engine Implementation
+The checking engine described in Section 3.8 is implemented as a static class, CheckingEngine, in services/checkingEngine.js. Its checkModel(model, section, targetId) entry point is called from CheckingController for both the student-facing live check (POST /api/check) and the teacher-facing post-submission check (POST /api/submissions/:id/run-check).
+The 124 rules in rules/ruleRegistry.js are grouped by UML area and category, and executed by rules/rulePipeline.js, which resolves declared dependencies between rules before running them so that a root-cause problem is reported once rather than triggering a cascade of dependent errors. Where a rule's check requires comparing two related artifacts — for example, a Use Case Description step against an SSD message, or an SSD message against a Class Diagram operation — the checking engine delegates to ssdValidationService for structural checks and to the nlp/ module (semanticService.js) for semantic term comparison (evaluateFunctionMatch, fuzzyMatch, normalizeName, compareParameterLists, compareClassOperation).
+After the rule pipeline completes, suggestionEngine.js turns the resulting rule violations into a suggestion and a score that are returned to the caller and, for a teacher-run check, persisted onto the Evaluation record.
+4.6 Deployment Implementation
+Deployment follows the tools described in Section 1.11. The GitHub Actions workflow (.github/workflows/deploy.yml) builds a Docker image for each of umltutor-backend and umltutor-frontend on every push to main and publishes them to the GitHub Container Registry. The Kubernetes manifests (k8s-full-stack.yaml at the repository root and umltutor-backend/k8s/deployment.yaml) define the Deployment and Service resources used to run these images, together with the PostgreSQL database, in a cluster environment.
+4.7 Summary
+This chapter described how the design in Chapter 3 was realised in code: a layered Express backend (controllers, services, repositories, a dependency-aware rule pipeline, and an nlp/ module for semantic matching), a feature-organised React frontend built around the five UML editors and the Development/Tutorial Mode workflow, a Prisma-managed PostgreSQL database evolved through incremental migrations, and a Docker/Kubernetes deployment pipeline driven by GitHub Actions. The next chapter describes how this implementation was tested.
+CHAPTER 5
+SOFTWARE TEST DOCUMENTATION
+5.1 Introduction
+This chapter describes the testing approach for UMLTutor. Testing verifies that the implemented system works according to the requirements in Chapter 2 and the design in Chapter 3, and covers not just whether pages open correctly but also data saving, API communication, UML model validation, checking rules, consistency between artifacts, user roles, and assignment submission. The main testing activities are functional testing, API testing, unit testing, integration testing, UML/consistency checking tests, authentication and authorization testing, database-related testing, and user interface testing. Actual results should be recorded in the test logs in Appendix A.
+5.2 Test Approach
+5.2.1 Unit and Integration Testing
+Unit testing checks small parts of the system in isolation  validation functions, requirement parsing functions, checking rules, utility functions, suggestion generation, and service functions — to find errors before testing the whole application. The backend’s automated Jest test suite currently contains 29 test suites and 304 tests. Integration testing then checks that parts work correctly together: frontend/backend communication, backend/database communication, authentication with protected APIs, assignment and submission operations, and the requirement-processing-to-checking-engine pipeline. For example, saving a Use Case Description should update the interface and also reach the backend and be stored correctly in PostgreSQL.
+5.2.2 API, Functional, and Security Testing
+API testing checks request format, authentication, authorization, input validation, and both successful and error responses; the backend also documents its API through Swagger, and API testing can be performed with Postman or a similar client. Functional testing checks whether the system performs the functions from Chapter 2 login, creating/saving/editing UML artifacts, checking, submission, teacher review, feedback, and reports. Security testing checks that users can access only the functions allowed for their role: valid and invalid logins, token validation, student and teacher access control, and rejection of unauthorized API requests.
+5.2.3 UML Checking Testing
+The checking engine is a major part of UMLTutor, currently containing 124 registered rules (117 enabled) across six checking phases. Testing therefore covers both individual rules and the complete checking flow, for each of the six areas: Use Case Diagram, Use Case Description, System Sequence Diagram, Class Diagram, Sequence Diagram, and Cross-Diagram Consistency. Both positive tests (a correct model should not produce incorrect errors) and negative tests (a deliberately incorrect model should produce the expected result) are used, and testing checks correct rule selection, rule dependencies, error codes, severity, suggestions, and cross-artifact semantic matching not just whether the engine runs, but whether its output matches the expected result.
+5.3 Test Plan
+5.3.1 Features to be Tested
+Authentication student/teacher login, invalid login, token verification, role-based access.
+Student functions dashboard, viewing classes/assignments, creating and saving UML artifacts, requesting tutorial support, running checking where permitted, submitting assignments.
+Teacher functions dashboard, class and assignment management, viewing submissions, running checking, adding remarks/evaluation, viewing reports.
+UML editors Use Case Diagram, Use Case Description, SSD, Class Diagram, Sequence Diagram.
+Requirement/case-study processing reading, processing, and using requirement text in checking.
+Automated checking all six checking areas, rule dependency handling, suggestion generation.
+Tutorial support, submission and evaluation, and classroom features (notifications, announcements, learning resources).
+5.4 Test Data
+Testing uses a mix of valid and invalid data: user accounts (valid student, valid teacher, invalid credentials, unauthorized user); class data (valid class, enrolled/non-enrolled student); assignment data (with and without sufficient requirement text, open/closed assignment); and UML data covering both correct structures and deliberately introduced problems missing elements, duplicate elements, incorrect names, broken relationships, missing descriptions, and inconsistent information between diagrams so that both positive and negative test cases can be performed.
+5.5 Test Case Format
+Each test case follows the same structure: Test Case ID, Name, Purpose, Preconditions, Inputs, Test Procedure, Expected Output, and Pass/Fail Criteria, in line with the documentation template. The full test suite currently defines 23 test cases (TC01–TC23), summarised in the table in section 4.6; five representative cases are then given in full below, covering authentication, artifact creation, checking, requirement processing, and cross-diagram consistency. The remaining test cases follow the same format and are recorded in the project’s test logs (Appendix A).
+5.6 Test Case Summary
+Test Case
+Name
+Purpose
+Expected Output
+TC01
+Student Login
+Verify that a student can log in using valid credentials and access the student dashboard.
+The user is authenticated, redirected to the student dashboard, and student-only functions are available.
+TC02
+Teacher Login and Role Access
+Verify that a teacher can log in and access teacher functions.
+The teacher is authenticated and can access teacher functions.
+TC03
+Invalid Authentication
+Verify that invalid credentials are rejected.
+The system rejects the authentication request and displays an appropriate error.
+TC04
+Create and Save Use Case Diagram
+Verify that a student can create and save a Use Case Diagram.
+The diagram is saved and can be loaded again with the same elements.
+TC05
+Create and Save Use Case Description
+Verify that a Use Case Description can be created and linked to the relevant use case.
+The description is stored and remains connected to the selected use case.
+TC06
+Create and Save SSD
+Verify that a System Sequence Diagram can be created and linked to a use case.
+The SSD is saved and remains linked to the selected use case.
+TC07
+Create and Save Class Diagram
+Verify that a Class Diagram can be created and stored.
+The Class Diagram is saved and restored correctly.
+TC08
+Create and Save Sequence Diagram
+Verify that a Sequence Diagram can be created and stored.
+The Sequence Diagram is saved and restored correctly.
+TC09
+Semantic Consistency Matching
+Verify that the checking engine semantically matches a Use Case Description step to its corresponding SSD message.
+The system recognises the semantically equivalent step and message as consistent and does not raise a false consistency issue.
+TC10
+Use Case Diagram Checking
+Verify that the checking engine can identify problems in a Use Case Diagram.
+The relevant checking rule identifies the problem and produces a checking result.
+TC11
+Use Case Description Checking
+Verify that the system checks Use Case Description content.
+The appropriate checking rule identifies the problem.
+TC12
+SSD Checking
+Verify that the checking engine can identify problems in an SSD.
+The relevant SSD checking rule identifies the problem.
+TC13
+Class Diagram Checking
+Verify that Class Diagram validation works correctly.
+The appropriate Class Diagram checking rule reports the problem.
+TC14
+Sequence Diagram Checking
+Verify that Sequence Diagram validation works correctly.
+The relevant Sequence Diagram rule identifies the issue.
+TC15
+Cross-Diagram Consistency Checking
+Verify that the system can identify inconsistencies between related UML artifacts.
+The consistency checking rules identify the known inconsistency.
+TC16
+Checking Rule Dependency Handling
+Verify that the dependency-aware checking pipeline avoids unnecessary cascading errors.
+The checking pipeline focuses on the main/root issue and avoids unnecessary cascading results.
+TC17
+Tutorial Validation
+Verify that tutorial validation can guide a student through correction of UML problems.
+The tutorial displays relevant guidance and allows the student to continue after the correction is accepted.
+TC18
+Assignment Submission
+Verify that a student can submit a completed assignment.
+Submission is stored, its status changes appropriately, and the student can view the updated status.
+TC19
+Teacher Review and Evaluation
+Verify that a teacher can review a student submission and store an evaluation.
+The evaluation is stored and can be viewed again.
+TC20
+Notification
+Verify that supported system notifications are created and displayed correctly.
+The notification appears for the correct user and its read status updates correctly.
+TC21
+Unauthorized API Access
+Verify that protected backend APIs cannot be accessed without proper authentication or authorization.
+The backend rejects unauthorized requests.
+TC22
+Database Save and Retrieval
+Verify that UML and assignment data is correctly stored in and retrieved from PostgreSQL.
+The saved information is retrieved correctly.
+TC23
+Report Generation
+Verify that checking and evaluation information can be displayed or exported through the supported reporting functionality.
+The report contains the available checking/evaluation information.
+5.7 Test-to-Requirement Traceability
+The table below shows which functional requirement area each test case primarily verifies, linking the testing in this chapter back to the requirements defined in Chapter 2.
+Test Case
+Functional Requirement
+TC01: Student Login
+FR01
+TC02: Teacher Login and Role Access
+FR01
+TC03: Invalid Authentication
+FR01
+TC04: Create and Save Use Case Diagram
+FR05
+TC05: Create and Save Use Case Description
+FR05
+TC06: Create and Save SSD
+FR05
+TC07: Create and Save Class Diagram
+FR05
+TC08: Create and Save Sequence Diagram
+FR05
+TC09: Semantic Consistency Matching
+FR09
+TC10: Use Case Diagram Checking
+FR10
+TC11: Use Case Description Checking
+FR10
+TC12: SSD Checking
+FR10
+TC13: Class Diagram Checking
+FR10
+TC14: Sequence Diagram Checking
+FR10
+TC15: Cross-Diagram Consistency Checking
+FR11
+TC16: Checking Rule Dependency Handling
+FR10
+TC17: Tutorial Validation
+FR07
+TC18: Assignment Submission
+FR08
+TC19: Teacher Review and Evaluation
+FR12 / FR13
+TC20: Notification
+FR13
+TC21: Unauthorized API Access
+FR01
+TC22: Database Save and Retrieval
+FR05
+TC23: Report Generation
+FR14
+5.8 Representative Test Cases
+TC01: Student Login
+Purpose
+Verify that a student can log in using valid credentials and access the student dashboard.
+Preconditions
+A valid student account exists; The login page is available; The backend and authentication service are running.
+Inputs
+Valid student authentication credentials.
+Test Procedure
+1. Open the UMLTutor login page.
+2. Enter valid student credentials and click login.
+3. Observe the page after authentication.
+Expected Output
+The user is authenticated, redirected to the student dashboard, and student-only functions are available.
+Pass/Fail Criteria
+Pass: student reaches the correct dashboard. Fail: authentication fails with valid credentials, or the user reaches the wrong area.
+TC02: Teacher Login and Role Access
+Purpose
+Verify that a teacher can log in and access teacher functions.
+Preconditions
+A valid teacher account exists.
+Inputs
+Valid teacher credentials.
+Test Procedure
+1. Open the login page and enter teacher credentials.
+2. Log in and open the teacher dashboard.
+3. Try to access teacher management functions.
+Expected Output
+The teacher is authenticated and can access teacher functions.
+Pass/Fail Criteria
+Pass: teacher dashboard and authorized functions are available. Fail: teacher is treated as a student, or unauthorized access is allowed.
+TC03: Invalid Authentication
+Purpose
+Verify that invalid credentials are rejected.
+Preconditions
+The login page is available.
+Inputs
+Invalid username or authentication information.
+Test Procedure
+1. Open the login page.
+2. Enter invalid credentials and click login.
+Expected Output
+The system rejects the authentication request and displays an appropriate error.
+Pass/Fail Criteria
+Pass: user cannot access protected pages. Fail: invalid credentials provide access.
+TC04: Create and Save Use Case Diagram
+Purpose
+Verify that a student can create and save a Use Case Diagram.
+Preconditions
+Student is logged in; Student has access to a modeling workspace.
+Inputs
+A diagram containing an actor, a use case, an association, and a system boundary where required.
+Test Procedure
+1. Open the Use Case Diagram editor.
+2. Add an actor and a use case, then add the required relationship.
+3. Save the diagram, then reload the assignment/workspace.
+Expected Output
+The diagram is saved and can be loaded again with the same elements.
+Pass/Fail Criteria
+Pass: diagram data is stored and restored correctly. Fail: diagram is lost, partially saved, or cannot be loaded.
+TC05: Create and Save Use Case Description
+Purpose
+Verify that a Use Case Description can be created and linked to the relevant use case.
+Preconditions
+A Use Case Diagram exists; At least one use case is available.
+Inputs
+Primary actor, preconditions, postconditions, main flow, and alternative flows where required.
+Test Procedure
+1. Select a use case and open the Use Case Description editor.
+2. Enter the required information and add main/alternative flow steps.
+3. Save the description, then reload it.
+Expected Output
+The description is stored and remains connected to the selected use case.
+Pass/Fail Criteria
+Pass: saved description and its use-case relationship are restored correctly. Fail: description is not saved or is connected to the wrong use case.
+TC06: Create and Save SSD
+Purpose
+Verify that a System Sequence Diagram can be created and linked to a use case.
+Preconditions
+A relevant use case exists; The student has access to the SSD editor.
+Inputs
+Actor, system, messages, and interaction flow.
+Test Procedure
+1. Select a use case and open the SSD editor.
+2. Add the required participants and messages.
+3. Save the SSD, then reload it.
+Expected Output
+The SSD is saved and remains linked to the selected use case.
+Pass/Fail Criteria
+Pass: SSD data and relationship are stored correctly. Fail: SSD is lost or the relationship is incorrect.
+TC07: Create and Save Class Diagram
+Purpose
+Verify that a Class Diagram can be created and stored.
+Preconditions
+Student is logged in; Class Diagram editor is available.
+Inputs
+Classes, attributes, methods, and relationships.
+Test Procedure
+1. Open the Class Diagram editor and add classes with attributes and methods.
+2. Add supported relationships and save the diagram.
+3. Reload the diagram.
+Expected Output
+The Class Diagram is saved and restored correctly.
+Pass/Fail Criteria
+Pass: all saved elements and relationships are restored. Fail: elements are missing or the diagram cannot be loaded.
+TC08: Create and Save Sequence Diagram
+Purpose
+Verify that a Sequence Diagram can be created and stored.
+Preconditions
+A relevant use case is available; Sequence Diagram editor is available.
+Inputs
+Lifelines, messages, activations, and supported interaction elements.
+Test Procedure
+1. Select a use case and open the Sequence Diagram editor.
+2. Add participants, messages, and supported interaction elements.
+3. Save and reload the diagram.
+Expected Output
+The Sequence Diagram is saved and restored correctly.
+Pass/Fail Criteria
+Pass: diagram structure and relationships are preserved. Fail: diagram data is lost or incorrectly restored.
+TC09: Semantic Consistency Matching
+Purpose
+Verify that the checking engine semantically matches a Use Case Description step to its corresponding SSD message.
+Preconditions
+A submission has a Use Case Description and an SSD linked to the same use case.
+Inputs
+A Use Case Description step and a corresponding SSD message using different but semantically equivalent wording.
+Test Procedure
+Open a submission containing a Use Case Description and its SSD.
+Start the checking process.
+ Allow the checking engine to run validateDescriptionSSDSemantics, and observe whether the matching step and message are recognised as consistent.
+Expected Output
+The system recognises the semantically equivalent step and message as consistent and does not raise a false consistency issue.
+Pass/Fail Criteria
+Pass: semantically equivalent step/message pairs are matched correctly. Fail: a genuine match is missed or the check errors.
+TC10: Use Case Diagram Checking
+Purpose
+Verify that the checking engine can identify problems in a Use Case Diagram.
+Preconditions
+A submission contains a Use Case Diagram; Checking is available.
+Inputs
+A Use Case Diagram containing a known issue (e.g. missing actor, invalid relationship, duplicate element, or naming problem).
+Test Procedure
+Open the submitted diagram.
+ Start automated checking and allow the engine to process the diagram.
+Review the result.
+Expected Output
+The relevant checking rule identifies the problem and produces a checking result.
+Pass/Fail Criteria
+Pass: the expected issue is detected. Fail: the known issue is not detected, or an unrelated result is produced.
+TC11: Use Case Description Checking
+Purpose
+Verify that the system checks Use Case Description content.
+Preconditions
+A submitted description is available.
+Inputs
+A description containing a known issue, such as a missing main flow, missing precondition, invalid step, or duplicate step.
+Test Procedure
+1. Submit or open the description.
+2. Run checking and review the result.
+Expected Output
+The appropriate checking rule identifies the problem.
+Pass/Fail Criteria
+Pass: expected issue is reported correctly. Fail: issue is ignored or an incorrect issue is reported.
+TC12: SSD Checking
+Purpose
+Verify that the checking engine can identify problems in an SSD.
+Preconditions
+A submitted SSD is available.
+Inputs
+An SSD containing an invalid or inconsistent message.
+Test Procedure
+1. Open the SSD, run checking, and review the results.
+Expected Output
+The relevant SSD checking rule identifies the problem.
+Pass/Fail Criteria
+Pass: expected SSD problem is detected. Fail: problem is missed or incorrect feedback is produced.
+TC13: Class Diagram Checking
+Purpose
+Verify that Class Diagram validation works correctly.
+Preconditions
+A submitted Class Diagram is available.
+Inputs
+A Class Diagram containing a known structural or relationship problem.
+Test Procedure
+1. Open the Class Diagram, run checking, and review the results.
+Expected Output
+The appropriate Class Diagram checking rule reports the problem.
+Pass/Fail Criteria
+Pass: expected problem is detected. Fail: problem is not detected or an incorrect result is generated.
+TC14: Sequence Diagram Checking
+Purpose
+Verify that Sequence Diagram validation works correctly.
+Preconditions
+A submitted Sequence Diagram is available.
+Inputs
+A Sequence Diagram containing a known issue.
+Test Procedure
+1. Open the Sequence Diagram, run checking, and review the results.
+Expected Output
+The relevant Sequence Diagram rule identifies the issue.
+Pass/Fail Criteria
+Pass: expected issue is detected. Fail: issue is missed or incorrect feedback is produced.
+TC15: Cross-Diagram Consistency Checking
+Purpose
+Verify that the system can identify inconsistencies between related UML artifacts.
+Preconditions
+A submission contains related UML artifacts.
+Inputs
+A deliberately inconsistent model, e.g. a use case present in the diagram but missing from its description, an SSD message that does not match the description, or a Sequence Diagram operation that does not match the Class Diagram.
+Test Procedure
+1. Open the submission and run the checking engine.
+2. Allow all relevant checking phases to execute.
+3. Review the cross-diagram results.
+Expected Output
+The consistency checking rules identify the known inconsistency.
+Pass/Fail Criteria
+Pass: the expected cross-diagram problem is detected. Fail: the known inconsistency is not detected.
+TC16: Checking Rule Dependency Handling
+Purpose
+Verify that the dependency-aware checking pipeline avoids unnecessary cascading errors.
+Preconditions
+A model with a root structural problem is available.
+Inputs
+A model containing a root problem that could cause other checks to fail.
+Test Procedure
+1. Create a model with the root problem and run checking.
+2. Review the generated errors and check whether unrelated secondary errors are unnecessarily reported.
+Expected Output
+The checking pipeline focuses on the main/root issue and avoids unnecessary cascading results.
+Pass/Fail Criteria
+Pass: results are controlled according to the rule dependencies. Fail: the system produces many unrelated errors caused by the same root problem.
+TC17: Tutorial Validation
+Purpose
+Verify that tutorial validation can guide a student through correction of UML problems.
+Preconditions
+Tutorial functionality is available; Student has UML work containing a detectable issue.
+Inputs
+A UML artifact containing a known problem.
+Test Procedure
+1. Open the tutorial workspace and start tutorial validation.
+2. Review the displayed problem, correct it, and validate the correction.
+Expected Output
+The tutorial displays relevant guidance and allows the student to continue after the correction is accepted.
+Pass/Fail Criteria
+Pass: tutorial validation responds correctly to the correction. Fail: corrected work is not accepted, or tutorial progress behaves incorrectly.
+TC18: Assignment Submission
+Purpose
+Verify that a student can submit a completed assignment.
+Preconditions
+Student is logged in; Assignment and required data are available.
+Inputs
+A completed set of UML artifacts for the assignment.
+Test Procedure
+1. Open the assignment and complete the required UML work.
+2. Review the work, select submit, and confirm the submission.
+Expected Output
+Submission is stored, its status changes appropriately, and the student can view the updated status.
+Pass/Fail Criteria
+Pass: submission is successfully stored. Fail: submission is not stored or the status is incorrect.
+TC19: Teacher Review and Evaluation
+Purpose
+Verify that a teacher can review a student submission and store an evaluation.
+Preconditions
+A student submission exists; Teacher is logged in.
+Inputs
+A submitted assignment with completed UML work.
+Test Procedure
+1. Open the teacher dashboard and the student’s submission.
+2. Review the UML artifacts and checking results, then enter and save an evaluation.
+Expected Output
+The evaluation is stored and can be viewed again.
+Pass/Fail Criteria
+Pass: teacher evaluation and remarks are stored correctly. Fail: evaluation is lost or saved against the wrong submission.
+TC20: Notification
+Purpose
+Verify that supported system notifications are created and displayed correctly.
+Preconditions
+A notification-triggering action is available.
+Inputs
+An action that creates a notification (e.g. tutorial-mode approval).
+Test Procedure
+1. Perform an action that creates a notification.
+2. Open the notification area and review it.
+3. Mark it as read where supported.
+Expected Output
+The notification appears for the correct user and its read status updates correctly.
+Pass/Fail Criteria
+Pass: notification is created for the correct user and status changes correctly. Fail: notification is missing, sent to the wrong user, or cannot be updated.
+TC21: Unauthorized API Access
+Purpose
+Verify that protected backend APIs cannot be accessed without proper authentication or authorization.
+Preconditions
+A protected API endpoint is available.
+Inputs
+A request without valid authentication, and a request from an authenticated user with the wrong role.
+Test Procedure
+1. Send a request without valid authentication.
+2. Repeat with an authenticated user having the wrong role.
+3. Review the responses.
+Expected Output
+The backend rejects unauthorized requests.
+Pass/Fail Criteria
+Pass: unauthorized requests are rejected. Fail: protected data or functions are returned to an unauthorized user.
+TC22: Database Save and Retrieval
+Purpose
+Verify that UML and assignment data is correctly stored in and retrieved from PostgreSQL.
+Preconditions
+PostgreSQL database is running; Prisma database connection is working.
+Inputs
+A UML artifact to create or update.
+Test Procedure
+1. Create or update a UML artifact and save it through the application.
+2. Reload the relevant page and retrieve the stored data.
+Expected Output
+The saved information is retrieved correctly.
+Pass/Fail Criteria
+Pass: stored data matches the submitted data. Fail: data is missing, changed unexpectedly, or associated with the wrong submission.
+TC23: Report Generation
+Purpose
+Verify that checking and evaluation information can be displayed or exported through the supported reporting functionality.
+Preconditions
+A submission has checking results or evaluation information.
+Inputs
+A submission with completed checking/evaluation data.
+Test Procedure
+1. Open the relevant submission and the report area.
+2. Review the displayed report and use the supported export option where available.
+Expected Output
+The report contains the available checking/evaluation information.
+Pass/Fail Criteria
+Pass: report is generated with correct information. Fail: report is missing, incomplete, or contains incorrect submission data.
+5.9 Test Execution, Logs, and Incident Reporting
+The test cases above define what should be tested; the final results should be recorded separately. Each test is marked PASS (actual result matches expected), FAIL (it does not), or BLOCKED (the test cannot be run because a required service or condition is unavailable). For each executed test, the log in Appendix A should record the test ID, date and time, tester, environment, input used, expected and actual result, status, and a screenshot or log reference. If a test fails, an incident report should record an incident ID, the related test case, a description of what went wrong, the expected and actual result, severity (Low/Medium/High/Critical), steps to reproduce, the resolution applied, and the retest result. Where is the log in appendix A
+5.10 Checking Engine Test Coverage
+Because the checking engine contains a large number of validation rules, its testing needs to cover more than whether the engine runs without crashing. Testing is split into two complementary categories:
+Positive tests a correct UML model should not produce incorrect errors. This guards against over-eager rules that would frustrate students who have modelled something correctly.
+Negative tests a deliberately incorrect UML model should produce the expected checking result, with the correct rule code, severity, and (where applicable) suggestion.
+Beyond individual rules, checking-engine testing also covers correct rule selection for a given diagram type, rule dependency behaviour (so a root problem does not generate a flood of secondary errors), the accuracy of generated suggestions, and cross-diagram semantic consistency checks. A test that only confirms the engine executed without error is not sufficient  the output must also match the expected result for that specific input.
+5.11 Regression Testing and Test Environment
+Regression testing is run after important changes to the code, and is especially important for UMLTutor because a change to a shared checking rule can affect several checking areas at once (e.g. Use Case Diagram, Description, SSD, Class Diagram, Sequence Diagram, and Cross-Diagram checking together). Previously-passed tests should therefore be re-run after changes to the checking engine. The test environment mirrors the production architecture from Chapter 3: browser, React frontend, Node.js/Express backend (with Firebase Authentication, the checking engine, and requirement/NLP processing), Prisma ORM, and PostgreSQL  all required services should be running before integration tests are performed.
+5.12 Summary
+This chapter described the testing approach for UMLTutor, covering authentication, class and assignment management, the five UML editors, requirement/case-study processing, automated and cross-diagram consistency checking, tutorial support, submission, teacher evaluation, notifications, database operations, and reports. The checking engine needs particular attention because of its 124-rule registry, so testing includes both correct and incorrect models, individual checking areas, rule dependencies, and cross-diagram consistency. Unit, integration, API, functional, security, and UI testing are used according to the part of the system under test; actual PASS/FAIL/BLOCKED status and supporting evidence should be added to Appendix A once each test has been executed.
+CHAPTER 6
+CONCLUSION AND FUTURE WORK
+6.1 Conclusion
+UMLTutor is a web-based learning and assessment system built to help students learn UML modeling and improve their understanding through practical work. It gives students a structured environment to create UML models, receive automated feedback, correct their work, and submit assignments for teacher review, across five UML artifacts: Use Case Diagram, Use Case Description, System Sequence Diagram, Class Diagram, and Sequence Diagram. These are not treated as separate diagrams  UMLTutor also checks the relationships and consistency between them, which helps surface problems that would not be visible when each diagram is checked on its own.
+The system is built with React on the frontend and Node.js/Express on the backend, with PostgreSQL (via Prisma ORM) for persistent storage and Firebase Authentication for sign-in and role-based access. Its automated checking engine, one of the project’s central components, currently implements 124 validation rules (117 enabled) across six checking phases the five individual artifact types plus cross-diagram consistency  and uses rule dependencies to avoid reporting many secondary errors caused by the same root problem. Semantic matching between a student's own related artifacts is supported with the help of NLP techniques (text normalization, similarity checking, and semantic comparison) as a supporting part of that checking pipeline, not as a separate feature. The system also provides tutorial support so students can practice with guidance, and lets teachers review submissions, check results, give feedback, and record evaluations.
+The project set out to achieve several objectives, each substantially met by the current implementation: providing an interactive, multi-artifact UML learning environment; automated checking that identifies problems in individual and cross-diagram work; feedback and suggestions that help students correct their own mistakes; semantic consistency checking that connects a student’s own related artifacts to one another; and tools that let teachers manage classes and assignments, review work, and provide evaluation with less manual effort than checking every diagram by hand.
+6.2 Main Contributions
+Multiple UML artifacts in one system rather than focusing on a single diagram type, UMLTutor supports five, giving a more complete view of a student’s modeling work.
+Automated checking at scale a 124-rule registry reduces the manual effort needed to find common UML problems and returns structured results instead of requiring a teacher to find every issue by hand.
+Cross-diagram consistency checking the system can catch cases where individually valid diagrams do not describe the same system consistently, which is easy for a human reviewer to miss.
+Semantic consistency support comparing a student's own related artifacts to one another surfaces inconsistencies that would be hard to notice by reading each diagram separately.
+Learning-oriented feedback tutorial functionality and generated suggestions are designed to help students understand and correct problems, not just to flag them.
+6.3 Limitations
+Although UMLTutor provides a complete set of core functions, some limitations remain in the current version.
+UML modeling scope the editors support the UML elements and relationships implemented so far; UML has many advanced constructs that are not all covered yet.
+Automated checking limitations a rule can only catch a problem that its logic covers; some complex modeling decisions still require human judgement and cannot always be decided correctly by fixed rules.
+NLP limitations natural language is ambiguous, and different students may describe the same requirement using different wording, so text processing will not always extract the exact intended meaning.
+Dependence on artifact quality semantic consistency checking depends on how clearly a student names and describes elements across artifacts; inconsistent naming can reduce match accuracy.
+Service dependency as a web application, UMLTutor depends on its backend, database, authentication, and other configured services being available; a problem in one of these can affect the user experience.
+6.4 Future Work
+The current system covers the main functionality needed for UML learning and automated checking. Several areas are natural candidates for future versions, grouped below by theme.
+6.4.1 Checking and Modeling Depth
+Future versions could support more UML elements and relationships, extend the rule registry to cover more advanced modeling cases, and move beyond structural validation toward deeper semantic checking  for example, better judging whether a use case actually matches its description, whether SSD messages correctly represent the main flow, whether Sequence Diagram messages match class operations, or whether different artifacts describe the same underlying business requirement.
+6.4.2 Requirement Processing and Feedback
+The requirement/case-study pipeline could be improved with better entity extraction, actor and use-case identification, semantic similarity, handling of different sentence structures and synonyms, and requirement-to-UML mapping, so the system stays reliable when students phrase the same idea differently. Student feedback could also become more specific explaining why a problem matters, showing an example of a correct structure, and linking a suggestion back to the relevant requirement or UML artifact rather than only reporting that an error exists.
+6.4.3 Learning and Teaching Support
+The tutorial system could be expanded with graded practice exercises (beginner to advanced), step-by-step diagram creation, and progress tracking, allowing students to use UMLTutor for regular practice as well as assignments; performance data could support more personalised recommendations when a student repeatedly makes the same kind of mistake. Teacher dashboards could be extended with analytics such as common errors, most frequently failed rules, class-level performance trends, and frequently requested tutorial topics, helping teachers identify where a class needs more instruction.
+6.4.4 Collaboration, History, and Reporting
+A future version could support real-time collaborative modeling a shared canvas, live updates, presence, comments, and version history useful for group assignments, and could keep a version history of a student’s work so students and teachers can compare an original diagram, a corrected diagram, and the final submission. Reports could be extended to combine assignment requirements, diagrams, checking results, consistency issues, corrections, feedback, and final evaluation into a single, more complete record of a student’s work.
+6.4.5 Performance, Deployment, and Scale
+As the number of users, assignments, and checking rules grows, future work could focus on database query optimisation, improved caching, background checking jobs for large submissions, faster rule execution, and better frontend loading performance, alongside deployment improvements such as containerised or cloud deployment, horizontal and database scaling, centralised logging and monitoring, and automated deployment pipelines making the system easier to run at the scale of a full university course or department.
+6.5 Lessons Learned
+Several practical lessons emerged during the development of UMLTutor. Building consistent validation across five related UML artifacts required careful thought about how diagrams reference each other (through relatedId links) so that a change in one artifact could be checked against the others; this relationship-first thinking shaped much of the later checking-engine design. Processing free-text requirements also proved harder than expected — real requirement text is written in many different styles, so confidence-based matching (rather than treating every requirement sentence as a strict UML element) turned out to be necessary to avoid generating unhelpful or misleading requirements from unclear text. Finally, a dependency-aware checking pipeline was needed once the rule count grew past roughly one hundred rules, since a single missing element could otherwise trigger many secondary errors that obscured the actual root cause for the student.
+6.6 Final Conclusion
+UMLTutor provides a practical solution for learning and assessing UML modeling in a single web-based environment, combining UML editors, requirement processing, automated checking, cross-diagram consistency checking, tutorial support, assignment submission, and teacher evaluation. Its most distinctive part is the connection it draws between different UML artifacts: rather than checking every diagram in isolation, it also considers how those diagrams describe the same system together. NLP supports this by helping the system understand and use requirement and case-study text, as a supporting technology inside the checking workflow rather than a separate main feature.
+The project demonstrates how ideas from software engineering, databases, web development, UML, automated validation, and text processing can come together in one practical educational system. Future development more UML rules, stronger semantic checking, improved NLP processing, personalised learning, richer analytics, collaborative modeling, and better scalability can build on this foundation toward a larger UML learning and assessment platform.
+Appendix A: Sample of Implemented Validation Rules
+The table below lists a representative sample of the checking rules currently implemented in the rule registry, drawn from each diagram area, to illustrate the kind of checks the checking engine performs. The full registry contains 124 rules in total (117 enabled), as summarised in section 3.8.2.
+Do you know what the above is saying?
+Appendix B: Test Log and Incident Report Template
+Each executed test should be logged using the fields below; an incident report should be raised for any test with a FAIL status.
+Incident report fields: Incident ID; Related Test Case; Description of what went wrong; Expected Result; Actual Result; Severity (Low / Medium / High / Critical); Steps to Reproduce; Resolution; and Retest Result.
+What are you saying?
+References 
+[1] R. S. Pressman, Software Engineering: A Practitioner's Approach, 7th ed. New York, NY, USA: McGraw-Hill, 2010.Available: https://mlsu.ac.in/econtents/16_EBOOK7th_ed_software_engineering_a_practitioners_approach_by_roger_s._pressman_.pdf 
+[2] C. Larman, Applying UML and Patterns: An Introduction to Object-Oriented Analysis and Design and Iterative Development, 3rd ed. Upper Saddle River, NJ, USA: Prentice Hall, 2004.Available: https://personal.utdallas.edu/~chung/SP/applying-uml-andpatterns.pdf
+ [3] IEEE Standard for Information Technology—Software Life Cycle Processes—Software Requirements (IEEE Std 1016-2009). IEEE, 2009. Available: https://standards.ieee.org/ieee/1016/4502/ 
+[4] IEEE Standard for Software Project Management Plans (IEEE Std 1058-1998). IEEE, 1998.Available: https://standards.ieee.org/ieee/1058/1542/
+[5] IEEE Recommended Practice for Software Requirements Specifications (IEEE Std 830- 1998). IEEE, 1998.Available: https://ieeexplore.ieee.org/document/720574/

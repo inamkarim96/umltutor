@@ -77,7 +77,14 @@ const SYNONYM_GROUPS = [
   new Set(['search', 'find', 'query', 'filter', 'lookup']),
   new Set(['pay', 'checkout', 'purchase', 'buy']),
   new Set(['get', 'fetch', 'retrieve', 'load', 'read']),
-  new Set(['notice', 'notices', 'announcement', 'announcements', 'message', 'bulletin'])
+  new Set(['notice', 'notices', 'announcement', 'announcements', 'message', 'bulletin']),
+  new Set(['edit', 'modify', 'update', 'change', 'revise']),
+  new Set(['post', 'submit', 'publish', 'create']),
+  new Set(['get', 'set', 'put', 'post', 'update', 'delete']),
+  new Set(['book', 'reserve', 'appointment', 'schedule']),
+  new Set(['send', 'receive', 'forward', 'reply', 'print']),
+  new Set(['upload', 'download', 'share', 'export', 'import']),
+  new Set(['view', 'search', 'filter', 'sort']),
 ];
 
 const LEMMATIZATION_MAP = {

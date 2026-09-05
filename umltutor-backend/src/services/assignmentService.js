@@ -95,6 +95,35 @@ class AssignmentService {
       throw error;
     }
 
+    if (data.releaseDate) {
+      const releaseTime = new Date(data.releaseDate).getTime();
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      if (releaseTime < oneDayAgo) {
+        const error = new Error('Assignment release date cannot be in the past. It must be created on today or a future date.');
+        error.status = 400;
+        throw error;
+      }
+    }
+
+    if (data.dueDate) {
+      const dueTime = new Date(data.dueDate).getTime();
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+      if (dueTime < fiveMinutesAgo) {
+        const error = new Error('Assignment deadline / due date cannot be in the past.');
+        error.status = 400;
+        throw error;
+      }
+      if (data.releaseDate) {
+        const releaseDay = new Date(data.releaseDate);
+        releaseDay.setHours(0, 0, 0, 0);
+        if (dueTime < releaseDay.getTime()) {
+          const error = new Error('Assignment deadline cannot be earlier than the release date.');
+          error.status = 400;
+          throw error;
+        }
+      }
+    }
+
     const assignment = await assignmentRepository.create({
       title: data.title,
       dueDate: data.dueDate,

@@ -1,19 +1,60 @@
 import React, { useState } from 'react';
-import { X, Calendar, Edit3, Type, Upload, FileText } from 'lucide-react';
+import { X, Calendar, Edit3, Type, Upload, FileText, AlertCircle } from 'lucide-react';
+
+const getTodayDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getNowDateTimeLocalString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const toLocalDateString = (val) => {
+    if (!val) return getTodayDateString();
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return getTodayDateString();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const toLocalDateTimeString = (val) => {
+    if (!val) return '';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initialData = null }) => {
     const isEditMode = !!initialData;
 
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
-        deadline: initialData?.deadline ? new Date(initialData.deadline).toISOString().slice(0, 16) : '',
-        assignmentType: initialData?.assignmentType || 'TEXT',
-        releaseDate: initialData?.releaseDate ? new Date(initialData.releaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        deadline: initialData?.dueDate || initialData?.deadline ? toLocalDateTimeString(initialData.dueDate || initialData.deadline) : '',
+        assignmentType: initialData?.type || initialData?.assignmentType || 'TEXT',
+        releaseDate: initialData?.releaseDate ? toLocalDateString(initialData.releaseDate) : getTodayDateString(),
         maxScore: initialData?.maxScore?.toString() || '',
         textContent: initialData?.textContent || '',
     });
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileError, setFileError] = useState('');
+    const [dateError, setDateError] = useState('');
     const [removeExistingFile, setRemoveExistingFile] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -22,14 +63,15 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
         if (isOpen) {
             setFormData({
                 title: initialData?.title || '',
-                deadline: initialData?.dueDate || initialData?.deadline ? new Date(initialData.dueDate || initialData.deadline).toISOString().slice(0, 16) : '',
+                deadline: initialData?.dueDate || initialData?.deadline ? toLocalDateTimeString(initialData.dueDate || initialData.deadline) : '',
                 assignmentType: initialData?.type || initialData?.assignmentType || 'TEXT',
-                releaseDate: initialData?.releaseDate ? new Date(initialData.releaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                releaseDate: initialData?.releaseDate ? toLocalDateString(initialData.releaseDate) : getTodayDateString(),
                 maxScore: initialData?.maxScore?.toString() || '',
                 textContent: initialData?.textContent || '',
             });
             setSelectedFile(null);
             setFileError('');
+            setDateError('');
             setRemoveExistingFile(false);
         }
     }, [isOpen, initialData]);
@@ -39,6 +81,9 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'releaseDate' || name === 'deadline') {
+            setDateError('');
+        }
         if (name === 'assignmentType' && value === 'TEXT') {
             setSelectedFile(null);
             setFileError('');
@@ -75,6 +120,40 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        setDateError('');
+
+        // Date validation constraints
+        const todayStr = getTodayDateString();
+        const nowLocalStr = getNowDateTimeLocalString();
+
+        if (!formData.releaseDate) {
+            setDateError('Please specify a valid release date.');
+            return;
+        }
+
+        // On creation: release date must be today or a future date, not a past date
+        if (!isEditMode && formData.releaseDate < todayStr) {
+            setDateError('Release date cannot be in the past. The assignment must be created on today or a future date.');
+            return;
+        }
+
+        if (!formData.deadline) {
+            setDateError('Please specify a valid deadline.');
+            return;
+        }
+
+        // On creation: deadline cannot be in the past
+        if (!isEditMode && formData.deadline < nowLocalStr) {
+            setDateError('Deadline cannot be in the past. It must be today or a future date and time.');
+            return;
+        }
+
+        // Deadline cannot be earlier than release date
+        const releaseDayStart = `${formData.releaseDate}T00:00`;
+        if (formData.deadline < releaseDayStart) {
+            setDateError('Deadline cannot be earlier than the release date.');
+            return;
+        }
 
         // Validation for new creation
         if (!isEditMode && formData.assignmentType === 'FILE' && !selectedFile) {
@@ -129,6 +208,13 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                 </div>
 
                 <div className="p-8 overflow-y-auto">
+                    {dateError && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 text-sm font-semibold font-body animate-in fade-in duration-200">
+                            <AlertCircle size={18} className="shrink-0 text-red-500" />
+                            <span>{dateError}</span>
+                        </div>
+                    )}
+
                     <form id="assignment-form" onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
@@ -145,8 +231,6 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                             />
                         </div>
 
-
-
                         <div>
                             <label className="block text-sm font-bold font-body text-gray-700 mb-2 flex items-center gap-2">
                                 <Calendar size={16} className="text-indigo-500" /> Deadline (Due Date & Time)
@@ -157,8 +241,10 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                 value={formData.deadline}
                                 onChange={handleChange}
                                 required
+                                min={!isEditMode ? (formData.releaseDate && formData.releaseDate > getTodayDateString() ? `${formData.releaseDate}T00:00` : getNowDateTimeLocalString()) : undefined}
                                 className="w-full px-4 py-3 bg-surface-3 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-ink font-medium"
                             />
+                            <p className="text-[11px] text-gray-400 mt-1 font-body">Must be on or after the release date (today or future)</p>
                         </div>
 
                         <div>
@@ -266,9 +352,11 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                     value={formData.releaseDate}
                                     onChange={handleChange}
                                     required
-                                    max={formData.deadline}
+                                    min={!isEditMode ? getTodayDateString() : undefined}
+                                    max={formData.deadline ? formData.deadline.split('T')[0] : undefined}
                                     className="w-full px-4 py-3 bg-surface-3 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-ink font-medium"
                                 />
+                                <p className="text-[11px] text-gray-400 mt-1 font-body">Must be today or a future date (not past)</p>
                             </div>
 
                             <div>
