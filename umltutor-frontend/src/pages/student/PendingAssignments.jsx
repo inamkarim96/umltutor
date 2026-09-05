@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, ArrowLeft, Calendar, Target, Play } from 'lucide-react';
+import { Clock, ArrowLeft, Calendar, Target, Play, Lock, Clock as ClockIcon } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { selectAllAssignments, fetchAllAssignments } from '../../features/assignments';
 import { selectSubmissions, fetchMySubmissions } from '../../features/submissions';
@@ -17,6 +17,20 @@ const PendingAssignments = () => {
         dispatch(fetchAllAssignments('STUDENT'));
         dispatch(fetchMySubmissions());
     }, [dispatch]);
+
+    const getAssignmentStatus = (assignment, submission) => {
+        const status = (submission?.status || assignment.status || '').toLowerCase();
+        const isSubmitted = status === 'submitted' || status === 'graded';
+        const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date() && !isSubmitted;
+        const isLocked = assignment.assignmentStatus === 'locked';
+        const isUpcoming = assignment.assignmentStatus === 'upcoming';
+
+        if (isSubmitted) return { label: 'Submitted', variant: 'submitted' };
+        if (isLocked) return { label: 'Locked', variant: 'locked' };
+        if (isUpcoming) return { label: 'Upcoming', variant: 'upcoming' };
+        if (isOverdue) return { label: 'Overdue', variant: 'overdue' };
+        return { label: 'Not Started', variant: 'pending' };
+    };
 
     const pendingAssignments = allAssignments.filter(assignment => {
         const submission = mySubmissions.find(s => s.assignmentId === assignment.id);
@@ -49,51 +63,65 @@ const PendingAssignments = () => {
                 {/* Assignments List */}
                 {pendingAssignments.length > 0 ? (
                     <div className="grid grid-cols-1 gap-6">
-                        {pendingAssignments.map((assignment) => (
-                            <div
-                                key={assignment.id}
-                                onClick={() => navigate(`/student/assignments/${assignment.title.toLowerCase().replace(/\s+/g, '-')}/work`)}
-                                className="bg-white p-8 rounded-lg border border-black/5 shadow-card hover:shadow-hover hover:-translate-y-1 transition-all group cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-8 relative overflow-hidden"
-                            >
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10/20 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
-                                
-                                <div className="flex-1 relative z-10">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <span className="px-3 py-1 text-[10px] font-extrabold font-heading rounded-lg uppercase tracking-widest bg-amber-50 text-amber-600 border border-amber-100/50">
-                                            Not Started
-                                        </span>
-                                        <span className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest bg-surface-3 px-2 py-1 rounded-lg">
-                                            {assignment.type || 'Standard'} Task
-                                        </span>
-                                    </div>
-                                    <h3 className="text-2xl font-extrabold font-heading text-ink group-hover:text-accent transition-colors mb-3">
-                                        {assignment.title}
-                                    </h3>
-                                    <p className="text-muted font-medium leading-relaxed max-w-3xl">
-                                        {assignment.description || "No description provided. Click to open the workspace and begin modeling."}
-                                    </p>
-                                </div>
+                        {pendingAssignments.map((assignment) => {
+                            const submission = mySubmissions.find(s => s.assignmentId === assignment.id);
+                            const { label: statusLabel, variant: statusVariant } = getAssignmentStatus(assignment, submission);
+                            const isLocked = assignment.assignmentStatus === 'locked';
+                            const isUpcoming = assignment.assignmentStatus === 'upcoming';
 
-                                <div className="flex items-center gap-8 border-t md:border-t-0 md:border-l border-gray-50 pt-6 md:pt-0 md:pl-12 relative z-10">
-                                    <div className="min-w-[120px]">
-                                        <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1 italic">Deadline</p>
-                                        <div className="flex items-center gap-2 text-ink font-extrabold font-heading">
-                                            <Calendar size={16} className="text-indigo-500" />
-                                            <span className="text-sm">{assignment.deadline ? new Date(assignment.deadline).toLocaleDateString() : 'No Deadline'}</span>
+                            return (
+                                <div
+                                    key={assignment.id}
+                                    onClick={() => !isLocked && !isUpcoming && navigate(`/student/assignments/${assignment.title.toLowerCase().replace(/\s+/g, '-')}/work`)}
+                                    className={`bg-white p-8 rounded-lg border border-black/5 shadow-card hover:shadow-hover hover:-translate-y-1 transition-all group cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-8 relative overflow-hidden ${isLocked ? 'opacity-60 cursor-not-allowed' : ''} ${isUpcoming ? 'opacity-80 cursor-wait' : ''}`}
+                                >
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10/20 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
+                                    
+                                    <div className="flex-1 relative z-10">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <span className={`px-3 py-1 text-[10px] font-extrabold font-heading rounded-lg uppercase tracking-widest ${
+                                                variant === 'locked' ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                                                variant === 'upcoming' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                variant === 'overdue' ? 'bg-status-red/10 text-status-red border-red-100' :
+                                                'bg-amber-50 text-amber-600 border-amber-100/50'
+                                            }`}>
+                                                {statusLabel}
+                                            </span>
+                                            <span className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest bg-surface-3 px-2 py-1 rounded-lg">
+                                                {assignment.type || 'Standard'} Task
+                                            </span>
+                                        </div>
+                                        <h3 className="text-2xl font-extrabold font-heading text-ink group-hover:text-accent transition-colors mb-3">
+                                            {assignment.title}
+                                        </h3>
+                                        <p className="text-muted font-medium leading-relaxed max-w-3xl">
+                                            {isLocked ? "This assignment's deadline has passed. It is now locked for submissions." :
+                                             isUpcoming ? "This assignment will be available on the release date." :
+                                             assignment.description || "No description provided. Click to open the workspace and begin modeling."}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-8 border-t md:border-t-0 md:border-l border-gray-50 pt-6 md:pt-0 md:pl-12 relative z-10">
+                                        <div className="min-w-[120px]">
+                                            <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1 italic">Deadline</p>
+                                            <div className="flex items-center gap-2 text-ink font-extrabold font-heading">
+                                                <Calendar size={16} className="text-indigo-500" />
+                                                <span className="text-sm">{assignment.deadline ? new Date(assignment.deadline).toLocaleDateString() : 'No Deadline'}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1 italic">Max Points</p>
+                                            <p className="text-2xl font-extrabold font-heading text-accent">{assignment.maxScore ?? '100'}</p>
+                                        </div>
+
+                                        <div className="hidden lg:flex w-12 h-12 bg-surface-3 text-gray-400 rounded-lg items-center justify-center group-hover:bg-accent group-hover:text-white group-hover:shadow-hover group-hover:shadow-accent/20 transition-all duration-300">
+                                            {!isLocked && !isUpcoming ? <Play size={20} fill="currentColor" /> : <Lock size={20} fill="currentColor" />}
                                         </div>
                                     </div>
-                                    
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1 italic">Max Points</p>
-                                        <p className="text-2xl font-extrabold font-heading text-accent">{assignment.maxScore ?? '100'}</p>
-                                    </div>
-
-                                    <div className="hidden lg:flex w-12 h-12 bg-surface-3 text-gray-400 rounded-lg items-center justify-center group-hover:bg-accent group-hover:text-white group-hover:shadow-hover group-hover:shadow-accent/20 transition-all duration-300">
-                                        <Play size={20} fill="currentColor" />
-                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="bg-white p-20 rounded-lg border border-dashed border-black/10 text-center">

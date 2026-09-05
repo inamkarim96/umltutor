@@ -45,6 +45,30 @@ const StudentAssignmentsList = () => {
         return list;
     }, [assignments, myClasses, filterClassId]);
 
+    const getAssignmentStatus = (assignment, submission) => {
+        const status = (submission?.status || assignment.status || '').toLowerCase();
+        const isSubmitted = status === 'submitted' || status === 'graded';
+        const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date() && !isSubmitted;
+        const isLocked = assignment.assignmentStatus === 'locked';
+        const isUpcoming = assignment.assignmentStatus === 'upcoming';
+
+        if (isSubmitted) return { label: 'Submitted', variant: 'submitted' };
+        if (isLocked) return { label: 'Locked', variant: 'locked' };
+        if (isUpcoming) return { label: 'Upcoming', variant: 'upcoming' };
+        if (isOverdue) return { label: 'Overdue', variant: 'overdue' };
+        return { label: 'Pending', variant: 'pending' };
+    };
+
+    const getStatusStyle = (variant) => {
+        switch (variant) {
+            case 'submitted': return 'bg-accent/10 text-accent border-accent/10';
+            case 'locked': return 'bg-gray-100 text-gray-500 border-gray-200';
+            case 'upcoming': return 'bg-blue-50 text-blue-600 border-blue-100';
+            case 'overdue': return 'bg-status-red/10 text-status-red border-red-100';
+            default: return 'bg-blue-50 text-blue-600 border-blue-100';
+        }
+    };
+
     const activeClass = filterClassId ? myClasses.find(c => c.id === filterClassId) : null;
 
     return (
@@ -78,27 +102,23 @@ const StudentAssignmentsList = () => {
                     {filteredAssignments.length > 0 ? (
                         filteredAssignments.map(asgn => {
                             const submission = mySubmissions.find(s => s.assignmentId === asgn.id);
-                            const status = (submission?.status || asgn.status || '').toLowerCase();
-                            const isSubmitted = status === 'submitted' || status === 'graded';
-                            const isOverdue = asgn.deadline && new Date(asgn.deadline) < new Date() && !isSubmitted;
+                            const { label: statusLabel, variant: statusVariant } = getAssignmentStatus(asgn, submission);
+                            const isSubmitted = (submission?.status || '').toLowerCase() === 'submitted' || (submission?.status || '').toLowerCase() === 'graded';
+                            const isLocked = asgn.assignmentStatus === 'locked';
+                            const isUpcoming = asgn.assignmentStatus === 'upcoming';
 
                             return (
                                 <div
                                     key={asgn.id}
-                                    onClick={() => navigate(`/student/assignments/${asgn.title.toLowerCase().replace(/\s+/g, '-')}/work`)}
-                                    className="bg-white rounded-lg border border-black/5 shadow-card hover:shadow-hover hover:-translate-y-2 transition-all group flex flex-col h-full overflow-hidden relative"
+                                    onClick={() => !isLocked && !isUpcoming && navigate(`/student/assignments/${asgn.title.toLowerCase().replace(/\s+/g, '-')}/work`)}
+                                    className={`bg-white rounded-lg border border-black/5 shadow-card hover:shadow-hover hover:-translate-y-2 transition-all group flex flex-col h-full overflow-hidden relative ${isLocked ? 'opacity-60 cursor-not-allowed' : ''} ${isUpcoming ? 'opacity-80 cursor-wait' : ''}`}
                                 >
                                     <div className="absolute top-0 right-0 w-24 h-24 bg-accent/10/30 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
 
                                     <div className="p-8 flex-1 relative z-10">
                                         <div className="flex justify-between items-start mb-6">
-                                            <span className={`px-3 py-1 ${
-                                                status === 'graded' ? 'bg-status-green/10 text-status-green border-emerald-100' : 
-                                                isSubmitted ? 'bg-accent/10 text-accent border-accent/10' : 
-                                                isOverdue ? 'bg-status-red/10 text-status-red border-red-100' : 
-                                                'bg-blue-50 text-blue-600 border-blue-100'
-                                            } text-[10px] font-extrabold font-heading rounded-lg uppercase tracking-widest border`}>
-                                                {status === 'graded' ? 'Reviewed' : isSubmitted ? 'Submitted' : isOverdue ? 'Overdue' : 'Pending'}
+                                            <span className={`px-3 py-1 ${getStatusStyle(statusVariant)} text-[10px] font-extrabold font-heading rounded-lg uppercase tracking-widest border`}>
+                                                {statusLabel}
                                             </span>
                                             <span className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest bg-surface-3 px-2 py-1 rounded-lg">
                                                 {myClasses.find(c => c.id === asgn.classId)?.code}

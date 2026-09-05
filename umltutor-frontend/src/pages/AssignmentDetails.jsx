@@ -170,6 +170,21 @@ const AssignmentDetails = () => {
     }
 
     const isOverdue = new Date(assignment.deadline) < new Date();
+    const isLocked = assignment.assignmentStatus === 'locked';
+    const isUpcoming = assignment.assignmentStatus === 'upcoming';
+    const isActive = assignment.assignmentStatus === 'active';
+
+    const getStatusInfo = () => {
+        if (myOfficialSubmission) {
+            return { label: myOfficialSubmission.status?.toLowerCase() === 'graded' ? 'Graded' : 'Submitted', variant: 'submitted' };
+        }
+        if (isLocked) return { label: 'Locked', variant: 'locked' };
+        if (isUpcoming) return { label: 'Upcoming', variant: 'upcoming' };
+        if (isOverdue) return { label: 'Closed', variant: 'overdue' };
+        return { label: 'In Progress', variant: 'active' };
+    };
+
+    const statusInfo = getStatusInfo();
 
     return (
         <>
@@ -217,15 +232,26 @@ const AssignmentDetails = () => {
                                         <div className="space-y-3 flex-1">
                                             <div className="flex flex-wrap items-center gap-3">
                                                 <span className="px-3 py-1 bg-accent text-white text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest shadow-hover shadow-accent/20">Assignment</span>
-                                                {myOfficialSubmission ? (
+                                                {statusInfo.variant === 'submitted' ? (
                                                     <span className="px-3 py-1 bg-emerald-600 text-white text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest shadow-hover shadow-emerald-100">
-                                                        {myOfficialSubmission.status?.toLowerCase() === 'graded' ? 'Graded' : 'Submitted'}
+                                                        {statusInfo.label}
+                                                    </span>
+                                                ) : statusInfo.variant === 'locked' ? (
+                                                    <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest border border-gray-200">
+                                                        {statusInfo.label}
+                                                    </span>
+                                                ) : statusInfo.variant === 'upcoming' ? (
+                                                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest border border-blue-100">
+                                                        {statusInfo.label}
+                                                    </span>
+                                                ) : statusInfo.variant === 'overdue' ? (
+                                                    <span className="px-3 py-1 bg-red-100 text-status-red text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest">
+                                                        {statusInfo.label}
                                                     </span>
                                                 ) : (
-                                                    <>
-                                                        {isOverdue && <span className="px-3 py-1 bg-red-100 text-status-red text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest">Closed</span>}
-                                                        {!isOverdue && <span className="px-3 py-1 bg-emerald-100 text-status-green text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest">In Progress</span>}
-                                                    </>
+                                                    <span className="px-3 py-1 bg-emerald-100 text-status-green text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest">
+                                                        {statusInfo.label}
+                                                    </span>
                                                 )}
                                                 {targetClass && (
                                                     <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-extrabold font-heading rounded-full uppercase tracking-widest border border-amber-100">

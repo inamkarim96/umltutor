@@ -87,6 +87,28 @@ class AssignmentService {
     return uc || cd || desc || ssd || seq;
   }
 
+  _computeAssignmentStatus(assignment) {
+    const now = new Date();
+    const releaseDate = assignment.releaseDate ? new Date(assignment.releaseDate) : null;
+    const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+
+    if (releaseDate && now < releaseDate) {
+      return 'upcoming';
+    }
+    if (dueDate && now > dueDate) {
+      return 'locked';
+    }
+    return 'active';
+  }
+
+  _addStatusToAssignment(assignment) {
+    return {
+      ...assignment,
+      assignmentStatus: this._computeAssignmentStatus(assignment),
+      deadline: assignment.dueDate?.toISOString() ?? null,
+    };
+  }
+
   async createAssignmentDefinition(data) {
     const existing = await assignmentRepository.findFirst({ where: { classId: Number(data.classId), title: data.title } });
     if (existing) {
@@ -187,7 +209,7 @@ class AssignmentService {
         },
         orderBy: { createdAt: 'desc' },
       });
-      return assignments.map((a) => ({ ...a, deadline: a.dueDate?.toISOString() ?? null }));
+      return assignments.map((a) => this._addStatusToAssignment(a));
     });
   }
 
@@ -211,13 +233,16 @@ class AssignmentService {
         },
         orderBy: { dueDate: 'asc' },
       });
-      return assignments.map((a) => ({ ...a, deadline: a.dueDate?.toISOString() ?? null }));
+      return assignments.map((a) => this._addStatusToAssignment(a));
     });
   }
 
   async getAssignmentDefinition(assignmentId, teacherId) {
     const assignment = await assignmentRepository.findFirst({ id: Number(assignmentId), ...(teacherId ? { createdBy: Number(teacherId) } : {}) }, { class: true, _count: { select: { submissions: true } } });
-    if (assignment) assignment.deadline = assignment.dueDate?.toISOString();
+    if (assignment) {
+      assignment.deadline = assignment.dueDate?.toISOString();
+      return this._addStatusToAssignment(assignment);
+    }
     return assignment;
   }
 
@@ -289,13 +314,14 @@ class AssignmentService {
 
       const result = assignments.map((assignment) => {
         const submission = submissionByAssignment.get(assignment.id);
-        return {
+        const base = {
           ...assignment,
           deadline: assignment.dueDate?.toISOString() ?? null,
           status: submission?.status || 'pending',
           score: submission?.evaluation?.totalScore ?? null,
           feedback: submission?.evaluation?.remarks ?? null,
         };
+        return this._addStatusToAssignment(base);
       });
 
       return result;
@@ -416,8 +442,7 @@ class AssignmentService {
       }
 
       const payload = {
-        ...assignment,
-        deadline: assignment.dueDate?.toISOString() ?? null,
+        ...this._addStatusToAssignment(assignment),
         submission: this._leanSubmissionForClient(submission),
         artifacts: this._extractArtifactsFromSubmission(submission),
         student: studentInfo,
