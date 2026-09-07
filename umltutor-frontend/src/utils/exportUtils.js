@@ -295,7 +295,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 ensureSpace(12);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setTextColor(...GREEN_COLOR);
-                pdf.text('✓ Validation Passed: All requirements & syntax rules satisfied for this section.', 20, y);
+                pdf.text('[PASS] Validation Passed: All requirements & syntax rules satisfied for this section.', 20, y);
                 y += 14;
             } else {
                 secIssues.forEach((issue) => {
@@ -553,15 +553,8 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 || (findings.some(f => f.severity === 'error') ? 'errors'
                     : (findings.some(f => f.severity === 'warning') ? 'warnings' : 'consistent'));
 
-            const csStatusColor = {
-                found: [16, 185, 129],
-                typo: [245, 158, 11],
-                mismatch: [245, 158, 11],
-                lowConfidence: [245, 158, 11],
-                invalid: [245, 158, 11],
-                optional: [107, 114, 128],
-                missing: [239, 68, 68],
-            };
+            let ycs = 32;
+
             const csEnsureSpace = (needed) => {
                 if (ycs + needed > pageHeight - 15) {
                     pdf.addPage();
@@ -569,8 +562,6 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                     ycs = 30;
                 }
             };
-
-            let ycs = 36;
 
             // Insufficient context view (mirror of unreliable branch)
             if (validation.reliable === false) {
@@ -584,24 +575,30 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 const present = Object.keys(signalNames).filter(k => validation.signals?.[k]);
                 const absent = Object.keys(signalNames).filter(k => !validation.signals?.[k]);
 
+                csEnsureSpace(16);
+                pdf.setFillColor(254, 243, 199);
+                pdf.setDrawColor(253, 230, 138);
+                pdf.roundedRect(15, ycs, pageWidth - 30, 12, 2, 2, 'FD');
+
                 pdf.setFont('helvetica', 'bold');
-                pdf.setTextColor(245, 158, 11);
+                pdf.setTextColor(146, 64, 14);
                 pdf.setFontSize(10);
-                pdf.text('! The assignment text is too short for a reliable consistency check', 20, ycs);
-                ycs += 9;
+                pdf.text('[!]  ASSIGNMENT TEXT IS TOO SHORT FOR A RELIABLE CONSISTENCY CHECK', 20, ycs + 8);
+                ycs += 18;
 
                 pdf.setFont('helvetica', 'normal');
                 pdf.setTextColor(...TEXT_DARK);
                 pdf.setFontSize(9);
                 if (validation.loginSupported) {
                     csEnsureSpace(8);
-                    pdf.text('Login-related wording was recognised, but a login alone is a precondition, not a complete case-study brief.', 20, ycs);
+                    pdf.text('Login-related wording was recognized, but a login alone is a precondition, not a complete case-study brief.', 20, ycs);
                     ycs += 8;
                 }
                 if (validation.reasoning) {
-                    csEnsureSpace(8);
-                    pdf.text(pdf.splitTextToSize(`Why: ${validation.reasoning}`, pageWidth - 40), 20, ycs);
-                    ycs += 8 * pdf.splitTextToSize(validation.reasoning, pageWidth - 40).length;
+                    const rLines = pdf.splitTextToSize(`Why: ${validation.reasoning}`, pageWidth - 40);
+                    csEnsureSpace(6 * rLines.length + 4);
+                    pdf.text(rLines, 20, ycs);
+                    ycs += 6 * rLines.length + 4;
                 }
                 if (present.length > 0) {
                     csEnsureSpace(8);
@@ -618,153 +615,305 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 pdf.text('No expected actors or use cases are asserted for an assignment this thin.', 20, ycs);
                 ycs += 12;
             } else {
-                // Verdict banner
-                const bannerMsg = overall === 'consistent'
-                    ? '✓ Diagram matches the assignment requirements'
-                    : overall === 'warnings'
-                        ? '! Diagram is mostly consistent — review the warnings below'
-                        : '✗ Diagram does not fully match the assignment requirements';
-                pdf.setFont('helvetica', 'bold');
-                pdf.setTextColor(...(overall === 'consistent' ? GREEN_COLOR : overall === 'warnings' ? [245, 158, 11] : [239, 68, 68]));
-                pdf.setFontSize(11);
-                pdf.text(bannerMsg.toUpperCase(), 20, ycs);
-                ycs += 12;
+                // 1. Verdict Banner Card (matching web app CheckingModePanel banner)
+                let bannerBg = [254, 243, 199];
+                let bannerBorder = [253, 230, 138];
+                let bannerTextColor = [146, 64, 14];
+                let bannerBadge = '[!]';
+                let bannerMsg = 'DIAGRAM IS MOSTLY CONSISTENT - REVIEW THE WARNINGS BELOW';
 
-                // System boundary
+                if (overall === 'consistent') {
+                    bannerBg = [236, 253, 245];
+                    bannerBorder = [167, 243, 208];
+                    bannerTextColor = [6, 95, 70];
+                    bannerBadge = '[MATCH]';
+                    bannerMsg = 'DIAGRAM MATCHES THE ASSIGNMENT REQUIREMENTS';
+                } else if (overall === 'warnings') {
+                    bannerBg = [254, 243, 199];
+                    bannerBorder = [253, 230, 138];
+                    bannerTextColor = [146, 64, 14];
+                    bannerBadge = '[!]';
+                    bannerMsg = 'DIAGRAM IS MOSTLY CONSISTENT - REVIEW THE WARNINGS BELOW';
+                } else {
+                    bannerBg = [254, 226, 226];
+                    bannerBorder = [254, 202, 202];
+                    bannerTextColor = [153, 27, 27];
+                    bannerBadge = '[X]';
+                    bannerMsg = 'DIAGRAM DOES NOT FULLY MATCH THE ASSIGNMENT REQUIREMENTS';
+                }
+
+                csEnsureSpace(16);
+                pdf.setFillColor(...bannerBg);
+                pdf.setDrawColor(...bannerBorder);
+                pdf.roundedRect(15, ycs, pageWidth - 30, 12, 2, 2, 'FD');
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...bannerTextColor);
+                pdf.setFontSize(10);
+                pdf.text(`${bannerBadge}  ${bannerMsg}`, 20, ycs + 8);
+                ycs += 18;
+
+                // 2. System Boundary Status
                 const sys = cs.systemName || {};
-                pdf.setFont('helvetica', 'bold');
-                pdf.setTextColor(...TEXT_DARK);
-                pdf.setFontSize(9);
-                pdf.text('System boundary:', 20, ycs);
-                pdf.setFont('helvetica', 'normal');
                 const sysStatus = sys.status || 'missing';
-                pdf.setTextColor(...(sysStatus === 'found' ? GREEN_COLOR : csStatusColor[sysStatus] || [107, 114, 128]));
-                const sysText = sysStatus === 'found' && sys.submitted
-                    ? ` ${sys.submitted}`
-                    : ` ${sys.submitted || 'no name'}`;
-                pdf.text(sysText, 62, ycs);
-                pdf.setTextColor(...TEXT_MUTED);
-                if (sys.status === 'missing' && sys.expected) pdf.text(`— try "${sys.expected}"`, 62 + pdf.getTextWidth(sysText), ycs);
-                if (sys.status === 'mismatch') pdf.text(`— assignment suggests "${sys.expected}"`, 62 + pdf.getTextWidth(sysText), ycs);
-                ycs += 9;
 
-                const statusGlyphText = (status) => (status === 'found' ? '✓' : (status === 'typo' || status === 'mismatch' || status === 'lowConfidence' || status === 'invalid') ? '!' : '✗');
-                const statusGreen = (status) => status === 'found';
-                const statusAmber = (status) => status === 'typo' || status === 'mismatch' || status === 'lowConfidence' || status === 'invalid';
+                csEnsureSpace(14);
+                pdf.setFillColor(...BG_LIGHT);
+                pdf.setDrawColor(...BORDER_COLOR);
+                pdf.roundedRect(15, ycs, pageWidth - 30, 12, 2, 2, 'FD');
 
-                // Actors
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(9);
+                pdf.setTextColor(...TEXT_DARK);
+                pdf.text('System boundary:', 20, ycs + 8);
+
+                let sysBadge = '[MATCH]';
+                let sysColor = GREEN_COLOR;
+                if (sysStatus === 'missing') {
+                    sysBadge = '[!]';
+                    sysColor = [217, 119, 6];
+                } else if (sysStatus === 'mismatch' || sysStatus === 'invalid') {
+                    sysBadge = '[!]';
+                    sysColor = [217, 119, 6];
+                }
+
+                pdf.setTextColor(...sysColor);
+                pdf.text(sysBadge, 56, ycs + 8);
+
+                pdf.setFont('helvetica', sysStatus === 'found' ? 'bold' : 'normal');
+                pdf.setTextColor(...TEXT_DARK);
+                const sysNameText = sys.submitted || 'no name';
+                pdf.text(sysNameText, 56 + pdf.getTextWidth(sysBadge) + 3, ycs + 8);
+
+                let sysHint = '';
+                if (sys.status === 'missing' && sys.expected) {
+                    sysHint = ` - try "${sys.expected}"`;
+                } else if (sys.status === 'mismatch' && sys.expected) {
+                    sysHint = ` - assignment suggests "${sys.expected}"`;
+                }
+                if (sysHint) {
+                    pdf.setFont('helvetica', 'italic');
+                    pdf.setTextColor(...TEXT_MUTED);
+                    pdf.text(sysHint, 56 + pdf.getTextWidth(sysBadge) + pdf.getTextWidth(sysNameText) + 5, ycs + 8);
+                }
+                ycs += 18;
+
+                // 3. Actors vs Assignment
                 if ((cs.actorStatus || []).length) {
+                    csEnsureSpace(14);
                     pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(9.5);
                     pdf.setTextColor(...TEXT_DARK);
-                    csEnsureSpace(9);
-                    pdf.text('Actors vs assignment:', 20, ycs);
-                    ycs += 9;
-                    pdf.setFont('helvetica', 'normal');
+                    pdf.text('Actors vs assignment:', 15, ycs);
+                    ycs += 7;
+
                     cs.actorStatus.forEach((a) => {
-                        csEnsureSpace(7);
-                        const gAmber = statusAmber(a.status);
-                        const gGreen = statusGreen(a.status);
-                        pdf.setTextColor(...(gGreen ? GREEN_COLOR : gAmber ? [245, 158, 11] : [239, 68, 68]));
-                        let line = `${statusGlyphText(a.status)} ${a.actor}`;
-                        if (a.status === 'typo' && a.actor) line += ` — use exact role "${a.actor}"`;
-                        if (a.status === 'missing' && a.submitted) line += ` — diagram has "${a.submitted}"`;
-                        pdf.text(pdf.splitTextToSize(line, pageWidth - 40), 20, ycs);
-                        ycs += 7;
+                        let badge = '[MATCH]';
+                        let badgeColor = GREEN_COLOR;
+                        let line = a.actor;
+
+                        if (a.status === 'typo') {
+                            badge = '[!]';
+                            badgeColor = [217, 119, 6];
+                            line = `${a.actor} - use exact role "${a.actor}"`;
+                            if (a.submitted) line += ` (diagram has "${a.submitted}")`;
+                        } else if (a.status === 'missing') {
+                            badge = '[X]';
+                            badgeColor = [239, 68, 68];
+                            line = `${a.actor}`;
+                            if (a.submitted) line += ` (diagram has "${a.submitted}")`;
+                        }
+
+                        const badgeWidth = 18;
+                        const wrapped = pdf.splitTextToSize(line, pageWidth - 30 - badgeWidth - 8);
+                        const blockHeight = Math.max(7, wrapped.length * 5 + 2);
+                        csEnsureSpace(blockHeight);
+
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(8.5);
+                        pdf.setTextColor(...badgeColor);
+                        pdf.text(badge, 20, ycs);
+
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setTextColor(...(a.status === 'found' ? [6, 95, 70] : a.status === 'typo' ? [146, 64, 14] : [153, 27, 27]));
+                        pdf.text(wrapped, 20 + badgeWidth, ycs);
+
+                        ycs += blockHeight;
                     });
+                    ycs += 4;
                 }
 
-                // Use cases
+                // 4. Use Cases vs Assignment
                 if ((cs.useCaseStatus || []).length) {
+                    csEnsureSpace(14);
                     pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(9.5);
                     pdf.setTextColor(...TEXT_DARK);
-                    csEnsureSpace(9);
-                    ycs += 2;
-                    pdf.text('Use cases vs assignment:', 20, ycs);
-                    ycs += 9;
-                    pdf.setFont('helvetica', 'normal');
+                    pdf.text('Use cases vs assignment:', 15, ycs);
+                    ycs += 7;
+
                     cs.useCaseStatus.forEach((u) => {
-                        csEnsureSpace(7);
-                        const gAmber = statusAmber(u.status);
-                        const gGreen = statusGreen(u.status);
-                        pdf.setTextColor(...(gGreen ? GREEN_COLOR : gAmber ? [245, 158, 11] : [239, 68, 68]));
-                        let line = `${statusGlyphText(u.status)} ${u.useCase}`;
-                        if (u.primaryActor) line += ` → Actor: ${u.primaryActor}`;
-                        if (u.status === 'missing' && u.submitted) line += ` — found "${u.submitted}"`;
-                        if (u.status === 'found' && u.submitted) line += ` — "${u.submitted}"`;
-                        if (u.status === 'lowConfidence') line += ' — hint only, not required';
-                        if (u.status === 'invalid') line += ' — not an action phrase';
-                        if (u.status === 'optional') line += ' — login/precondition, not required';
-                        pdf.text(pdf.splitTextToSize(line, pageWidth - 40), 20, ycs);
-                        ycs += 7;
+                        let badge = '[MATCH]';
+                        let badgeColor = GREEN_COLOR;
+                        let textColor = [6, 95, 70];
+                        let note = '';
+
+                        if (u.status === 'found') {
+                            badge = '[MATCH]';
+                            badgeColor = GREEN_COLOR;
+                            textColor = [6, 95, 70];
+                            if (u.submitted) note = ` - matched "${u.submitted}"`;
+                        } else if (u.status === 'missing') {
+                            badge = '[X]';
+                            badgeColor = [239, 68, 68];
+                            textColor = [153, 27, 27];
+                            if (u.submitted) note = ` - found "${u.submitted}"`;
+                        } else if (u.status === 'lowConfidence') {
+                            badge = '[!]';
+                            badgeColor = [217, 119, 6];
+                            textColor = [146, 64, 14];
+                            note = ' - hint only, not required';
+                        } else if (u.status === 'invalid') {
+                            badge = '[!]';
+                            badgeColor = [217, 119, 6];
+                            textColor = [146, 64, 14];
+                            note = ' - not an action phrase';
+                        } else if (u.status === 'optional') {
+                            badge = '[-]';
+                            badgeColor = TEXT_MUTED;
+                            textColor = TEXT_MUTED;
+                            note = ' - precondition / auth, not required';
+                        }
+
+                        const actorPart = u.primaryActor ? ` [Actor: ${u.primaryActor}]` : '';
+                        const fullLine = `${u.useCase}${actorPart}${note}`;
+
+                        const badgeWidth = 20;
+                        const wrapped = pdf.splitTextToSize(fullLine, pageWidth - 30 - badgeWidth - 8);
+                        const blockHeight = Math.max(7, wrapped.length * 5 + 2);
+                        csEnsureSpace(blockHeight);
+
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(8.5);
+                        pdf.setTextColor(...badgeColor);
+                        pdf.text(badge, 20, ycs);
+
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setTextColor(...textColor);
+                        pdf.text(wrapped, 20 + badgeWidth, ycs);
+
+                        ycs += blockHeight;
                     });
+                    ycs += 5;
                 }
 
-                // Expected chips
-                ycs += 3;
-                if ((expected.actors || []).length) {
-                    csEnsureSpace(8);
+                // 5. Expected Assignment Requirements Card (Actors, Use Cases, System Names)
+                const hasExpected = (expected.actors && expected.actors.length > 0) ||
+                                    (expected.useCases && expected.useCases.length > 0) ||
+                                    (expected.systemCandidates && expected.systemCandidates.length > 0);
+
+                if (hasExpected) {
+                    const expActorsStr = (expected.actors || []).length ? expected.actors.join(', ') : 'none parsed';
+                    const expUseCasesStr = (expected.useCases || []).length
+                        ? expected.useCases.map(u => {
+                            const name = typeof u === 'string' ? u : u.name;
+                            const actor = typeof u === 'object' && u.primaryActor ? ` (${u.primaryActor})` : '';
+                            return `${name}${actor}`;
+                        }).join(', ')
+                        : 'none parsed';
+                    const expSysStr = (expected.systemCandidates || []).length
+                        ? expected.systemCandidates.slice(0, 3).join(', ')
+                        : 'none';
+
+                    const actorWrapped = pdf.splitTextToSize(`Expected actors: ${expActorsStr}`, pageWidth - 44);
+                    const useCaseWrapped = pdf.splitTextToSize(`Expected use cases: ${expUseCasesStr}`, pageWidth - 44);
+                    const sysWrapped = pdf.splitTextToSize(`Suggested system names: ${expSysStr}`, pageWidth - 44);
+
+                    const cardHeight = 6 + (actorWrapped.length + useCaseWrapped.length + sysWrapped.length) * 5 + 6;
+                    csEnsureSpace(cardHeight + 4);
+
+                    pdf.setFillColor(...BG_LIGHT);
+                    pdf.setDrawColor(...BORDER_COLOR);
+                    pdf.roundedRect(15, ycs, pageWidth - 30, cardHeight, 2, 2, 'FD');
+
+                    let innerY = ycs + 7;
+
                     pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(8.5);
                     pdf.setTextColor(...TEXT_DARK);
-                    pdf.text('Expected actors:', 20, ycs);
+                    pdf.text('Expected actors:', 20, innerY);
                     pdf.setFont('helvetica', 'normal');
                     pdf.setTextColor(...PRIMARY);
-                    pdf.text(expected.actors.join(', '), 55, ycs);
-                    ycs += 8;
-                }
-                if ((expected.useCases || []).length) {
-                    csEnsureSpace(8);
+                    pdf.text(pdf.splitTextToSize(expActorsStr, pageWidth - 70), 55, innerY);
+                    innerY += actorWrapped.length * 5 + 2;
+
                     pdf.setFont('helvetica', 'bold');
                     pdf.setTextColor(...TEXT_DARK);
-                    pdf.text('Expected use cases:', 20, ycs);
+                    pdf.text('Expected use cases:', 20, innerY);
                     pdf.setFont('helvetica', 'normal');
                     pdf.setTextColor(...PRIMARY);
-                    pdf.text(expected.useCases.map((u) => (typeof u === 'string' ? u : u.name)).join(', '), 62, ycs);
-                    ycs += 8;
-                }
-                if ((expected.systemCandidates || []).length) {
-                    csEnsureSpace(8);
+                    pdf.text(pdf.splitTextToSize(expUseCasesStr, pageWidth - 76), 61, innerY);
+                    innerY += useCaseWrapped.length * 5 + 2;
+
                     pdf.setFont('helvetica', 'bold');
                     pdf.setTextColor(...TEXT_DARK);
-                    pdf.text('Suggested system names:', 20, ycs);
+                    pdf.text('Suggested system names:', 20, innerY);
                     pdf.setFont('helvetica', 'normal');
                     pdf.setTextColor(...PRIMARY);
-                    pdf.text(expected.systemCandidates.slice(0, 3).join(', '), 66, ycs);
-                    ycs += 10;
+                    pdf.text(pdf.splitTextToSize(expSysStr, pageWidth - 85), 70, innerY);
+
+                    ycs += cardHeight + 8;
                 }
 
-                // Findings grouped by severity
-                const renderFindings = (sev, label, glyph, color) => {
+                // 6. Findings Grouped by Severity (Errors, Warnings, Info)
+                const renderFindings = (sev, label, badge, color) => {
                     const list = findings.filter((f) => f.severity === sev);
                     if (list.length === 0) return;
+                    csEnsureSpace(12);
                     pdf.setFont('helvetica', 'bold');
-                    pdf.setTextColor(...TEXT_DARK);
-                    csEnsureSpace(8);
-                    ycs += 2;
-                    pdf.text(`${label}:`, 20, ycs);
-                    ycs += 8;
-                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(9.5);
+                    pdf.setTextColor(...color);
+                    pdf.text(`${label}:`, 15, ycs);
+                    ycs += 6;
+
                     list.forEach((f) => {
-                        const ctx = f.context || {};
-                        const lines = pdf.splitTextToSize(`${glyph} ${f.message}`, pageWidth - 40);
-                        csEnsureSpace(7 * lines.length + 4);
+                        const msg = f.message || '';
+                        const badgeWidth = 22;
+                        const wrappedLines = pdf.splitTextToSize(msg, pageWidth - 30 - badgeWidth - 6);
+                        const blockHeight = Math.max(6, wrappedLines.length * 4.8 + 2);
+                        csEnsureSpace(blockHeight);
+
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(8);
                         pdf.setTextColor(...color);
-                        pdf.text(lines, 20, ycs);
-                        ycs += 7 * lines.length + 3;
+                        pdf.text(badge, 20, ycs);
+
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setTextColor(...TEXT_DARK);
+                        pdf.text(wrappedLines, 20 + badgeWidth, ycs);
+
+                        ycs += blockHeight;
                     });
+                    ycs += 3;
                 };
 
-                renderFindings('error', 'Errors', '✗', [239, 68, 68]);
-                renderFindings('warning', 'Warnings', '!', [245, 158, 11]);
-                renderFindings('info', 'Info', '•', TEXT_MUTED);
+                renderFindings('error', 'Errors', '[ERROR]', [239, 68, 68]);
+                renderFindings('warning', 'Warnings', '[WARNING]', [217, 119, 6]);
+                renderFindings('info', 'Info', '[INFO]', TEXT_MUTED);
 
-                // Counts summary
+                // 7. Case-Study Findings Count Summary Badge
                 if ((cs.counts || {}).total > 0) {
-                    csEnsureSpace(10);
-                    ycs += 4;
+                    csEnsureSpace(14);
+                    ycs += 2;
+                    pdf.setFillColor(241, 245, 249);
+                    pdf.setDrawColor(...BORDER_COLOR);
+                    pdf.roundedRect(15, ycs, pageWidth - 30, 9, 2, 2, 'FD');
+
                     pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(8.5);
                     pdf.setTextColor(...TEXT_MUTED);
-                    pdf.text(`${cs.counts.total} case-study finding(s) — ${cs.counts.error || 0} error(s), ${cs.counts.warning || 0} warning(s), ${cs.counts.info || 0} info`, 20, ycs);
-                    ycs += 10;
+                    pdf.text(`${cs.counts.total} case-study finding(s) - ${cs.counts.error || 0} error(s), ${cs.counts.warning || 0} warning(s), ${cs.counts.info || 0} info`, 20, ycs + 6);
+                    ycs += 14;
                 }
             }
         }
@@ -936,7 +1085,7 @@ const buildReportText = (report) => {
         }
 
         const sys = cs.systemName || {};
-        lines.push(`\nSystem boundary: ${sys.submitted || 'no name'} — ${(sys.status || 'missing').toUpperCase()}`);
+        lines.push(`\nSystem boundary: ${sys.submitted || 'no name'} - ${(sys.status || 'missing').toUpperCase()}`);
         if (sys.status === 'missing' && sys.expected) lines.push(`  Suggested system name: "${sys.expected}"`);
         if (sys.status === 'mismatch') lines.push(`  Assignment suggests: "${sys.expected}"`);
 
@@ -944,8 +1093,8 @@ const buildReportText = (report) => {
             lines.push('\nActors vs assignment:');
             cs.actorStatus.forEach((a) => {
                 let line = `  [${(a.status || 'unknown').toUpperCase()}] ${a.actor}`;
-                if (a.status === 'typo') line += ' — use exact role';
-                if (a.status === 'missing' && a.submitted) line += ` — diagram has "${a.submitted}"`;
+                if (a.status === 'typo') line += ` - use exact role "${a.actor}"`;
+                if (a.status === 'missing' && a.submitted) line += ` - diagram has "${a.submitted}"`;
                 lines.push(line);
             });
         }
@@ -954,8 +1103,9 @@ const buildReportText = (report) => {
             lines.push('\nUse cases vs assignment:');
             cs.useCaseStatus.forEach((u) => {
                 let line = `  [${(u.status || 'unknown').toUpperCase()}] ${u.useCase}`;
-                if (u.primaryActor) line += ` → Actor: ${u.primaryActor}`;
-                if (u.status === 'found' && u.submitted) line += ` — "${u.submitted}"`;
+                if (u.primaryActor) line += ` -> Actor: ${u.primaryActor}`;
+                if (u.status === 'found' && u.submitted) line += ` - matched "${u.submitted}"`;
+                if (u.status === 'missing' && u.submitted) line += ` - found "${u.submitted}"`;
                 lines.push(line);
             });
         }
@@ -974,7 +1124,7 @@ const buildReportText = (report) => {
             });
         }
         if ((cs.counts || {}).total > 0) {
-            lines.push(`\n${cs.counts.total} case-study finding(s) — ${cs.counts.error || 0} error(s), ${cs.counts.warning || 0} warning(s), ${cs.counts.info || 0} info`);
+            lines.push(`\n${cs.counts.total} case-study finding(s) - ${cs.counts.error || 0} error(s), ${cs.counts.warning || 0} warning(s), ${cs.counts.info || 0} info`);
         }
     }
 

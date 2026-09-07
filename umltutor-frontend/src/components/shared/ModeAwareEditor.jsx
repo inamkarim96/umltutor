@@ -38,7 +38,7 @@ import { SSDDiagramEditor } from '../../features/ssd';
 import { ClassDiagramEditor } from '../../features/class-diagram';
 import { SequenceDiagramEditor } from '../../features/sequence-diagram';
 import { CheckingModePanel } from '../../features/checking';
-import { useErrorToast, useSuccessToast } from '../ui/Toast';
+import { useErrorToast, useSuccessToast, useWarningToast } from '../ui/Toast';
 import { SubmitAssignmentModal } from '../../features/classroom';
 import { selectAllAssignments, selectAssignmentDetail } from '../../features/assignments';
 import { submitAssignmentData, selectIsSubmitting, fetchSubmissionStatus, selectCurrentSubmission, requestTutorialMode } from '../../features/submissions';
@@ -179,6 +179,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
 
   const errorToast = useErrorToast();
   const successToast = useSuccessToast();
+  const warningToast = useWarningToast();
 
   const registry = useAppSelector(s => s.mode.nameRegistry);
   const systemName = (registry?.system)?.lockedName;
@@ -800,6 +801,10 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                       setIsExporting(true);
                       try {
                         const exportReport = currentSubmission?.fullReport || checkingState.results;
+                        const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
+                        if (!hasCaseStudy && !currentSubmission?.fullReport) {
+                          warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included.');
+                        }
                         await exportToFile('report-txt', exportReport, { studentName: model?.studentName || '', assignmentTitle: model?.title || '' });
                         successToast('Report exported as TXT');
                       } catch (err) {
@@ -821,6 +826,10 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                       setIsExporting(true);
                       try {
                         const exportReport = currentSubmission?.fullReport || checkingState.results;
+                        const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
+                        if (!hasCaseStudy && !currentSubmission?.fullReport) {
+                          warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included.');
+                        }
                         await exportToFile('report-json', exportReport, { studentName: model?.studentName || '', assignmentTitle: model?.title || '' });
                         successToast('Report exported as JSON');
                       } catch (err) {
@@ -843,10 +852,15 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                       setIsExporting(true);
                       setIsCombinedExporting(true);
                       try {
+                        const exportReport = currentSubmission?.fullReport || checkingState.results;
+                        const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
+                        if (!hasCaseStudy && !currentSubmission?.fullReport) {
+                          warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included in this export.');
+                        }
                         const studentName = model?.studentName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '') || (user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '') || user?.name || user?.fullName || currentSubmission?.studentName || '';
                         const teacherName = model?.teacherName || assignmentDetails?.teacher_name || assignmentDetails?.teacherName || assignmentDetails?.teacher?.name || assignmentDetails?.createdBy?.name || '';
                         const className = model?.className || assignmentDetails?.class_name || assignmentDetails?.className || assignmentDetails?.class?.name || assignmentDetails?.course || '';
-                        const result = await exportToFile('combined', currentSubmission?.fullReport || checkingState.results, {
+                        const result = await exportToFile('combined', exportReport, {
                           studentName: studentName.trim() || user?.username || user?.email || '',
                           teacherName: teacherName.trim(),
                           className: className.trim(),
