@@ -1,6 +1,6 @@
 "use strict";
 const { STOP_WORDS, INTERNAL_VERBS, VERB_DICTIONARY } = require('./constants');
-const { normalizeToken, extractKeywords, lemmatizeToken } = require('./similarity');
+const { normalizeToken, extractKeywords, lemmatizeToken, hybridSimilarity, getEmbeddings, actorRoleSimilarity, classifyUseCaseMatch } = require('./similarity');
 const { parseScenarioStep, classifySystemStep, suggestFromSentence } = require('./sentenceUtils');
 const { SemanticRepresentation } = require('./semanticService');
 const {
@@ -14,6 +14,16 @@ const MAX_REQUIREMENT_LENGTH = 100000;
 const MIN_CONTENT_TOKENS = 6; // content words after stop-word removal
 const HIGH_CONFIDENCE = 0.75; // only ≥ this may become a REQUIRED user goal
 const MEDIUM_CONFIDENCE = 0.55; // ≥ this is a review / low-priority item
+
+// T2-4: Adaptive confidence threshold based on text richness
+function adaptiveHighConfidence(requirementModel) {
+  const sentenceCount = (requirementModel.sources || []).length;
+  const actorCount = (requirementModel.actors || []).length;
+  // Longer, richer text → stricter threshold (fewer false positives)
+  if (sentenceCount >= 10 && actorCount >= 3) return 0.80;
+  if (sentenceCount >= 5)  return 0.75;   // current default
+  return 0.65;  // short text → more lenient
+}
 
 // Words that should not open a new use case by themselves.
 const LEADING_NOISE = new Set([
@@ -457,6 +467,59 @@ function parseRequirementText(text) {
       return;
     }
 
+    // T2-6: Passive voice "X is/are verbed by Y" → Y actor, "verb X" use case
+    const passiveByMatch = clean.match(/\b([A-Z][a-z\s]{2,30})\s+(?:is|are)\s+([a-z]+ed)\s+by\s+([A-Z][a-z\s,]{2,30})(?:\.|$)/i);
+    if (passiveByMatch) {
+      const rawObj = passiveByMatch[1].trim();
+      const rawVerbPast = passiveByMatch[2].trim();
+      const rawActorsText = passiveByMatch[3].trim();
+      const verbLemma = (lemmatizeToken(rawVerbPast) || rawVerbPast).toLowerCase().replace(/ed$/, '');
+      const ucName = titleCase(`${verbLemma} ${rawObj}`);
+
+      const targetActors = [];
+      const roleTokens = rawActorsText.split(/[^a-z]+/i).filter((w) => w && w.length >= 3);
+      let lastWasRole = false;
+      for (const token of roleTokens) {
+        const key = lemmatizeToken(token);
+        if (!ROLE_NOUNS.has(key)) { lastWasRole = false; continue; }
+        const role = key.charAt(0).toUpperCase() + key.slice(1);
+        if (COLLECTIVE_NOUNS.has(key) && lastWasRole) { lastWasRole = true; continue; }
+        const canonical = role === 'Admin' ? 'Administrator' : role;
+        if (!targetActors.includes(canonical)) targetActors.push(canonical);
+        lastWasRole = true;
+      }
+
+      targetActors.forEach((tActor) => {
+        trackActor(tActor);
+        functionalActors.add(tActor);
+      });
+
+      const primaryActor = targetActors[0] || null;
+      if (primaryActor) {
+        let existing = useCases.find((uc) => uc.primaryActor === primaryActor && uc.name.toLowerCase() === ucName.toLowerCase());
+        if (!existing) {
+          existing = {
+            name: ucName,
+            primaryActor,
+            steps: [],
+            messages: [],
+            sourceSentences: [],
+          };
+          useCases.push(existing);
+        }
+        existing.sourceSentences.push(raw);
+        existing.steps.push({
+          step: existing.steps.length + 1,
+          action: clean,
+          actor: primaryActor,
+          isSystem: false,
+          kind: 'actor',
+        });
+        existing.confidence = confidenceForCapability(existing.name, primaryActor, raw);
+      }
+      return;
+    }
+
     const actor = detectActorFromSentence(clean, actorNames);
     const parsed = parseScenarioStep(clean, actorNames);
     const stepClass = classifySystemStep(clean);
@@ -649,7 +712,10 @@ function parseRequirementText(text) {
       messages: Array.from(new Set(uc.messages)),
       sourceSentences: uc.sourceSentences || [],
       confidence: uc.confidence || 0,
-      highConfidence: (uc.confidence || 0) >= HIGH_CONFIDENCE,
+      highConfidence: (uc.confidence || 0) >= adaptiveHighConfidence({
+        sources: sentences,
+        actors: Array.from(functionalActors),
+      }),
     }));
 
 
@@ -691,9 +757,13 @@ function parseRequirementText(text) {
     coverage: Number(coverage),
   });
 
+  // Deduplicate actors and use cases (sync version for parser)
+  const deduplicatedActors = clusterActorsSync(Array.from(functionalActors));
+  const deduplicatedUseCases = deduplicateUseCasesSync(useCaseList);
+
   return {
-    actors: Array.from(functionalActors),
-    useCases: useCaseList,
+    actors: deduplicatedActors,
+    useCases: deduplicatedUseCases,
     responsibilities,
     requirements: classification,
     coverage: Number(coverage),
@@ -734,6 +804,206 @@ function buildRequirementSemantics(requirementModel) {
   return { semantics, useCaseSemantics };
 }
 
+
+
+
+/**
+ * Cluster similar actors using string similarity (sync version for parser)
+ * Groups actors like "Student", "Students", "Pupil" together
+ */
+function clusterActorsSync(actors) {
+  if (!actors || actors.length <= 1) return actors;
+  
+  const clusters = [];
+  const used = new Set();
+  
+  for (let i = 0; i < actors.length; i++) {
+    if (used.has(i)) continue;
+    
+    const cluster = [actors[i]];
+    used.add(i);
+    
+    for (let j = i + 1; j < actors.length; j++) {
+      if (used.has(j)) continue;
+      
+      const sim = actorRoleSimilarity(actors[i], actors[j]);
+      if (sim >= 0.85) {
+        cluster.push(actors[j]);
+        used.add(j);
+      }
+    }
+    
+    clusters.push(cluster);
+  }
+  
+  // Return representative actor for each cluster (first one)
+  return clusters.map(c => c[0]);
+}
+
+/**
+ * Deduplicate use cases using string similarity (sync version for parser)
+ * Merges semantically similar use cases like "Login" and "Sign In"
+ */
+function deduplicateUseCasesSync(useCases) {
+  if (!useCases || useCases.length <= 1) return useCases;
+  
+  const unique = [];
+  const used = new Set();
+  
+  for (let i = 0; i < useCases.length; i++) {
+    if (used.has(i)) continue;
+    
+    unique.push(useCases[i]);
+    used.add(i);
+    
+    for (let j = i + 1; j < useCases.length; j++) {
+      if (used.has(j)) continue;
+      
+      const match = classifyUseCaseMatch(useCases[i].name, useCases[j].name);
+      if (match.score >= 0.88) {
+        // Merge: keep the one with higher confidence
+        if (useCases[j].confidence > useCases[i].confidence) {
+          unique[unique.length - 1] = useCases[j];
+        }
+        used.add(j);
+      }
+    }
+  }
+  
+  return unique;
+}
+
+/**
+ * Cluster similar actors using embedding similarity
+ * Groups actors like "Student", "Students", "Pupil" together
+ */
+async function clusterActors(actors) {
+  if (!actors || actors.length <= 1) return actors;
+  
+  try {
+    const embeddings = await getEmbeddings(actors);
+    const clusters = [];
+    const used = new Set();
+    
+    for (let i = 0; i < actors.length; i++) {
+      if (used.has(i)) continue;
+      
+      const cluster = [actors[i]];
+      used.add(i);
+      
+      for (let j = i + 1; j < actors.length; j++) {
+        if (used.has(j)) continue;
+        
+        const sim = cosineSimilarity(embeddings[i], embeddings[j]);
+        if (sim >= 0.85) {
+          cluster.push(actors[j]);
+          used.add(j);
+        }
+      }
+      
+      clusters.push(cluster);
+    }
+    
+    return clusters.map(c => c[0]);
+  } catch (err) {
+    console.warn('[clusterActors] Failed, returning original:', err.message);
+    return clusterActorsSync(actors);
+  }
+}
+
+/**
+ * Deduplicate use cases using embedding similarity
+ * Merges semantically similar use cases like "Login" and "Sign In"
+ */
+async function deduplicateUseCases(useCases) {
+  if (!useCases || useCases.length <= 1) return useCases;
+  
+  const names = useCases.map(uc => uc.name);
+  try {
+    const embeddings = await getEmbeddings(names);
+    const unique = [];
+    const used = new Set();
+    
+    for (let i = 0; i < useCases.length; i++) {
+      if (used.has(i)) continue;
+      
+      unique.push(useCases[i]);
+      used.add(i);
+      
+      for (let j = i + 1; j < useCases.length; j++) {
+        if (used.has(j)) continue;
+        
+        const sim = cosineSimilarity(embeddings[i], embeddings[j]);
+        if (sim >= 0.88) {
+          // Merge: keep the one with higher confidence
+          if (useCases[j].confidence > useCases[i].confidence) {
+            unique[unique.length - 1] = useCases[j];
+          }
+          used.add(j);
+        }
+      }
+    }
+    
+    return unique;
+  } catch (err) {
+    console.warn('[deduplicateUseCases] Failed, returning original:', err.message);
+    return deduplicateUseCasesSync(useCases);
+  }
+}
+
+/**
+ * Compute embedding coherence score for use cases
+ * Measures how semantically consistent the use case steps are
+ */
+async function computeEmbeddingCoherence(useCases) {
+  if (!useCases || useCases.length === 0) return 0;
+  
+  let totalScore = 0;
+  let count = 0;
+  
+  for (const uc of useCases) {
+    if (!uc.steps || uc.steps.length < 2) continue;
+    
+    const stepTexts = uc.steps.map(s => s.action).filter(Boolean);
+    if (stepTexts.length < 2) continue;
+    
+    try {
+      const embeddings = await getEmbeddings(stepTexts);
+      let pairScore = 0;
+      let pairs = 0;
+      
+      for (let i = 0; i < embeddings.length; i++) {
+        for (let j = i + 1; j < embeddings.length; j++) {
+          pairScore += cosineSimilarity(embeddings[i], embeddings[j]);
+          pairs++;
+        }
+      }
+      
+      if (pairs > 0) {
+        totalScore += pairScore / pairs;
+        count++;
+      }
+    } catch (err) {
+      // Ignore
+    }
+  }
+  
+  return count > 0 ? totalScore / count : 0;
+}
+
+function cosineSimilarity(a, b) {
+  if (!a || !b || a.length !== b.length) return 0;
+  
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
 
 
 function analyzeCaseStudyContext(requirementModel) {
@@ -802,6 +1072,12 @@ module.exports = {
   deriveUseCaseName,
   buildRequirementSemantics,
   analyzeCaseStudyContext,
+  clusterActors,
+  deduplicateUseCases,
+  clusterActorsSync,
+  deduplicateUseCasesSync,
+  computeEmbeddingCoherence,
+  adaptiveHighConfidence,
   lemmatizeToken,
   normalizeToken,
 };

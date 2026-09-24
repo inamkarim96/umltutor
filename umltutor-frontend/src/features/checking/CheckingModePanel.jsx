@@ -9,6 +9,7 @@ import { useSuccessToast, useErrorToast } from '../../components/ui/Toast';
 import { checkConsistency } from './ConsistencyChecker';
 import { normalizeName } from '../../nlp/similarity';
 import { Plus, Minus, RotateCcw } from 'lucide-react';
+import apiClient from '../../services/apiClient';
 
 
 const CheckingModePanel = ({
@@ -145,29 +146,55 @@ const CheckingModePanel = ({
         else dispatch(setCheckingRunning(true));
 
         try {
+            let localReportResult = null;
+
             if (typeof onRunChecker === 'function') {
                 const external = await onRunChecker({ section: activeSection, targetId: useCaseId });
-                // If it's a specific item check, the response from handleRunCheck in SubmissionDetail.jsx 
-                // already filters for that ID. We just need to process it.
-                setLocalReport(processReportSection(external));
+                localReportResult = processReportSection(external);
             } else if (modelOverride && typeof performDynamicValidation === 'function') {
-                // Perform dynamic validation based on active section
                 const dynamicReport = await performDynamicValidation(modelOverride, activeSection, useCaseId);
-                setLocalReport(dynamicReport);
-
-                // Notify parent so it can update diagram highlights
-                if (typeof onLocalReport === 'function') {
-                    onLocalReport(dynamicReport, useCaseId);
-                }
+                localReportResult = dynamicReport;
             } else {
-                // Perform dynamic validation based on active section (dev mode)
                 const dynamicReport = await performDynamicValidation(model, activeSection, useCaseId);
-                setLocalReport(dynamicReport);
+                localReportResult = dynamicReport;
+            }
 
-                if (typeof onLocalReport === 'function') {
-                    onLocalReport(dynamicReport, useCaseId);
+            // For class-diagram and ssd sections, also run backend async validation
+            // to get embedding-enhanced cross-diagram consistency checks
+            if (localReportResult && (activeSection === 'class-diagram' || activeSection === 'ssd')) {
+                const asyncReport = await performAsyncValidation(model, activeSection, useCaseId);
+                if (asyncReport) {
+                    // Merge issues from async validation
+                    const existingIssues = new Map(localReportResult.issues?.map(i => [i.id || i.code, i]) || []);
+                    (asyncReport.issues || []).forEach(issue => {
+                        const key = issue.id || issue.code;
+                        if (!existingIssues.has(key)) {
+                            existingIssues.set(key, issue);
+                        }
+                    });
+                    localReportResult.issues = Array.from(existingIssues.values());
+                    
+                    // Recalculate summary
+                    const issues = localReportResult.issues;
+                    const errorsCount = issues.filter(i => i.severity === 'error' || i.type === 'error').length;
+                    const warningsCount = issues.filter(i => i.severity === 'warning' || i.type === 'warning').length;
+                    const infoCount = issues.filter(i => i.severity === 'info' || i.severity === 'suggestion').length;
+                    localReportResult.summary = {
+                        total: issues.length,
+                        errors: errorsCount,
+                        warnings: warningsCount,
+                        info: infoCount
+                    };
                 }
             }
+
+            setLocalReport(localReportResult);
+
+            // Notify parent so it can update diagram highlights
+            if (typeof onLocalReport === 'function') {
+                onLocalReport(localReportResult, useCaseId);
+            }
+
         } catch (error) {
             console.error('Checking failed:', error);
             if (isExternal) setLocalRunning(false);
@@ -1125,6 +1152,31 @@ const CheckingModePanel = ({
         }
 
         return report;
+    };
+
+    const performAsyncValidation = async (model, activeSection, targetUseCaseId = null) => {
+        if (!model || !model.id) {
+            console.error('Cannot run async checks: model is undefined or incomplete');
+            return null;
+        }
+
+        // Only use backend async for cross-diagram validation
+        if (activeSection !== 'class-diagram' && activeSection !== 'ssd') {
+            return null;
+        }
+
+        try {
+            const response = await apiClient.post('/api/checking/check-async', {
+                ...model,
+                requirementText: model.requirementText || '',
+            }, {
+                params: { section: activeSection, targetId: targetUseCaseId }
+            });
+            return response.data;
+        } catch (error) {
+            console.warn('Async validation failed, falling back to local:', error.message);
+            return null;
+        }
     };
 
     const generateTextReport = () => {

@@ -1,4 +1,5 @@
-"use strict"; Object.defineProperty(exports, "__esModule", { value: true }); var _express = require('express');
+"use strict"; Object.defineProperty(exports, "__esModule", { value: true });
+var _express = require('express');
 var _checkingController = require('../controllers/checkingController');
 var _routeMiddleware = require('../middleware/routeMiddleware');
 
@@ -9,5 +10,6 @@ router.use(_routeMiddleware.requestLogger);
 
 
 router.post('/check', _routeMiddleware.authenticate, _checkingController.checkModel);
+router.post('/check-async', _routeMiddleware.authenticate, _checkingController.checkModelAsync);
 
 exports.default = router;

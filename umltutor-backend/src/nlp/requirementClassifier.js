@@ -92,6 +92,12 @@ const ACTOR_PATTERNS = [
   /\b(actor|user|person|client|operator|administrator|staff|student|member|librarian|manager|customer|guest|admin)\b/i,
 ];
 
+// ─── Negation patterns (for T2-2) ───
+const NEGATION_PATTERNS = [
+  /\b(cannot|can not|may not|must not|should not|not allowed|not permitted|unable to|prevented from|forbidden to|prohibited from)\b/i,
+  /\b(no|never|without)\s+\w+ing\b/i,
+];
+
 function isFunctionalVerb(verb) {
   if (!verb) return false;
   return FUNCTIONAL_VERBS.has(verb) || FUNCTIONAL_VERBS.has(lemmatizeToken(verb));
@@ -201,11 +207,15 @@ function classifyRequirementSentence({ sentence, actor, verb, isSystemStep }) {
     tokens.some((w) => {
       if (w === v || lemmatizeToken(w) === v) return true;
       const base = lemmatizeToken(w);
-      // lemmatizeToken('includes') → 'includ': accept a truncated prefix of v.
       return base.length >= 4 && base.length <= v.length + 1 && v.startsWith(base);
     }));
   if (hasDomainSignal && (descriptionVerbPresent || !(actor && hasFunctional))) {
     return REQUIREMENT_TYPES.DOMAIN_ENTITY;
+  }
+
+  // T2-2: Negation handling — negated functional = CONSTRAINT
+  if (actor && hasFunctional && NEGATION_PATTERNS.some((re) => re.test(lower))) {
+    return REQUIREMENT_TYPES.CONSTRAINT;
   }
 
   // 8. Functional capability: actor performing a real system action.

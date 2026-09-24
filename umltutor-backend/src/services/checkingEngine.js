@@ -6,7 +6,7 @@ const {
 } = require('../nlp/constants');
 const {
     fuzzyIncludes, normalizeToken, normalizeName,
-    evaluateFunctionMatch, areSynonyms, lemmatizeToken, fuzzyMatch,
+    evaluateFunctionMatch, areSynonyms, lemmatizeToken, fuzzyMatch, fuzzyMatchSync,
     extractKeywords, similarity,
 } = require('../nlp/similarity');
 const {
@@ -196,6 +196,169 @@ class CheckingEngine {
         };
     }
 
+    static async checkModelAsync(model, section = null, targetId = null, requirementModel = null, useAsync = true) {
+        if (!useAsync) {
+            return this.checkModel(model, section, targetId, requirementModel);
+        }
+
+        const issues = [];
+
+        // Normalize model data
+        const normalizeField = (field) => {
+            if (!model[field]) return;
+            if (typeof model[field] === 'string') {
+                try { model[field] = JSON.parse(model[field]); } catch { model[field] = {}; }
+            }
+            if (Array.isArray(model[field])) {
+                const arr = model[field];
+                model[field] = {};
+                arr.forEach((d, idx) => {
+                    if (d) {
+                        const parsed = typeof d === 'string' ? JSON.parse(d) : d;
+                        const key = parsed.useCaseNodeId || parsed.relatedId || parsed.useCaseId || parsed.id || idx;
+                        model[field][key] = parsed;
+                    }
+                });
+            } else if (typeof model[field] === 'object') {
+                Object.keys(model[field]).forEach((key) => {
+                    const val = model[field][key];
+                    if (typeof val === 'string') {
+                        try { model[field][key] = JSON.parse(val); } catch { }
+                    }
+                });
+            }
+        };
+
+        normalizeField('descriptions');
+        normalizeField('ssds');
+        normalizeField('sequenceDiagrams');
+
+        const diagramAnalysis = this.analyzeDiagram(model.diagram);
+
+        // 1. Diagram Validation (Step 1)
+        if (!section || section === 'diagram' || section === 'usecase') {
+            this.validateDiagram(model.diagram, issues, diagramAnalysis);
+        }
+
+        if (!section || section === 'diagram' || section === 'usecase') {
+            this.validateUseCaseRelationships(model.diagram, issues, diagramAnalysis);
+        }
+
+        if ((!section || section === 'diagram' || section === 'usecase') && requirementModel) {
+            this.validateCaseStudyDiagramConsistency(model.diagram, issues, diagramAnalysis, requirementModel);
+        }
+
+        // 2. Description Validation (Step 2)
+        if (!section || section === 'description') {
+            this.validateDescriptions(model.descriptions, issues, diagramAnalysis, targetId, requirementModel);
+        }
+
+        // 3. SSD Validation (Step 3)
+        if (!section || section === 'ssd') {
+            this.validateSSDs(model.ssds, issues, diagramAnalysis, model.descriptions, targetId, requirementModel);
+        }
+
+        if (!section || section === 'ssd') {
+            this.validateDescriptionSSDSemantics(model.descriptions, model.ssds, issues, diagramAnalysis, targetId, requirementModel);
+        }
+
+        // 4. Class Diagram Validation (Step 4) - USE ASYNC FOR CROSS-VALIDATION
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagram(
+                model.classDiagram,
+                issues,
+                diagramAnalysis,
+                model.descriptions,
+                model.ssds,
+                requirementModel
+            );
+        }
+
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagramStructure(model.classDiagram, issues, diagramAnalysis);
+        }
+
+        // 4b. SSD operation <-> Class operation - USE ASYNC
+        if (!section || section === 'class-diagram') {
+            await this.validateSSDClassOperationsAsync(model.classDiagram, model.ssds, issues, diagramAnalysis);
+        }
+
+        // 4c. SSD <-> Class semantic responsibility - USE ASYNC
+        if (!section || section === 'class-diagram') {
+            await this.validateSSDClassResponsibilityAsync(model.classDiagram, model.ssds, issues, diagramAnalysis);
+        }
+
+        // 5. Sequence Diagram Validation (Step 5)
+        if (!section || section === 'sequence-diagram') {
+            this.validateSequenceDiagrams(
+                model.sequenceDiagrams,
+                issues,
+                diagramAnalysis,
+                model.descriptions,
+                model.ssds,
+                model.classDiagram,
+                targetId,
+                requirementModel
+            );
+        }
+
+        if (!section || section === 'sequence-diagram') {
+            await this.validateSequenceClassOwnershipAsync(model.sequenceDiagrams, model.classDiagram, issues, diagramAnalysis);
+        }
+
+        if (!section || section === 'diagram' || section === 'usecase' || section === 'class-diagram') {
+            this.validateDuplicateElements(model, issues, diagramAnalysis);
+        }
+
+        if (!section || section === 'diagram' || section === 'usecase') {
+            this.validateMultipleBoundaries(model.diagram, issues, diagramAnalysis);
+        }
+
+        if (!section || section === 'description') {
+            this.validateDescriptionsAdvanced(model.descriptions, issues, diagramAnalysis, targetId);
+        }
+
+        if (!section || section === 'description') {
+            this.validateAlternativeFlows(model.descriptions, issues, diagramAnalysis, targetId);
+        }
+
+        if (!section || section === 'description') {
+            this.validateOrphanDescriptions(model.descriptions, issues, diagramAnalysis);
+        }
+
+        if (!section || section === 'sequence-diagram') {
+            this.validateSequenceDiagramStructure(model.sequenceDiagrams, model.classDiagram, issues, diagramAnalysis);
+        }
+
+        if (!section || section === 'sequence-diagram') {
+            this.validateSequenceActivations(model.sequenceDiagrams, issues, diagramAnalysis);
+        }
+
+        if (!section || section === 'sequence-diagram') {
+            this.validateSequenceCombinedFragments(model.sequenceDiagrams, model.descriptions, issues, diagramAnalysis);
+        }
+
+        if (!section) {
+            this.validateGlobalMapping(model, issues, diagramAnalysis);
+        }
+
+        if (requirementModel) {
+            const { enrichIssueSuggestions } = require('../nlp/suggestionGenerator');
+            enrichIssueSuggestions(issues, requirementModel);
+        }
+
+        const summary = this.countIssues(issues);
+
+        const caseStudyReport = requirementModel
+            ? this.buildCaseStudyReport(issues, diagramAnalysis, requirementModel)
+            : null;
+
+        return {
+            summary,
+            issues,
+            caseStudyReport,
+        };
+    }
 
     static analyzeDiagram(diagram) {
         if (!diagram || !diagram.nodes) {
@@ -457,6 +620,9 @@ class CheckingEngine {
         const reqActors = requirementModel.actors || [];
         const reqResponsibilities = requirementModel.responsibilities || [];
         const rawSentenceCount = requirementModel.rawSentenceCount || (requirementModel.sources || []).length || 0;
+
+        // Empty requirement model (no sources, no actors, no use cases) -> skip entirely
+        if (rawSentenceCount === 0 && reqUseCases.length === 0 && reqActors.length === 0) return;
 
         // Minimum two sentences required for reliable consistency checking
         if (rawSentenceCount < 2) {
@@ -1267,7 +1433,7 @@ class CheckingEngine {
                     let closest = null;
                     let bestScore = 0;
                     for (const actorName of availableActors) {
-                        const score = fuzzyMatch(primaryActorNorm, actorName);
+                        const score = fuzzyMatchSync(primaryActorNorm, actorName);
                         if (score > bestScore) {
                             bestScore = score;
                             closest = actorName;
@@ -2072,6 +2238,53 @@ class CheckingEngine {
                             location: 'sequence-diagram'
                         });
                     }
+                }
+
+                // T2-5: SSD ↔ Sequence message-level cross-check
+                if (ssdSemantic?.messages?.length && seqSemantic?.messages?.length) {
+                    const { evaluateFunctionMatch, normalizeToken } = require('../nlp/similarity');
+                    const { PHASE_THRESHOLDS } = require('../nlp/constants');
+                    
+                    const ssdMsgs = ssdSemantic.messages
+                        .filter(m => !m.isReturn && (m.name || '').trim())
+                        .map(m => ({ name: (m.name || '').split('(')[0].trim(), original: m.name }));
+                    
+                    const seqMsgs = seqSemantic.messages
+                        .filter(m => !m.isReturn && (m.name || '').trim())
+                        .map(m => ({ name: (m.name || '').split('(')[0].trim(), original: m.name }));
+
+                    ssdMsgs.forEach(ssdMsg => {
+                        const matched = seqMsgs.some(seqMsg => 
+                            evaluateFunctionMatch(ssdMsg.name, seqMsg.name).score >= PHASE_THRESHOLDS.SEQ_LIFELINE_MATCH
+                        );
+                        if (!matched) {
+                            issues.push({
+                                type: 'consistency',
+                                severity: 'warning',
+                                code: 'SSD_SEQ_MSG_MISMATCH',
+                                message: `SSD message "${ssdMsg.original}" has no matching message in Sequence Diagram 5.${num}.`,
+                                relatedId: uc.id,
+                                location: 'sequence-diagram'
+                            });
+                        }
+                    });
+
+                    // Also check sequence messages not in SSD
+                    seqMsgs.forEach(seqMsg => {
+                        const matched = ssdMsgs.some(ssdMsg => 
+                            evaluateFunctionMatch(seqMsg.name, ssdMsg.name).score >= PHASE_THRESHOLDS.SEQ_LIFELINE_MATCH
+                        );
+                        if (!matched) {
+                            issues.push({
+                                type: 'consistency',
+                                severity: 'info',
+                                code: 'SEQ_SSD_MSG_MISMATCH',
+                                message: `Sequence message "${seqMsg.original}" has no corresponding message in SSD 3.${num}.`,
+                                relatedId: uc.id,
+                                location: 'sequence-diagram'
+                            });
+                        }
+                    });
                 }
             }
         });
@@ -3231,6 +3444,292 @@ class CheckingEngine {
         });
     }
 
+    // ─── Async versions for embedding-enhanced validation ───
+
+    static async validateSSDClassOperationsAsync(classDiagram, ssds, issues, analysis) {
+        if (!ssds) return;
+
+        const { classes, methods } = this.extractClassDiagramModel(classDiagram);
+        const useCaseLabels = analysis.useCaseLabels || new Map();
+
+        for (const [ucId, rawSSD] of Object.entries(ssds)) {
+            const { semanticData } = this.processSSDData(rawSSD);
+            if (!semanticData?.messages?.length) continue;
+            const ucLabel = useCaseLabels.get(ucId) || ucId;
+
+            for (const msg of semanticData.messages) {
+                if (msg.isReturn) continue;
+                const msgName = (msg.name || '').trim();
+                if (!msgName) continue;
+                const cleanMsg = msgName.split('(')[0].trim();
+                if (!cleanMsg || cleanMsg.length <= 2) continue;
+
+                const semantic = semanticProcessor.processSSDMessage(msg, ucId);
+
+                if (classes.length === 0) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'error',
+                        code: 'MISSING_CLASS',
+                        message: `SSD operation "${cleanMsg}()" in "${ucLabel}" has no corresponding class in the Class Diagram.`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            result: 'MISSING_CLASS',
+                            suggestion: `Add a class that owns this operation, e.g. ${cleanMsg.charAt(0).toUpperCase() + cleanMsg.slice(1)}Service.`
+                        }
+                    });
+                    continue;
+                }
+
+                let best = null;
+                for (const m of methods) {
+                    const mSemantic = SemanticRepresentation.fromClassMethod(m);
+                    if (!mSemantic) continue;
+                    const verdict = await semanticProcessor.compareClassOperation(semantic, mSemantic);
+                    if (!best || verdict.score > best.verdict.score) {
+                        best = { method: m, semantic: mSemantic, verdict };
+                    }
+                }
+
+                if (!best || best.verdict.score < 0.45) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'error',
+                        code: 'MISSING_CLASS_OPERATION',
+                        message: `SSD function "${msgName}" has no corresponding operation in the Class Diagram.`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            result: 'MISSING_METHOD',
+                            suggestion: `Add an operation such as + ${cleanMsg}(credentials) to the appropriate class.`,
+                            confidence: best ? best.verdict.score : 0
+                        }
+                    });
+                    continue;
+                }
+
+                const { method, verdict } = best;
+                const paramNames = (method.parameters || []).map((p) => p.name).join(', ');
+
+                if (!verdict.checks.parameters.matched) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'CLASS_PARAMETER_MISMATCH',
+                        message: `SSD operation "${msgName}" parameters do not match class operation "${method.className}.${method.name}(${paramNames})".`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            result: 'PARAMETER_MISMATCH',
+                            ssdParameters: semantic.parameters || [],
+                            methodParameters: (method.parameters || []).map((p) => p.name),
+                            reason: verdict.checks.parameters.reason,
+                            suggestion: `Update "${method.className}.${method.name}" to accept the parameters used by the SSD message: ${(semantic.parameters || []).join(', ') || 'none'}.`
+                        }
+                    });
+                } else if (verdict.result === 'SEMANTIC_METHOD_MISMATCH') {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'CLASS_OPERATION_SEMANTIC_MATCH',
+                        message: `SSD message "${msgName}" partially matches operation "${method.className}.${method.name}()" (Confidence: ${(verdict.score * 100).toFixed(0)}%).`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            result: 'SEMANTIC_METHOD_MISMATCH',
+                            suggestion: `Consider renaming "${method.name}()" to "${cleanMsg}()" for exact alignment.`,
+                            confidence: verdict.score
+                        }
+                    });
+                }
+
+                if (verdict.checks.returnType.required && !verdict.checks.returnType.present) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'CLASS_RETURN_TYPE_MISSING',
+                        message: `Operation "${method.className}.${method.name}()" performs "${cleanMsg}" but declares no return type.`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            result: 'PARTIAL_MATCH',
+                            suggestion: `Declare a return type, e.g. + ${method.name}(${paramNames}): Boolean.`
+                        }
+                    });
+                }
+
+                if (verdict.checks.paramTypes.missing.length > 0) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'CLASS_PARAMETER_TYPE_MISSING',
+                        message: `Parameters [${verdict.checks.paramTypes.missing.join(', ')}] on "${method.className}.${method.name}()" are missing explicit types.`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            result: 'PARTIAL_MATCH',
+                            suggestion: `Declare types for each parameter, e.g. + ${method.name}(${(method.parameters || []).map((p) => `${p.name}: String`).join(', ')}).`
+                        }
+                    });
+                }
+
+                if (!verdict.checks.visibility.valid) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'CLASS_METHOD_VISIBILITY',
+                        message: `Operation "${method.className}.${method.name}()" is ${method.visibility === '-' ? 'private' : 'protected'}, but "${cleanMsg}()" is invoked by the actor.`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            result: 'PARTIAL_MATCH',
+                            suggestion: `Make "${method.name}()" public: + ${method.name}(${paramNames}).`
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    static async validateSSDClassResponsibilityAsync(classDiagram, ssds, issues, analysis) {
+        if (!classDiagram?.nodes?.length || !ssds) return;
+
+        const { useCaseLabels } = analysis;
+        const classes = (classDiagram.nodes || [])
+            .filter((n) => n.type === 'class' || n.type === 'interface')
+            .map((n) => ({ id: n.id, label: (n.data?.label || '').trim() }))
+            .filter((c) => c.label);
+
+        const classMethods = [];
+        classes.forEach((cls) => {
+            (classDiagram.nodes.find((n) => n.id === cls.id)?.data?.methods || []).forEach((raw) => {
+                const signature = parseMethodSignature(raw);
+                if (!signature || !signature.name) return;
+                classMethods.push({
+                    className: cls.label,
+                    methodName: signature.name.toLowerCase(),
+                    name: signature.name
+                });
+            });
+        });
+
+        for (const [ucId, rawSSD] of Object.entries(ssds)) {
+            const { semanticData } = this.processSSDData(rawSSD);
+            if (!semanticData?.messages?.length) continue;
+            const ucLabel = useCaseLabels.get(ucId) || ucId;
+
+            for (const msg of semanticData.messages) {
+                if (msg.isReturn) continue;
+                const msgName = (msg.name || '').trim();
+                if (!msgName) continue;
+                const cleanMsg = msgName.split('(')[0].trim();
+                if (!cleanMsg || cleanMsg.length <= 2) continue;
+
+                const funcTokens = cleanMsg
+                    .replace(/([a-z])([A-Z])/g, '$1 $2')
+                    .toLowerCase()
+                    .split(/\s+/)
+                    .filter((w) => w.length > 1 && !STOP_WORDS.has(w))
+                    .map(lemmatizeToken);
+                const verb = funcTokens[0] || null;
+                const nouns = funcTokens.slice(1).filter((n) => n !== verb);
+                if (nouns.length === 0) continue;
+
+                const candidateClasses = classes.filter((cls) => {
+                    const clsLower = cls.label.toLowerCase();
+                    return nouns.some((noun) => this.fuzzyIncludes(clsLower, noun));
+                });
+                if (candidateClasses.length === 0) continue;
+
+                let bestOwner = null;
+                let bestScore = 0;
+                for (const m of classMethods) {
+                    const evalRes = evaluateFunctionMatch(cleanMsg, m.methodName);
+                    if (evalRes.score > bestScore) {
+                        bestScore = evalRes.score;
+                        bestOwner = m.className;
+                    }
+                }
+
+                if (!bestOwner || bestScore < 0.45) continue;
+
+                const isInCandidate = candidateClasses.some((c) => c.label.toLowerCase() === bestOwner.toLowerCase());
+                if (!isInCandidate) {
+                    const suggestedClass = candidateClasses[0].label;
+                    const noun = nouns[0];
+                    const suggestedClasses = [];
+                    const seen = new Set();
+                    candidateClasses.forEach((c) => {
+                        if (c.label.toLowerCase() !== bestOwner.toLowerCase() && !seen.has(c.label.toLowerCase())) {
+                            seen.add(c.label.toLowerCase());
+                            suggestedClasses.push(c.label);
+                        }
+                    });
+                    this._suggestResponsibilityClasses(noun).forEach((alt) => {
+                        const key = alt.toLowerCase();
+                        if (key !== bestOwner.toLowerCase() && !seen.has(key)) {
+                            seen.add(key);
+                            suggestedClasses.push(alt);
+                        }
+                    });
+
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'info',
+                        code: 'CLASS_RESPONSIBILITY_MISMATCH',
+                        message: `Operation "${cleanMsg}()" in "${ucLabel}" is owned by "${bestOwner}", but semantically relates to class "${suggestedClass}".`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            result: 'RESPONSIBILITY_WARNING',
+                            ssdOperation: cleanMsg,
+                            ownerClass: bestOwner,
+                            objectNoun: noun,
+                            suggestedClasses,
+                            suggestion: `Consider moving "${cleanMsg}()" to "${suggestedClass}" for stronger domain alignment.`
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    static async validateSequenceClassOwnershipAsync(sequenceDiagrams, classDiagram, issues, analysis) {
+        if (!sequenceDiagrams || !classDiagram?.nodes?.length) return;
+
+        const classModel = this.extractClassDiagramModel(classDiagram);
+
+        for (const [ucId, seqData] of Object.entries(sequenceDiagrams)) {
+            const { semanticData } = this.processSequenceData(seqData);
+            if (!semanticData?.messages?.length) continue;
+
+            for (const msg of semanticData.messages) {
+                if (msg.isReturn) continue;
+                const receiverName = (msg.receiverLabel || '').trim();
+                if (!receiverName) continue;
+
+                const classNames = classModel.classes.map(c => c.toLowerCase());
+                const receiverLower = receiverName.toLowerCase();
+                const matchedClass = classNames.find(c => c === receiverLower || this.fuzzyIncludes(c, receiverLower));
+
+                if (!matchedClass) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'SEQUENCE_CLASS_OWNERSHIP_MISSING',
+                        message: `Sequence message received by "${receiverName}" but no matching class found in Class Diagram.`,
+                        relatedId: ucId,
+                        location: 'class-diagram',
+                        context: {
+                            suggestion: `Add a class named "${receiverName}" to the Class Diagram, or rename the lifeline to match an existing class.`
+                        }
+                    });
+                }
+            }
+        }
+    }
+
     static processSequenceData(seqData) {
         if (!seqData) return { semanticData: null, diagramData: null };
 
@@ -3519,7 +4018,7 @@ class CheckingEngine {
                 if (!msgClean) continue;
 
                 const matchEval = evaluateFunctionMatch(parsedStep.messageName, msgClean);
-                if (matchEval.score >= 0.4 || fuzzyMatch(stepTextOrig, msgClean)) {
+                if (matchEval.score >= 0.4 || fuzzyMatchSync(stepTextOrig, msgClean) >= 0.4) {
                     matchedMsgIdx = i;
                     break;
                 }

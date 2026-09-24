@@ -84,7 +84,33 @@ function rankDomainWords(requirementModel) {
     buckets.set(lemma, b);
   }
 
-  return Array.from(buckets.values())
+  // T2-3: Extract bigrams (adjacent noun-noun pairs) for compound domain terms
+  const words = extractKeywords(text).map(w => String(w).toLowerCase());
+  const bigramBuckets = new Map();
+  for (let i = 0; i < words.length - 1; i++) {
+    const w1 = words[i], w2 = words[i + 1];
+    // Both words must be meaningful domain terms (not verbs, stop words, roles, etc.)
+    if (VERB_DICTIONARY.has(lemmatizeToken(w1)) || VERB_DICTIONARY.has(lemmatizeToken(w2))) continue;
+    if (STOP_WORDS.has(w1) || STOP_WORDS.has(w2)) continue;
+    if (ROLE_WORDS.has(w1) || ROLE_WORDS.has(w2)) continue;
+    if (TIME_AND_CONTEXT_WORDS.has(w1) || TIME_AND_CONTEXT_WORDS.has(w2)) continue;
+    if (GENERIC_SYS_WORDS.has(w1) || GENERIC_SYS_WORDS.has(w2)) continue;
+    if (FRAMING_WORDS.has(w1) || FRAMING_WORDS.has(w2)) continue;
+    // Both words should be at least 4 chars (avoid "is", "to", etc.)
+    if (w1.length < 4 || w2.length < 4) continue;
+    // Skip gerunds that aren't in our noun list
+    if (w1.endsWith('ing') && !['booking', 'listing', 'tracking'].includes(w1)) continue;
+    if (w2.endsWith('ing') && !['booking', 'listing', 'tracking'].includes(w2)) continue;
+
+    const bigram = `${w1} ${w2}`;
+    const b = bigramBuckets.get(bigram) || { display: bigram, count: 0 };
+    b.count += 2; // double weight for bigrams
+    bigramBuckets.set(bigram, b);
+  }
+
+  // Merge unigrams and bigrams
+  const all = [...buckets.values(), ...bigramBuckets.values()];
+  return all
     .sort((a, b2) => b2.count - a.count)
     .map((b) => b.display);
 }

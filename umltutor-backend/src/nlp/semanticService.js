@@ -23,10 +23,13 @@ const {
   fuzzyIncludes,
   lemmatizeToken,
   areSynonyms,
+  areSynonymsAsync,
   evaluateFunctionMatch,
+  evaluateFunctionMatchAsync,
   extractKeywords,
   levenshteinDistance,
-  similarity
+  similarity,
+  hybridSimilarity,
 } = require('./similarity');
 
 const {
@@ -294,7 +297,23 @@ class SemanticRepresentation {
       return { score: 0.95, type: 'SEMANTIC_EXACT', reason: 'Identical action and object' };
     }
 
-    // Calculate weighted similarity score
+    // NEW: Tier 0 - Embedding similarity as primary signal
+    const thisText = [this.action, this.object, this.verb, this.subject, this.keywords?.join(' ')].filter(Boolean).join(' ');
+    const otherText = [other.action, other.object, other.verb, other.subject, other.keywords?.join(' ')].filter(Boolean).join(' ');
+    
+    let embScore = 0;
+    if (thisText && otherText) {
+      try {
+        embScore = similarity(thisText, otherText); // This will use hybridSimilarity internally
+        if (embScore >= 0.9) {
+          return { score: embScore, type: 'EMBEDDING_EXACT', reason: 'High embedding similarity' };
+        }
+      } catch (err) {
+        // Fall through to structured comparison
+      }
+    }
+
+    // Calculate weighted similarity score (existing logic as fallback)
     let score = 0;
     let reason = '';
 
@@ -312,20 +331,23 @@ class SemanticRepresentation {
     score += matchOptions.actionWeight * actionSimilarity;
     reason += `Action similarity (${(actionSimilarity * 100).toFixed(1)}%); `;
 
+    // Combine embedding score with structured score
+    const combinedScore = embScore > 0 ? (score * 0.4 + embScore * 0.6) : score;
+
     // Filter out noise words from reason
     reason = reason
       .replace(/^Semi ?, /gi, '')
       .replace(/^ and, /gi, '')
       .replace(/^; \s*$/, '');
 
-    if (score >= 0.8) {
-      return { score, type: 'STRONG_SEMANTIC', reason: reason.trim() || 'Strong semantic match' };
-    } else if (score >= 0.5) {
-      return { score, type: 'SEMANTIC', reason: reason.trim() || 'Semantic match' };
-    } else if (score >= 0.25) {
-      return { score, type: 'PARTIAL_SEMANTIC', reason: 'Partial semantic match' };
+    if (combinedScore >= 0.8) {
+      return { score: combinedScore, type: 'STRONG_SEMANTIC', reason: reason.trim() || 'Strong semantic match' };
+    } else if (combinedScore >= 0.5) {
+      return { score: combinedScore, type: 'SEMANTIC', reason: reason.trim() || 'Semantic match' };
+    } else if (combinedScore >= 0.25) {
+      return { score: combinedScore, type: 'PARTIAL_SEMANTIC', reason: 'Partial semantic match' };
     } else {
-      return { score, type: 'WEAK_SEMANTIC', reason: 'Weak semantic similarity' };
+      return { score: combinedScore, type: 'WEAK_SEMANTIC', reason: 'Weak semantic similarity' };
     }
   }
 
@@ -334,6 +356,27 @@ class SemanticRepresentation {
    * Returns a 0..1 score. Used to catch cases where structured fields are
    * sparse but the raw vocabulary still aligns (or clearly diverges).
    */
+  async compareKeywordsAsync(other, options = {}) {
+    if (!other) return 0;
+
+    const a = (this.semanticKeywords || []).map((k) => String(k).toLowerCase());
+    const b = (other.semanticKeywords || []).map((k) => String(k).toLowerCase());
+    if (a.length === 0 || b.length === 0) return 0;
+
+    let matched = 0;
+    for (const ka of a) {
+      for (const kb of b) {
+        if (await areSynonymsAsync(ka, kb) || fuzzyIncludes(ka, kb)) {
+          matched++;
+          break;
+        }
+      }
+    }
+
+    const maxLen = Math.max(a.length, b.length);
+    return matched / maxLen;
+  }
+
   compareKeywords(other, options = {}) {
     if (!other) return 0;
 
@@ -574,11 +617,81 @@ class SemanticProcessor {
    * confidence score and the tier that produced it.
    *
    * Tier order (first that yields a decisive result wins):
-   *   deterministic → normalization → similarity → semantic
-   * (AI is intentionally not wired in — deterministic/NLP tiers cover SSDs.)
+   *   embedding → deterministic → normalization → similarity → semantic
    *
    * Returns { score, confidence, tier, matchType, reason, structuredScore, keywordScore }.
    */
+  async matchStepToMessageAsync(stepSemantic, messageSemantic, options = {}) {
+    const threshold = options.threshold || 0;
+
+    const stepName = (stepSemantic.functionName || stepSemantic.messageName || '').toString();
+    const msgName = (messageSemantic.functionName || messageSemantic.messageName || '').toString();
+
+    // ── Tier 0: embedding — semantic similarity via embeddings ───────────────
+    if (stepName && msgName) {
+      try {
+        const embScore = await hybridSimilarity(stepName, msgName);
+        if (embScore >= 0.9) {
+          return {
+            score: embScore, confidence: embScore, tier: 'embedding', matchType: 'EMBEDDING_EXACT',
+            reason: 'High embedding similarity', structuredScore: 0, keywordScore: 0
+          };
+        }
+      } catch (err) {
+        // Fall through to next tier
+      }
+    }
+
+    // ── Tier 1: deterministic — exact identifier equality ──────────────────
+    if (stepSemantic.semanticHash && stepSemantic.semanticHash === messageSemantic.semanticHash) {
+      return {
+        score: 1.0, confidence: 1.0, tier: 'deterministic', matchType: 'EXACT',
+        reason: 'Exact semantic hash', structuredScore: 1.0, keywordScore: 1.0
+      };
+    }
+
+    // ── Tier 2: normalization — same function/message name after cleaning ──
+    const stepNorm = normalizeToken(stepName);
+    const msgNorm = normalizeToken(msgName);
+    if (stepNorm && stepNorm === msgNorm) {
+      return {
+        score: 0.98, confidence: 0.98, tier: 'normalization', matchType: 'EXACT',
+        reason: 'Normalized identifier match', structuredScore: 0.98, keywordScore: 1.0
+      };
+    }
+
+    // ── Tier 3: similarity — evaluateFunctionMatch (verb/object, synonyms) ──
+    const fnMatch = await evaluateFunctionMatchAsync(stepName, msgName);
+    if (fnMatch.matchType === 'EXACT' || fnMatch.matchType === 'STRONG') {
+      return {
+        score: fnMatch.score, confidence: fnMatch.score, tier: 'similarity',
+        matchType: fnMatch.matchType, reason: fnMatch.reason,
+        structuredScore: 0, keywordScore: 0
+      };
+    }
+
+    // ── Tier 4: semantic — structured + keyword-overlap comparison ─────────
+    const structured = stepSemantic.compareSemantic(messageSemantic, options);
+    const keywordScore = await stepSemantic.compareKeywordsAsync(messageSemantic, options);
+    const combined = Math.max(structured.score, keywordScore);
+
+    if (combined >= threshold && combined >= 0.25) {
+      return {
+        score: combined, confidence: combined, tier: 'semantic',
+        matchType: structured.type, reason: structured.reason || 'Best semantic match',
+        structuredScore: structured.score, keywordScore
+      };
+    }
+
+    // No decisive match — report the best weak evidence so callers can grade severity.
+    return {
+      score: combined, confidence: combined, tier: 'semantic',
+      matchType: combined >= 0.1 ? structured.type : 'NONE',
+      reason: structured.reason || 'Weak semantic similarity',
+      structuredScore: structured.score, keywordScore
+    };
+  }
+
   matchStepToMessage(stepSemantic, messageSemantic, options = {}) {
     const threshold = options.threshold || 0;
 
@@ -751,10 +864,161 @@ class SemanticProcessor {
     };
   }
 
+  async compareClassOperationAsync(ssdSemantic, methodSemantic, options = {}) {
+    const ssdName = (ssdSemantic.messageName || ssdSemantic.functionName || '').toString();
+    const methodName = (methodSemantic.messageName || methodSemantic.functionName || '').toString();
+
+    // ── Tiered method-name match with embedding as Tier 0 ──────────────────
+    let score = 0;
+    let matchType = 'NONE';
+    let tier = 'semantic';
+
+    const ssdNorm = normalizeToken(ssdName);
+    const methodNorm = normalizeToken(methodName);
+    
+    // Tier 0: Embedding similarity
+    if (ssdName && methodName) {
+      try {
+        const embScore = await hybridSimilarity(ssdName, methodName);
+        if (embScore >= 0.9) {
+          score = embScore;
+          matchType = 'EMBEDDING_EXACT';
+          tier = 'embedding';
+        }
+      } catch (err) {
+        // Fall through
+      }
+    }
+
+    if (tier === 'semantic') {
+      if (ssdNorm && ssdNorm === methodNorm) {
+        score = 0.98;
+        matchType = 'EXACT';
+        tier = 'normalization';
+      } else {
+        const fnMatch = await evaluateFunctionMatchAsync(ssdName, methodName);
+        if (fnMatch.matchType === 'EXACT' || fnMatch.matchType === 'STRONG') {
+          score = fnMatch.score;
+          matchType = fnMatch.matchType;
+          tier = 'similarity';
+        } else {
+          const structured = ssdSemantic.compareSemantic(methodSemantic, options);
+          const keywordScore = await ssdSemantic.compareKeywordsAsync(methodSemantic, options);
+          score = Math.max(structured.score, keywordScore);
+          matchType = structured.type || 'NONE';
+          tier = 'semantic';
+        }
+      }
+    }
+
+    // ── Parameter presence / alignment ─────────────────────────────────────
+    const parameterCheck = compareParameterLists(
+      ssdSemantic.parameters,
+      methodSemantic.parameters
+    );
+
+    // ── Return-type requirement (only where the author uses signatures) ────
+    const QUERY_VERBS = new Set([
+      'validate', 'check', 'verify', 'get', 'fetch', 'retrieve', 'find', 'search',
+      'load', 'read', 'query', 'calculate', 'compute', 'list', 'request',
+      'confirm', 'determine', 'lookup', 'authenticate'
+    ]);
+    const verb = String(ssdSemantic.verb || '').toLowerCase();
+    const usesSignatures = (ssdSemantic.parameters || []).length > 0 || (methodSemantic.parameters || []).length > 0;
+    const returnTypeCheck = {
+      required: usesSignatures && QUERY_VERBS.has(verb),
+      present: !!methodSemantic.returnType
+    };
+
+    // ── Parameter-type declaration ─────────────────────────────────────────
+    const typedParams = methodSemantic.typedParameters || [];
+    const missingTypes = typedParams.filter((p) => !(p && p.type)).map((p) => p && p.name).filter(Boolean);
+    const paramTypesCheck = { missing: missingTypes };
+
+    // ── Visibility validity ────────────────────────────────────────────────
+    const visibility = methodSemantic.visibility;
+    const visibilityCheck = {
+      visibility,
+      valid: visibility === null || visibility === '+'
+    };
+
+    // ── Result resolution ──────────────────────────────────────────────────
+    let result;
+    if (score < 0.45) {
+      result = 'MISSING_METHOD';
+    } else if (!parameterCheck.matched) {
+      result = 'PARAMETER_MISMATCH';
+    } else if (score >= 0.85) {
+      result = 'STRONG_MATCH';
+    } else {
+      result = 'SEMANTIC_METHOD_MISMATCH';
+    }
+
+    if (
+      score >= 0.95 &&
+      parameterCheck.matched &&
+      returnTypeCheck.present &&
+      paramTypesCheck.missing.length === 0 &&
+      visibilityCheck.valid
+    ) {
+      result = 'PASS';
+    }
+
+    return {
+      result,
+      score,
+      matchType,
+      tier,
+      checks: {
+        name: { score, matchType, tier },
+        parameters: parameterCheck,
+        returnType: returnTypeCheck,
+        paramTypes: paramTypesCheck,
+        visibility: visibilityCheck
+      }
+    };
+  }
+
   /**
    * Find best semantic match between description steps and SSD messages.
    * Uses the tiered matcher and includes confidence on every pairing.
    */
+  async findBestStepMessageMatchAsync(stepSemantics, messageSemantics, options = {}) {
+    const matches = [];
+    const threshold = options.threshold || 0;
+
+    for (const [stepIdx, stepSemantic] of stepSemantics.entries()) {
+      let bestMatch = null;
+      let bestScore = 0;
+
+      for (const [msgIdx, msgSemantic] of messageSemantics.entries()) {
+        const verdict = await this.matchStepToMessageAsync(stepSemantic, msgSemantic, options);
+
+        if (verdict.score > bestScore) {
+          bestScore = verdict.score;
+          bestMatch = {
+            stepIndex: stepIdx,
+            messageIndex: msgIdx,
+            score: verdict.score,
+            confidence: verdict.confidence,
+            tier: verdict.tier,
+            matchType: verdict.matchType,
+            structuredScore: verdict.structuredScore,
+            keywordScore: verdict.keywordScore,
+            type: verdict.matchType,
+            reason: verdict.reason
+          };
+        }
+      }
+
+      if (bestMatch && bestScore >= threshold) {
+        matches.push(bestMatch);
+      }
+    }
+
+    return matches.sort((a, b) => b.score - a.score);
+  }
+
   findBestStepMessageMatch(stepSemantics, messageSemantics, options = {}) {
     const matches = [];
     const threshold = options.threshold || 0;
@@ -834,5 +1098,11 @@ const semanticProcessor = new SemanticProcessor();
 module.exports = {
   SemanticRepresentation,
   SemanticProcessor,
-  semanticProcessor
+  semanticProcessor,
+  compareParameterLists,
+  // Async methods for frontend integration
+  matchStepToMessageAsync: semanticProcessor.matchStepToMessageAsync.bind(semanticProcessor),
+  compareClassOperationAsync: semanticProcessor.compareClassOperationAsync.bind(semanticProcessor),
+  findBestStepMessageMatchAsync: semanticProcessor.findBestStepMessageMatchAsync.bind(semanticProcessor),
+  findBestSemanticMatch: semanticProcessor.findBestSemanticMatch.bind(semanticProcessor),
 };

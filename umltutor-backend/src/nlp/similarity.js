@@ -1,6 +1,7 @@
 "use strict";
 
-const { MATCH_THRESHOLD, PARTIAL_THRESHOLD, SYNONYM_GROUPS, LEMMATIZATION_MAP, STOP_WORDS } = require('./constants');
+const { MATCH_THRESHOLD, PARTIAL_THRESHOLD, SYNONYM_GROUPS, LEMMATIZATION_MAP, STOP_WORDS, PHRASAL_VERB_MAP, PHASE_THRESHOLDS } = require('./constants');
+const { semanticSimilarity, getEmbeddings } = require('./embeddingService');
 
 function levenshteinDistance(a, b) {
   const an = a ? a.length : 0;
@@ -29,6 +30,24 @@ function similarity(a, b) {
   return 1 - levenshteinDistance(a, b) / maxLen;
 }
 
+async function hybridSimilarity(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  
+  try {
+    const embSim = await semanticSimilarity(a, b);
+    if (embSim >= 0.70) {
+      return embSim;
+    }
+  } catch (err) {
+    // Fall through to Levenshtein
+  }
+  
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 1;
+  return 1 - levenshteinDistance(a, b) / maxLen;
+}
+
 function bestMatch(target, candidates) {
   let best = { score: 0, candidate: null, index: -1 };
   candidates.forEach((c, i) => {
@@ -38,14 +57,32 @@ function bestMatch(target, candidates) {
   return best;
 }
 
-function fuzzyMatch(stepText, messageName) {
+async function fuzzyMatch(stepText, messageName) {
   const stepNorm = (stepText || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const msgNorm = (messageName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   if (!stepNorm || !msgNorm) return false;
   if (stepNorm.includes(msgNorm) || msgNorm.includes(stepNorm)) return true;
-  const sim = similarity(stepNorm, msgNorm);
+  
+  let sim = similarity(stepNorm, msgNorm);
   if (sim >= MATCH_THRESHOLD) return true;
+  
+  try {
+    const embSim = await semanticSimilarity(stepNorm, msgNorm);
+    if (embSim >= MATCH_THRESHOLD) return true;
+  } catch (err) {
+    // Ignore
+  }
+  
   return false;
+}
+
+function fuzzyMatchSync(stepText, messageName) {
+  const stepNorm = (stepText || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const msgNorm = (messageName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!stepNorm || !msgNorm) return 0;
+  if (stepNorm.includes(msgNorm) || msgNorm.includes(stepNorm)) return 1;
+  
+  return similarity(stepNorm, msgNorm);
 }
 
 function normalizeToken(text) {
@@ -82,10 +119,11 @@ function normalizeName(name) {
 function lemmatizeToken(token) {
   const norm = (token || '').toLowerCase().trim();
   if (LEMMATIZATION_MAP[norm]) return LEMMATIZATION_MAP[norm];
-  if (norm.endsWith('es') && !['process', 'guess', 'pass'].includes(norm)) {
+  const SAFE_ES_WORDS = ['process', 'guess', 'pass', 'access', 'address', 'express', 'stress', 'assess', 'progress', 'success', 'excess', 'recess', 'princess', 'witness', 'fitness', 'business', 'darkness', 'kindness', 'weakness', 'sadness', 'madness', 'gladness'];
+  if (norm.endsWith('es') && !SAFE_ES_WORDS.includes(norm)) {
     return norm.slice(0, -2);
   }
-  if (norm.endsWith('s') && !['is', 'has', 'status', 'process'].includes(norm)) {
+  if (norm.endsWith('s') && !['is', 'has', 'status', 'process', 'this', 'his', 'as', 'us', 'was'].includes(norm)) {
     return norm.slice(0, -1);
   }
   return norm;
@@ -187,10 +225,21 @@ function areSynonyms(wordA, wordB) {
   return false;
 }
 
+async function areSynonymsAsync(wordA, wordB) {
+  if (areSynonyms(wordA, wordB)) return true;
+  
+  try {
+    const sim = await semanticSimilarity(wordA, wordB);
+    return sim >= 0.85;
+  } catch (err) {
+    return false;
+  }
+}
+
 /**
  * Detect whether two function/sentence strings match via a phrasal verb,
  * e.g. "sign in" vs "login", "check out" vs "checkout", "log in" vs "login".
- * Scans the full raw text (before stop-word removal) for multi-word verbs.
+ * Uses PHRASAL_VERB_MAP from constants for canonical normalization.
  */
 function checkPhrasalVerbMatch(funcA, funcB) {
   const a = (funcA || '').toLowerCase();
@@ -202,6 +251,11 @@ function checkPhrasalVerbMatch(funcA, funcB) {
 
   const twoWordA = partsA.slice(0, 2).join(' ');
   const twoWordB = partsB.slice(0, 2).join(' ');
+
+  // Check PHRASAL_VERB_MAP for canonical forms
+  const canonA = PHRASAL_VERB_MAP[twoWordA] || partsA[0];
+  const canonB = PHRASAL_VERB_MAP[twoWordB] || partsB[0];
+  if (canonA === canonB) return true;
 
   if (areSynonyms(twoWordA, twoWordB)) return true;
   if (areSynonyms(twoWordA, partsB[0])) return true;
@@ -253,11 +307,13 @@ function evaluateFunctionMatch(funcA, funcB) {
   const objMatch = objA && objB ? (objA === objB || fuzzyIncludes(objA, objB)) : true;
 
   if (verbMatch && objMatch) {
-    return { score: 0.88, matchType: 'STRONG', reason: 'Verb synonym and object match' };
+    // Exact verb match gets higher score than synonym
+    const verbExact = keywordsA[0] === keywordsB[0];
+    return { score: verbExact ? 0.92 : 0.88, matchType: 'STRONG', reason: 'Verb synonym and object match' };
   }
 
   if (phrasalMatch && objMatch) {
-    return { score: 0.88, matchType: 'STRONG', reason: 'Phrasal verb synonym and object match' };
+    return { score: 0.85, matchType: 'STRONG', reason: 'Phrasal verb synonym and object match' };
   }
 
   let matchedCount = 0;
@@ -286,21 +342,151 @@ function evaluateFunctionMatch(funcA, funcB) {
   };
 }
 
+async function evaluateFunctionMatchAsync(funcA, funcB) {
+  const cleanA = (funcA || '').split('(')[0].trim();
+  const cleanB = (funcB || '').split('(')[0].trim();
+
+  if (!cleanA || !cleanB) {
+    return { score: 0, matchType: 'NONE', reason: 'Empty function name' };
+  }
+
+  if (cleanA.toLowerCase() === cleanB.toLowerCase()) {
+    return { score: 1.0, matchType: 'EXACT', reason: 'Exact string match' };
+  }
+
+  const normA = normalizeToken(cleanA);
+  const normB = normalizeToken(cleanB);
+  if (normA === normB) {
+    return { score: 0.95, matchType: 'EXACT', reason: 'Normalized string match' };
+  }
+
+  const keywordsA = extractKeywords(cleanA).map(lemmatizeToken);
+  const keywordsB = extractKeywords(cleanB).map(lemmatizeToken);
+
+  if (keywordsA.length === 0 || keywordsB.length === 0) {
+    const sim = await hybridSimilarity(normA, normB);
+    return {
+      score: Number(sim.toFixed(2)),
+      matchType: sim >= 0.75 ? 'STRONG' : (sim >= 0.5 ? 'PARTIAL' : 'NONE'),
+      reason: 'Hybrid similarity'
+    };
+  }
+
+  const verbA = keywordsA[0];
+  const verbB = keywordsB[0];
+  const verbMatch = await areSynonymsAsync(verbA, verbB);
+
+  const phrasalMatch = checkPhrasalVerbMatch(cleanA, cleanB);
+
+  const objA = keywordsA.slice(1).join(' ');
+  const objB = keywordsB.slice(1).join(' ');
+  const objMatch = objA && objB ? (objA === objB || fuzzyIncludes(objA, objB)) : true;
+
+  if (verbMatch && objMatch) {
+    // Exact verb match gets higher score than synonym
+    const verbExact = keywordsA[0] === keywordsB[0];
+    return { score: verbExact ? 0.92 : 0.88, matchType: 'STRONG', reason: 'Verb synonym and object match' };
+  }
+
+  if (phrasalMatch && objMatch) {
+    return { score: 0.85, matchType: 'STRONG', reason: 'Phrasal verb synonym and object match' };
+  }
+
+  let matchedCount = 0;
+  for (const kwA of keywordsA) {
+    for (const kwB of keywordsB) {
+      if (await areSynonymsAsync(kwA, kwB) || fuzzyIncludes(kwA, kwB) || (await hybridSimilarity(kwA, kwB)) >= 0.75) {
+        matchedCount++;
+        break;
+      }
+    }
+  }
+
+  const ratio = matchedCount / Math.max(keywordsA.length, keywordsB.length);
+
+  if (ratio >= 0.7) {
+    return { score: Number((0.7 + ratio * 0.2).toFixed(2)), matchType: 'STRONG', reason: 'High keyword overlap' };
+  } else if (ratio >= 0.35 || verbMatch) {
+    return { score: Number((0.4 + ratio * 0.3).toFixed(2)), matchType: 'PARTIAL', reason: 'Partial keyword overlap' };
+  }
+
+  const sim = await hybridSimilarity(normA, normB);
+  return {
+    score: Number(sim.toFixed(2)),
+    matchType: sim >= 0.7 ? 'STRONG' : (sim >= 0.45 ? 'PARTIAL' : 'NONE'),
+    reason: 'Hybrid similarity'
+  };
+}
+
+async function actorRoleSimilarityAsync(roleA, roleB) {
+  const a = normalizeRoleToken(roleA);
+  const b = normalizeRoleToken(roleB);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+
+  const lemmaA = lemmatizeToken(a);
+  const lemmaB = lemmatizeToken(b);
+  if (lemmaA === lemmaB) return 0.97;
+
+  const tokensA = a.split(/\s+/);
+  const tokensB = b.split(/\s+/);
+
+  if (tokensA.length > 1 || tokensB.length > 1) {
+    const shorter = tokensA.length <= tokensB.length ? tokensA : tokensB;
+    const longer = tokensA.length <= tokensB.length ? tokensB : tokensA;
+    if (shorter.every((t) => longer.some((lt) => lemmatizeToken(lt) === lemmatizeToken(t)))) {
+      return 0.9;
+    }
+  }
+
+  const shorterTokens = tokensA.length <= tokensB.length ? tokensA : tokensB;
+  const longerTokens = tokensA.length <= tokensB.length ? tokensB : tokensA;
+  let covered = 0;
+  const used = new Set();
+  for (const st of shorterTokens) {
+    let best = 0;
+    let bestIdx = -1;
+    for (let i = 0; i < longerTokens.length; i++) {
+      if (used.has(i)) continue;
+      const lt = longerTokens[i];
+      const ls = lemmatizeToken(st);
+      const ll = lemmatizeToken(lt);
+      let s = 0;
+      if (ls === ll) s = 1;
+      else if (await areSynonymsAsync(ls, ll)) s = 0.92;
+      else if (fuzzyIncludes(ls, ll)) s = 0.85;
+      else s = await hybridSimilarity(ls, ll);
+      if (s > best) { best = s; bestIdx = i; }
+    }
+    if (best >= 0.72) { used.add(bestIdx); covered += best; }
+  }
+  if (shorterTokens.length > 0) {
+    const avg = covered / shorterTokens.length;
+    return Number(avg.toFixed(2));
+  }
+  return 0;
+}
+
 module.exports = {
   levenshteinDistance,
   similarity,
+  hybridSimilarity,
   bestMatch,
   fuzzyMatch,
+  fuzzyMatchSync,
   normalizeToken,
   fuzzyIncludes,
   extractKeywords,
   normalizeName,
   lemmatizeToken,
   areSynonyms,
+  areSynonymsAsync,
   evaluateFunctionMatch,
+  evaluateFunctionMatchAsync,
   checkPhrasalVerbMatch,
   normalizeRoleToken,
   actorRoleSimilarity,
+  actorRoleSimilarityAsync,
   classifyUseCaseMatch,
   fuzzy,
 };

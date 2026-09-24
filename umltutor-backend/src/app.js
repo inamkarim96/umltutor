@@ -11,6 +11,7 @@ var _classRoutes = require('./routes/classRoutes'); var _classRoutes2 = _interop
 var _assignmentRoutes = require('./routes/assignmentRoutes'); var _assignmentRoutes2 = _interopRequireDefault(_assignmentRoutes);
 var _submissionRoutes = require('./routes/submissionRoutes'); var _submissionRoutes2 = _interopRequireDefault(_submissionRoutes);
 var _notificationRoutes = require('./routes/notificationRoutes'); var _notificationRoutes2 = _interopRequireDefault(_notificationRoutes);
+var _correctionRoutes = require('./routes/correctionRoutes'); var _correctionRoutes2 = _interopRequireDefault(_correctionRoutes);
 var _errorHandler = require('./middleware/errorHandler');
 var _swaggerUiExpress = require('swagger-ui-express'); var _swaggerUiExpress2 = _interopRequireDefault(_swaggerUiExpress);
 var _swagger = require('./config/swagger'); var _swagger2 = _interopRequireDefault(_swagger);
@@ -48,6 +49,7 @@ app.use('/api/classes', _classRoutes2.default);
 app.use('/api/assignments', _assignmentRoutes2.default);
 app.use('/api/submissions', _submissionRoutes2.default);
 app.use('/api/notifications', _notificationRoutes2.default);
+app.use('/api/corrections', _correctionRoutes2.default);
 app.use('/api/student', _studentRoutes2.default);
 app.use('/api/students', _studentRoutes2.default);
 

@@ -3,6 +3,7 @@ var _validators = require('../utils/validators');
 var _errors = require('../utils/errors');
 var _checkingEngine = require('../services/checkingEngine');
 var _suggestionEngine = require('../services/suggestionEngine');
+var _requirementService = require('../services/requirementService');
 const checkModel = (0, _errors.asyncHandler)(async (req, res) => {
   const validatedData = _validators.umlModelSchema.parse(req.body);
 
@@ -17,4 +18,20 @@ const checkModel = (0, _errors.asyncHandler)(async (req, res) => {
   result.suggestions = suggestions;
 
   (0, _errors.sendSuccess)(res, result);
-}); exports.checkModel = checkModel;
+});
+
+const checkModelAsync = (0, _errors.asyncHandler)(async (req, res) => {
+  const validatedData = _validators.umlModelSchema.parse(req.body);
+
+  const { requirementText, useAsync = false } = req.body || {};
+  let requirementModel = null;
+  if (requirementText && typeof requirementText === 'string' && requirementText.trim()) {
+    requirementModel = _requirementService.default.parse(requirementText);
+  }
+
+  const result = await _checkingEngine.CheckingEngine.checkModelAsync(validatedData, null, null, requirementModel, useAsync);
+  const suggestions = _suggestionEngine.SuggestionEngine.generateSuggestions(result);
+  result.suggestions = suggestions;
+
+  (0, _errors.sendSuccess)(res, result);
+}); exports.checkModel = checkModel; exports.checkModelAsync = checkModelAsync;
