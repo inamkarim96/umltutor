@@ -165,18 +165,18 @@ function generateAssignmentSuggestion(issue, requirementModel) {
   const systemCandidates = deriveSystemNameCandidates(requirementModel);
   const primarySystem = systemCandidates[0];
 
-  // ── System Boundary / Name ─────────────────────────────────────────────
-  if (/^SYSTEM_NAME_/.test(effective) || /^(CASE_STUDY_)?SYSTEM_NAME_MISMATCH$/.test(effective)) {
-    if (systemCandidates.length) {
-      const quoted = listOfNames(systemCandidates.slice(0, 2), true);
-      return `Name the system according to the assignment. Try something like ${quoted}.`;
-    }
+  // Verified matches must never generate repair suggestions
+  if (effective === 'MATCH_FOUND' || code === 'CASE_STUDY_MATCH_FOUND') {
+    return null;
   }
 
-  if (effective === 'MISSING_SYSTEM_NAME') {
-    return primarySystem
-      ? `Name the system boundary after the assignment topic. Try "${primarySystem}" or "${systemCandidates[1] || primarySystem}".`
-      : 'Name the system boundary after the assignment topic (e.g. a "System Name" label).';
+  // ── System Boundary / Name ─────────────────────────────────────────────
+  if (/^SYSTEM_NAME_/.test(effective) || /^(CASE_STUDY_)?SYSTEM_NAME_MISMATCH$/.test(effective) || effective === 'MISSING_SYSTEM_NAME' || /^CASE_STUDY_SYSTEM_NAME_MISSING$/.test(code)) {
+    if (systemCandidates.length) {
+      const quoted = listOfNames(systemCandidates.slice(0, 2), true);
+      return `Name the system boundary after the assignment topic. Try ${quoted}.`;
+    }
+    return 'Name the system boundary after the assignment topic (e.g. "Notices Management System").';
   }
 
   if (/^SYSTEM_BOUNDARY_MISSING$/.test(code)) {

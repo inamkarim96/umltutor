@@ -1218,14 +1218,34 @@ const CheckingModePanel = ({
 
     const renderReport = () => {
         const issues = report?.issues ?? [];
-        const errors = issues.filter(i => i.severity === 'error');
-        const warnings = issues.filter(i => i.severity === 'warning');
-        const info = issues.filter(i => i.severity === 'info' || i.severity === 'suggestion');
+        const isMatchIssue = (i) =>
+            i.code === 'CASE_STUDY_MATCH_FOUND' ||
+            i.context?.specCode === 'MATCH_FOUND' ||
+            i.context?.isMatch === true ||
+            (typeof i.message === 'string' && i.message.startsWith('Found use case'));
 
-        const suggestions = issues
-            .filter(i => i.context?.suggestion || i.severity === 'info' || i.severity === 'error' || i.severity === 'warning')
-            .map(i => i.context?.suggestion || i.message)
-            .filter((val, idx, arr) => arr.indexOf(val) === idx); // Deduplicate
+        const errors = issues.filter(i => (i.severity === 'error' || i.type === 'error') && !isMatchIssue(i));
+        const warnings = issues.filter(i => (i.severity === 'warning' || i.type === 'warning') && !isMatchIssue(i));
+
+        const rawSuggestions = [
+            ...(report?.suggestions || []).map(s => s.action || s.message),
+            ...issues.filter(i => !isMatchIssue(i) && i.context?.suggestion).map(i => i.context.suggestion)
+        ].filter(Boolean);
+
+        const seenSuggestions = new Set();
+        const suggestions = rawSuggestions.filter(s => {
+            const trimmed = String(s).trim();
+            if (!trimmed) return false;
+            const lower = trimmed.toLowerCase();
+            if (lower.startsWith('found use case') || lower.startsWith('matched ')) return false;
+            let normKey = lower;
+            if (lower.includes('name the system') || lower.includes('system boundary')) {
+                normKey = 'sys_boundary_name_suggestion';
+            }
+            if (seenSuggestions.has(normKey)) return false;
+            seenSuggestions.add(normKey);
+            return true;
+        });
 
         const renderSection = (title, issuesList, successMsg) => {
             const sectionErrors = issuesList.filter(i => i.severity === 'error' || i.type === 'error');
@@ -1459,37 +1479,55 @@ const CheckingModePanel = ({
                                         </div>
                                     </div>
 
-                                    {findings.filter(f => f.severity === 'error').length > 0 && (
-                                        <div className="space-y-1">
-                                            <div className="text-status-red font-bold font-body">Errors:</div>
-                                            {findings.filter(f => f.severity === 'error').map((f, idx) => (
-                                                <div key={`ce-${idx}`} className="text-status-red font-body mb-1">
-                                                    ✗ {severityLine(f)}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {(() => {
+                                        const isMatchFinding = (f) =>
+                                            f.isMatch ||
+                                            f.code === 'MATCH_FOUND' ||
+                                            f.context?.specCode === 'MATCH_FOUND' ||
+                                            f.legacyCode === 'CASE_STUDY_MATCH_FOUND' ||
+                                            (typeof f.message === 'string' && f.message.startsWith('Found use case'));
 
-                                    {findings.filter(f => f.severity === 'warning').length > 0 && (
-                                        <div className="space-y-1">
-                                            <div className="text-amber-600 font-bold font-body">Warnings:</div>
-                                            {findings.filter(f => f.severity === 'warning').map((f, idx) => (
-                                                <div key={`cw-${idx}`} className="text-amber-600 font-body mb-1">
-                                                    ! {severityLine(f)}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                        const matchItems = findings.filter(isMatchFinding);
+                                        const errorItems = findings.filter(f => f.severity === 'error' && !isMatchFinding(f));
+                                        const warningItems = findings.filter(f => (f.severity === 'warning' || f.severity === 'info') && !isMatchFinding(f));
 
-                                    {findings.filter(f => f.severity === 'info').length > 0 && (
-                                        <div className="space-y-1">
-                                            {findings.filter(f => f.severity === 'info').map((f, idx) => (
-                                                <div key={`ci-${idx}`} className="text-slate-600 font-body mb-1">
-                                                    • {severityLine(f)}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                        return (
+                                            <>
+                                                {matchItems.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        <div className="text-status-green font-bold font-body">Verified Requirements:</div>
+                                                        {matchItems.map((f, idx) => (
+                                                            <div key={`cm-${idx}`} className="text-status-green font-body mb-1">
+                                                                ✓ {severityLine(f)}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {errorItems.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        <div className="text-status-red font-bold font-body">Errors:</div>
+                                                        {errorItems.map((f, idx) => (
+                                                            <div key={`ce-${idx}`} className="text-status-red font-body mb-1">
+                                                                ✗ {severityLine(f)}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {warningItems.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        <div className="text-amber-600 font-bold font-body">Warnings & Notices:</div>
+                                                        {warningItems.map((f, idx) => (
+                                                            <div key={`cw-${idx}`} className="text-amber-600 font-body mb-1">
+                                                                ! {severityLine(f)}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
 
                                     {(cs.counts || {}).total > 0 && (
                                         <div className="text-xs text-slate-400 font-bold font-body">
@@ -1560,10 +1598,289 @@ const CheckingModePanel = ({
                     </div>
                 )}
 
+                {activeSection === 'class-diagram' && (
+                    <div className="space-y-1">
+                        {(() => {
+                            const missingClassIssue = issues.find(i =>
+                                (i.code === 'CLASS_DIAGRAM_MISSING' || i.code === 'NO_CLASS_DIAGRAM' || i.code === 'CLASS_DIAGRAM_EMPTY') && i.severity === 'error'
+                            );
+                            if (missingClassIssue) {
+                                return (
+                                    <>
+                                        <div className="text-status-red font-extrabold font-heading mb-2 uppercase tracking-tighter">✗ {missingClassIssue.message}</div>
+                                        <div className="text-accent leading-tight">! Please add classes with attributes, operations, and relationships to proceed.</div>
+                                    </>
+                                );
+                            }
+
+                            const classIssues = issues.filter(i => i.location === 'class-diagram' || i.location === 'class_diagram');
+                            const entitySuggestions = classIssues.filter(i => i.code === 'CLASS_ENTITY_SUGGESTION');
+
+                            // New detailed categories
+                            const attrVerified = classIssues.filter(i => i.code === 'CLASS_ATTRIBUTE_VERIFIED');
+                            const attrMissing = classIssues.filter(i => i.code === 'CLASS_ATTRIBUTE_MISSING');
+                            const assocVerified = classIssues.filter(i => i.code === 'CLASS_ASSOCIATION_VERIFIED');
+                            const assocMissing = classIssues.filter(i => i.code === 'CLASS_ASSOCIATION_MISSING');
+                            const inheritVerified = classIssues.filter(i => i.code === 'CLASS_INHERITANCE_VERIFIED');
+                            const inheritMissing = classIssues.filter(i => i.code === 'CLASS_INHERITANCE_MISSING');
+                            const inheritRedundant = classIssues.filter(i => i.code === 'CLASS_INHERITANCE_REDUNDANT_ATTR');
+                            const genOpportunity = classIssues.filter(i => i.code === 'CLASS_GENERALIZATION_OPPORTUNITY');
+
+                            // Legacy structural errors for backward compatibility
+                            const structuralErrors = classIssues.filter(i => i.severity === 'error' && i.code !== 'CLASS_ENTITY_SUGGESTION');
+                            const attrErrors = structuralErrors.filter(i => i.code?.includes('ATTRIBUTE') || i.code?.includes('ATTR'));
+                            const opErrors = structuralErrors.filter(i => i.code?.includes('OPERATION') || i.code?.includes('OP'));
+                            const relErrors = structuralErrors.filter(i => i.code?.includes('RELATION') || i.code?.includes('ASSOC') || i.code?.includes('INHERIT'));
+                            const otherClassErrors = structuralErrors.filter(i => !attrErrors.includes(i) && !opErrors.includes(i) && !relErrors.includes(i));
+                            const classWarnings = classIssues.filter(i => (i.severity === 'warning' || i.severity === 'suggestion') && i.code !== 'CLASS_ENTITY_SUGGESTION');
+
+                            // Verified (classes without errors) — look for explicit match codes
+                            // Exclude CLASS_ENTITY_SUGGESTION as those are suggestions, not verified items
+                            const verifiedClasses = classIssues.filter(i =>
+                                (i.severity === 'info' || i.code === 'CLASS_FOUND' || i.code === 'CLASS_MATCH_FOUND')
+                                && i.code !== 'CLASS_ENTITY_SUGGESTION'
+                            );
+
+                            return (
+                                <div className="space-y-3">
+                                    {/* Checklist */}
+                                    <div className="space-y-1">
+                                        <div className={`${attrErrors.length > 0 || attrMissing.length > 0 ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>
+                                            {attrErrors.length > 0 || attrMissing.length > 0 ? '✗' : '✓'} Class attributes properly typed & complete
+                                        </div>
+                                        <div className={`${opErrors.length > 0 ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>
+                                            {opErrors.length > 0 ? '✗' : '✓'} Operations defined and mapped to SSD messages
+                                        </div>
+                                        <div className={`${relErrors.length > 0 || assocMissing.length > 0 || inheritMissing.length > 0 ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>
+                                            {relErrors.length > 0 || assocMissing.length > 0 || inheritMissing.length > 0 ? '✗' : '✓'} Relationships valid (associations, inheritance, multiplicities)
+                                        </div>
+                                    </div>
+
+                                    {/* 3-Category Report: Attributes */}
+                                    {(attrVerified.length > 0 || attrMissing.length > 0) && (
+                                        <div className="space-y-1">
+                                            <div className="text-status-green font-bold font-body">Attributes:</div>
+                                            {attrVerified.map((i, idx) => (
+                                                <div key={`av-${idx}`} className="text-status-green font-body mb-1">✓ {i.message}</div>
+                                            ))}
+                                            {attrMissing.map((i, idx) => (
+                                                <div key={`am-${idx}`} className="text-status-red font-body mb-1">✗ {i.message}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* 3-Category Report: Associations */}
+                                    {(assocVerified.length > 0 || assocMissing.length > 0) && (
+                                        <div className="space-y-1">
+                                            <div className="text-status-green font-bold font-body">Associations:</div>
+                                            {assocVerified.map((i, idx) => (
+                                                <div key={`asv-${idx}`} className="text-status-green font-body mb-1">✓ {i.message}</div>
+                                            ))}
+                                            {assocMissing.map((i, idx) => (
+                                                <div key={`asm-${idx}`} className="text-status-red font-body mb-1">✗ {i.message}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* 3-Category Report: Inheritance & Generalization */}
+                                    {(inheritVerified.length > 0 || inheritMissing.length > 0 || inheritRedundant.length > 0 || genOpportunity.length > 0) && (
+                                        <div className="space-y-1">
+                                            <div className="text-status-green font-bold font-body">Inheritance & Generalization:</div>
+                                            {inheritVerified.map((i, idx) => (
+                                                <div key={`iv-${idx}`} className="text-status-green font-body mb-1">✓ {i.message}</div>
+                                            ))}
+                                            {inheritMissing.map((i, idx) => (
+                                                <div key={`im-${idx}`} className="text-status-red font-body mb-1">✗ {i.message}</div>
+                                            ))}
+                                            {inheritRedundant.map((i, idx) => (
+                                                <div key={`ir-${idx}`} className="text-amber-600 font-body mb-1">! {i.message}</div>
+                                            ))}
+                                            {genOpportunity.map((i, idx) => (
+                                                <div key={`go-${idx}`} className="text-amber-600 font-body mb-1">💡 {i.message}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Legacy Verified Classes */}
+                                    {verifiedClasses.length > 0 && (
+                                        <div className="space-y-1">
+                                            <div className="text-status-green font-bold font-body">Verified:</div>
+                                            {verifiedClasses.map((i, idx) => (
+                                                <div key={`vc-${idx}`} className="text-status-green font-body mb-1">✓ {i.message}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Legacy Errors */}
+                                    {(structuralErrors.length > 0 || otherClassErrors.length > 0) && (
+                                        <div className="space-y-1">
+                                            <div className="text-status-red font-bold font-body">Errors:</div>
+                                            {[...attrErrors, ...opErrors, ...relErrors, ...otherClassErrors].map((i, idx) => (
+                                                <div key={`ce-${idx}`} className="text-status-red font-body mb-1">✗ {i.message}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Warnings & Suggestions */}
+                                    {(classWarnings.length > 0 || entitySuggestions.length > 0) && (
+                                        <div className="space-y-1">
+                                            <div className="text-amber-600 font-bold font-body">Warnings & Suggestions:</div>
+                                            {classWarnings.map((i, idx) => (
+                                                <div key={`cw-${idx}`} className="text-amber-600 font-body mb-1">
+                                                    ! {i.message}
+                                                    {i.context?.suggestedName && (
+                                                        <span className="ml-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded text-[11px] font-bold font-body border border-amber-200">
+                                                            {i.context.suggestedName}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {entitySuggestions.map((i, idx) => (
+                                                <div key={`es-${idx}`} className="text-amber-600 font-body mb-1">
+                                                    💡 {i.message}
+                                                    {i.context?.suggestedName && (
+                                                        <span className="ml-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded text-[11px] font-bold font-body border border-amber-200">
+                                                            {i.context.suggestedName}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </div>
+                )}
+
+                {activeSection === 'sequence-diagram' && (
+                    <div className="space-y-1">
+                        {(() => {
+                            const missingSeqIssue = issues.find(i =>
+                                (i.code === 'SEQUENCE_DIAGRAM_MISSING' || i.code === 'NO_SEQUENCE_DIAGRAM' || i.code === 'SEQUENCE_DIAGRAM_EMPTY') && i.severity === 'error'
+                            );
+                            if (missingSeqIssue) {
+                                return (
+                                    <>
+                                        <div className="text-status-red font-extrabold font-heading mb-2 uppercase tracking-tighter">✗ {missingSeqIssue.message}</div>
+                                        <div className="text-accent leading-tight">! Please create a Sequence Diagram with lifelines and messages to proceed.</div>
+                                    </>
+                                );
+                            }
+
+                            const seqIssues = issues.filter(i => i.location === 'sequence-diagram' || i.location === 'sequence_diagram');
+                            const opMissingIssues = seqIssues.filter(i => i.code === 'SEQUENCE_OPERATION_NOT_DEFINED');
+                            const lifelineErrors = seqIssues.filter(i => i.severity === 'error' && (i.code?.includes('LIFELINE') || i.code?.includes('PARTICIPANT')));
+                            const messageErrors = seqIssues.filter(i => i.severity === 'error' && i.code?.includes('MESSAGE') && !opMissingIssues.includes(i));
+                            const otherSeqErrors = seqIssues.filter(i => i.severity === 'error' && !opMissingIssues.includes(i) && !lifelineErrors.includes(i) && !messageErrors.includes(i));
+                            const seqWarnings = seqIssues.filter(i => i.severity === 'warning');
+                            const verifiedSeq = seqIssues.filter(i => i.severity === 'info' || i.code === 'SEQUENCE_MATCH_FOUND');
+
+                            return (
+                                <div className="space-y-3">
+                                    {/* Checklist */}
+                                    <div className="space-y-1">
+                                        <div className={`${lifelineErrors.length > 0 ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>
+                                            {lifelineErrors.length > 0 ? '✗' : '✓'} Lifelines match Class Diagram participants
+                                        </div>
+                                        <div className={`${messageErrors.length > 0 ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>
+                                            {messageErrors.length > 0 ? '✗' : '✓'} Messages follow correct call/return structure
+                                        </div>
+                                        <div className={`${opMissingIssues.length > 0 ? 'text-status-red font-bold font-body' : 'text-slate-600'} mb-1`}>
+                                            {opMissingIssues.length > 0 ? '✗' : '✓'} Message operations defined in Class Diagram
+                                        </div>
+                                    </div>
+
+                                    {/* 3-Category Report */}
+                                    {verifiedSeq.length > 0 && (
+                                        <div className="space-y-1">
+                                            <div className="text-status-green font-bold font-body">Verified:</div>
+                                            {verifiedSeq.map((i, idx) => (
+                                                <div key={`vs-${idx}`} className="text-status-green font-body mb-1">✓ {i.message}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {(lifelineErrors.length > 0 || messageErrors.length > 0 || opMissingIssues.length > 0 || otherSeqErrors.length > 0) && (
+                                        <div className="space-y-1">
+                                            <div className="text-status-red font-bold font-body">Errors:</div>
+                                            {lifelineErrors.map((i, idx) => (
+                                                <div key={`sle-${idx}`} className="text-status-red font-body mb-1">✗ {i.message}</div>
+                                            ))}
+                                            {messageErrors.map((i, idx) => (
+                                                <div key={`sme-${idx}`} className="text-status-red font-body mb-1">✗ {i.message}</div>
+                                            ))}
+                                            {opMissingIssues.map((i, idx) => (
+                                                <div key={`som-${idx}`} className="text-status-red font-body mb-1">
+                                                    ✗ {i.message}
+                                                    {i.context?.suggestedOperation && (
+                                                        <span className="ml-1 px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[11px] font-bold font-body border border-red-200">
+                                                            Add: {i.context.suggestedOperation}()
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {otherSeqErrors.map((i, idx) => (
+                                                <div key={`soe-${idx}`} className="text-status-red font-body mb-1">✗ {i.message}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {seqWarnings.length > 0 && (
+                                        <div className="space-y-1">
+                                            <div className="text-amber-600 font-bold font-body">Warnings & Notices:</div>
+                                            {seqWarnings.map((i, idx) => (
+                                                <div key={`sw-${idx}`} className="text-amber-600 font-body mb-1">! {i.message}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </div>
+                )}
+
                 <div className="pt-4 border-t border-slate-100">
                     <div className="text-status-red font-bold font-body mb-1">X {errors.length} Error(s) found</div>
                     {warnings.length > 0 && <div className="text-amber-600 font-bold font-body mb-1">! {warnings.length} Warning(s) found</div>}
                 </div>
+
+                {report?.aiFeedback && (
+                    <div className="pt-4 border-t border-slate-100">
+                        <div className="bg-indigo-50/80 border border-indigo-100 rounded-lg p-3.5 space-y-2.5">
+                            <div className="flex items-center gap-1.5 text-indigo-900 font-extrabold font-heading text-xs uppercase tracking-wide">
+                                <span>🤖</span> AI Tutor Feedback
+                            </div>
+                            <div className="text-xs text-slate-700 font-body leading-relaxed font-medium">
+                                {report.aiFeedback.summary}
+                            </div>
+                            {report.aiFeedback.strengths?.length > 0 && (
+                                <div className="space-y-0.5">
+                                    <div className="text-[11px] font-bold text-emerald-800">What you did well:</div>
+                                    <ul className="text-xs text-slate-600 space-y-0.5 list-disc list-inside">
+                                        {report.aiFeedback.strengths.map((str, sIdx) => (
+                                            <li key={`str-${sIdx}`} className="text-slate-700">
+                                                {str}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {report.aiFeedback.remediations?.length > 0 && (
+                                <div className="space-y-0.5">
+                                    <div className="text-[11px] font-bold text-indigo-800">Key action items to resolve:</div>
+                                    <ul className="text-xs text-slate-700 space-y-0.5 list-disc list-inside">
+                                        {report.aiFeedback.remediations.map((rem, rIdx) => (
+                                            <li key={`rem-${rIdx}`} className="text-indigo-950 font-medium">
+                                                {rem}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {suggestions.length > 0 && (
                     <div className="pt-4">

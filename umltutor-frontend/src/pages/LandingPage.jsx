@@ -1,16 +1,22 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
+import HeroDiagramPreview from './HeroDiagramPreview';
 
 
 const LandingPage = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Navbar scroll effect
   useEffect(() => {
     const nav = document.getElementById('navbar');
     const handleScroll = () => {
-      if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
+      const scrolled = window.scrollY > 40;
+      setIsScrolled(scrolled);
+      if (nav) nav.classList.toggle('scrolled', scrolled);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -30,14 +36,14 @@ const LandingPage = () => {
     <div className="landing-page-container">
 
       {/* Navigation */}
-      <nav id="navbar">
-        <a href="#" className="nav-logo">
-          <div className="nav-logo-icon">
+      <nav id="navbar" aria-label="Main navigation">
+        <a href="#" className="nav-logo" aria-label="UMLTutor Home">
+          <div className="nav-logo-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h12M3 18h8" /><circle cx="19" cy="18" r="3" /></svg>
           </div>
           UMLTutor
         </a>
-        <div className="nav-links">
+        <div className="nav-links" role="navigation" aria-label="Primary">
           <a href="#how" className="nav-link">How it works</a>
           <a href="#features" className="nav-link">Features</a>
           <a href="#modules" className="nav-link">Modules</a>
@@ -48,12 +54,37 @@ const LandingPage = () => {
           <Link to="/login" className="nav-link">Log in</Link>
           <Link to="/signup" className="nav-cta">Get Started</Link>
         </div>
+        {/* Mobile menu button */}
+        <button
+          className="nav-mobile-toggle"
+          aria-expanded={isMenuOpen}
+          aria-controls="mobile-menu"
+          aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </nav>
 
-      {/* Hero */}
-      <section className="hero">
+      {/* Mobile menu */}
+      <div id="mobile-menu" className={`nav-mobile-menu ${isMenuOpen ? 'open' : ''}`} role="navigation" aria-label="Mobile">
+        <a href="#how" className="nav-link" onClick={() => setIsMenuOpen(false)}>How it works</a>
+        <a href="#features" className="nav-link" onClick={() => setIsMenuOpen(false)}>Features</a>
+        <a href="#modules" className="nav-link" onClick={() => setIsMenuOpen(false)}>Modules</a>
+        <a href="#nlp" className="nav-link" onClick={() => setIsMenuOpen(false)}>AI Engine</a>
+        <a href="#about" className="nav-link" onClick={() => setIsMenuOpen(false)}>About</a>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+          <Link to="/login" className="nav-link" onClick={() => setIsMenuOpen(false)} style={{ textAlign: 'center' }}>Log in</Link>
+          <Link to="/signup" className="nav-cta" onClick={() => setIsMenuOpen(false)} style={{ textAlign: 'center' }}>Get Started</Link>
+        </div>
+      </div>
 
-        <h1 className="hero-title">
+      {/* Hero */}
+      <section className="hero" aria-labelledby="hero-title">
+
+
+
+        <h1 id="hero-title" className="hero-title">
           The Smart Way to<br />
           Master <em>UML</em>
         </h1>
@@ -94,55 +125,7 @@ const LandingPage = () => {
         </div>
 
         {/* Mini diagram preview */}
-        <div className="hero-diagram-preview">
-          <div className="preview-window">
-            <div className="preview-topbar">
-              <span className="preview-dot r"></span>
-              <span className="preview-dot y"></span>
-              <span className="preview-dot g"></span>
-              <span className="preview-title">Use Case Diagram  Library System</span>
-            </div>
-            <div className="preview-body">
-              <svg className="preview-svg" viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
-                {/* Actor 1 */}
-                <g transform="translate(40,60)">
-                  <circle cx="0" cy="0" r="14" fill="none" stroke="#5046E5" strokeWidth="2" />
-                  <line x1="0" y1="14" x2="0" y2="50" stroke="#5046E5" strokeWidth="2" />
-                  <line x1="-18" y1="28" x2="18" y2="28" stroke="#5046E5" strokeWidth="2" />
-                  <line x1="0" y1="50" x2="-14" y2="72" stroke="#5046E5" strokeWidth="2" />
-                  <line x1="0" y1="50" x2="14" y2="72" stroke="#5046E5" strokeWidth="2" />
-                  <text y="88" textAnchor="middle" fontSize="11" fill="#5A5A72" fontFamily="DM Sans,sans-serif">Student</text>
-                </g>
-                {/* System boundary */}
-                <rect x="100" y="10" width="380" height="160" rx="10" fill="none" stroke="#9898AD" strokeWidth="1.5" strokeDasharray="6,4" />
-                <text x="290" y="28" textAnchor="middle" fontSize="11" fill="#9898AD" fontFamily="DM Sans,sans-serif" fontWeight="500">Library System</text>
-                {/* Use Cases */}
-                <ellipse cx="210" cy="80" rx="62" ry="24" fill="#EFEFF9" stroke="#5046E5" strokeWidth="1.5" />
-                <text x="210" y="85" textAnchor="middle" fontSize="11" fill="#5046E5" fontFamily="DM Sans,sans-serif" fontWeight="500">Borrow Book</text>
-                <ellipse cx="210" cy="140" rx="62" ry="24" fill="#EFEFF9" stroke="#5046E5" strokeWidth="1.5" />
-                <text x="210" y="145" textAnchor="middle" fontSize="11" fill="#5046E5" fontFamily="DM Sans,sans-serif" fontWeight="500">Search Catalog</text>
-                <ellipse cx="370" cy="80" rx="62" ry="24" fill="#F7F7FC" stroke="#9898AD" strokeWidth="1.5" />
-                <text x="370" y="85" textAnchor="middle" fontSize="11" fill="#5A5A72" fontFamily="DM Sans,sans-serif" fontWeight="500">Return Book</text>
-                <ellipse cx="370" cy="140" rx="62" ry="24" fill="#F7F7FC" stroke="#9898AD" strokeWidth="1.5" />
-                <text x="370" y="145" textAnchor="middle" fontSize="11" fill="#5A5A72" fontFamily="DM Sans,sans-serif" fontWeight="500">Reserve Book</text>
-                {/* Connections */}
-                <line x1="58" y1="80" x2="148" y2="80" stroke="#5046E5" strokeWidth="1.5" />
-                <line x1="58" y1="100" x2="148" y2="130" stroke="#5046E5" strokeWidth="1.5" />
-                {/* Actor 2 */}
-                <g transform="translate(560,60)">
-                  <circle cx="0" cy="0" r="14" fill="none" stroke="#9898AD" strokeWidth="2" />
-                  <line x1="0" y1="14" x2="0" y2="50" stroke="#9898AD" strokeWidth="2" />
-                  <line x1="-18" y1="28" x2="18" y2="28" stroke="#9898AD" strokeWidth="2" />
-                  <line x1="0" y1="50" x2="-14" y2="72" stroke="#9898AD" strokeWidth="2" />
-                  <line x1="0" y1="50" x2="14" y2="72" stroke="#9898AD" strokeWidth="2" />
-                  <text y="88" textAnchor="middle" fontSize="11" fill="#5A5A72" fontFamily="DM Sans,sans-serif">Librarian</text>
-                </g>
-                <line x1="542" y1="80" x2="432" y2="80" stroke="#9898AD" strokeWidth="1.5" />
-                <line x1="542" y1="95" x2="432" y2="130" stroke="#9898AD" strokeWidth="1.5" />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <HeroDiagramPreview />
 
         <div className="hero-scroll-hint">
           <span>Scroll to explore</span>
@@ -326,15 +309,15 @@ const LandingPage = () => {
         <div className="container">
           <div className="reveal" style={{ textAlign: 'center', marginBottom: '56px' }}>
             <span className="section-label">AI Intelligence</span>
-            <h2 className="section-title">Built-in NLP &amp; Semantic Engine</h2>
-            <p className="section-sub" style={{ maxWidth: '640px', margin: '0 auto' }}>
+            <h2 className="section-title">Built-in NLP & Semantic Engine</h2>
+            <p className="section-sub section-sub-centered">
               UMLTutor ships a custom Natural Language Processing engine that understands your case study no external AI subscriptions required.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }} className="reveal reveal-delay-1">
+          <div className="nlp-feature-grid reveal reveal-delay-1">
 
-            <div className="feature-card" style={{ borderTop: '3px solid #5046E5' }}>
+            <div className="feature-card accent-border-indigo">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
               </div>
@@ -342,15 +325,15 @@ const LandingPage = () => {
               <div className="feature-desc">Automatically labels each sentence as Functional, System Step, Actor, Domain Entity, Business Rule, Precondition, Postcondition, Constraint, Non-Functional, or Ambiguous.</div>
             </div>
 
-            <div className="feature-card" style={{ borderTop: '3px solid #7C3AED' }}>
+            <div className="feature-card accent-border-violet">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="23" y1="11" x2="17" y2="11" /><line x1="20" y1="8" x2="20" y2="14" /></svg>
               </div>
-              <div className="feature-title">Actor &amp; Use Case Extraction</div>
+              <div className="feature-title">Actor & Use Case Extraction</div>
               <div className="feature-desc">Identifies role-nouns (Student, Librarian, Admin) as actors and functional verbs (borrow, reserve, approve) as use case candidates with confidence scoring.</div>
             </div>
 
-            <div className="feature-card" style={{ borderTop: '3px solid #0EA5E9' }}>
+            <div className="feature-card accent-border-sky">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
               </div>
@@ -358,7 +341,7 @@ const LandingPage = () => {
               <div className="feature-desc">Lemmatization, synonym detection, and fuzzy string matching ensure diagram elements are validated against requirements even when phrased differently.</div>
             </div>
 
-            <div className="feature-card" style={{ borderTop: '3px solid #10B981' }}>
+            <div className="feature-card accent-border-emerald">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" /></svg>
               </div>
@@ -366,7 +349,7 @@ const LandingPage = () => {
               <div className="feature-desc">The engine validates: Description ↔ Diagram alignment, SSD ↔ Description flows, Class ↔ SSD operations, and Sequence ↔ Class ownership — 12 distinct validation phases in one run.</div>
             </div>
 
-            <div className="feature-card" style={{ borderTop: '3px solid #F59E0B' }}>
+            <div className="feature-card accent-border-amber">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" /><polyline points="13 2 13 9 20 9" /></svg>
               </div>
@@ -374,7 +357,7 @@ const LandingPage = () => {
               <div className="feature-desc">System Sequence Diagrams are checked for message naming consistency, actor-system boundary adherence, and traceability back to use case flow steps.</div>
             </div>
 
-            <div className="feature-card" style={{ borderTop: '3px solid #EF4444' }}>
+            <div className="feature-card accent-border-rose">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
               </div>
@@ -484,13 +467,13 @@ const LandingPage = () => {
       {/* Workflow timeline */}
       <section className="workflow-section section-pad">
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'start' }}>
-            <div className="reveal">
+          <div className="workflow-grid reveal">
+            <div>
               <span className="section-label">Student Journey</span>
               <h2 className="section-title">Your Path to UML Mastery</h2>
               <p className="section-sub">From opening an assignment to submitting a complete, AI-validated UML model — the whole journey in one platform.</p>
-              <div style={{ marginTop: '32px' }}>
-                <Link to="/signup" className="btn-primary" style={{ display: 'inline-flex' }}>
+              <div className="workflow-cta">
+                <Link to="/signup" className="btn-primary">
                   Start Your Journey
                   <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                 </Link>
@@ -564,7 +547,7 @@ const LandingPage = () => {
               <div className="team-avatar">OM</div>
               <div className="team-name">Dr. Onaiza Maqbool</div>
               <div className="team-role">Project Supervisor</div>
-              <span style={{ display: 'inline-block', fontSize: '13px', color: 'var(--ink-muted)', background: 'var(--surface-2)', padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>Project Supervisor</span>
+              <span className="team-badge">Project Supervisor</span>
             </div>
           </div>
         </div>

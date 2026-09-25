@@ -8,7 +8,9 @@ let modelLoading = null;
 let modelLoadError = null;
 
 const EMBEDDING_DIM = 384;
-const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
+const DEFAULT_MODEL_NAME = process.env.EMBEDDING_MODEL_NAME || 'Xenova/bge-small-en-v1.5';
+const FALLBACK_MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
+let activeModelName = DEFAULT_MODEL_NAME;
 
 const embeddingCache = new LRUCache({
   max: 5000,
@@ -22,16 +24,30 @@ async function loadModel() {
   if (modelLoadError) throw modelLoadError;
 
   modelLoading = (async () => {
+    const { pipeline } = require('@xenova/transformers');
     try {
-      const { pipeline } = require('@xenova/transformers');
-      embedder = await pipeline('feature-extraction', MODEL_NAME, {
+      embedder = await pipeline('feature-extraction', activeModelName, {
         quantized: true,
       });
-      console.log('[EmbeddingService] Model loaded successfully');
+      console.log(`[EmbeddingService] Model "${activeModelName}" loaded successfully`);
       return embedder;
     } catch (err) {
+      console.warn(`[EmbeddingService] Failed to load "${activeModelName}", attempting fallback to "${FALLBACK_MODEL_NAME}":`, err.message);
+      if (activeModelName !== FALLBACK_MODEL_NAME) {
+        try {
+          activeModelName = FALLBACK_MODEL_NAME;
+          embedder = await pipeline('feature-extraction', activeModelName, {
+            quantized: true,
+          });
+          console.log(`[EmbeddingService] Fallback model "${activeModelName}" loaded successfully`);
+          return embedder;
+        } catch (fbErr) {
+          modelLoadError = fbErr;
+          console.error('[EmbeddingService] Failed to load fallback model:', fbErr.message);
+          throw fbErr;
+        }
+      }
       modelLoadError = err;
-      console.error('[EmbeddingService] Failed to load model:', err.message);
       throw err;
     } finally {
       modelLoading = null;
@@ -182,5 +198,7 @@ module.exports = {
   isModelLoaded,
   getModelLoadError,
   EMBEDDING_DIM,
-  MODEL_NAME,
+  MODEL_NAME: DEFAULT_MODEL_NAME,
+  DEFAULT_MODEL_NAME,
+  getActiveModelName: () => activeModelName,
 };

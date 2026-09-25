@@ -16,6 +16,7 @@ const {
 const {
     semanticProcessor, SemanticRepresentation,
 } = require('../nlp/semanticService');
+const { ClassModelExtractor } = require('../nlp/classModelExtractor');
 
 class CheckingEngine {
 
@@ -102,12 +103,27 @@ class CheckingEngine {
             this.validateClassDiagramStructure(model.classDiagram, issues, diagramAnalysis);
         }
 
-        // 4b. SSD operation <-> Class operation full-signature validation (Phase 10)
+        // 4b. Class diagram attribute extraction & verification from Descriptions & SSDs
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagramAttributes(model.classDiagram, model.descriptions, model.ssds, issues, diagramAnalysis);
+        }
+
+        // 4c. Class diagram association lines validation
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagramAssociations(model.classDiagram, model.descriptions, model.ssds, issues, diagramAnalysis);
+        }
+
+        // 4d. Class diagram inheritance & abstraction validation
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagramInheritance(model.classDiagram, model.descriptions, model.ssds, issues, diagramAnalysis, requirementModel);
+        }
+
+        // 4e. SSD operation <-> Class operation full-signature validation (Phase 10)
         if (!section || section === 'class-diagram') {
             this.validateSSDClassOperations(model.classDiagram, model.ssds, issues, diagramAnalysis);
         }
 
-        // 4c. SSD <-> Class semantic responsibility (Step 3 -> Step 4)
+        // 4f. SSD <-> Class semantic responsibility (Step 3 -> Step 4)
         if (!section || section === 'class-diagram') {
             this.validateSSDClassResponsibility(model.classDiagram, model.ssds, issues, diagramAnalysis);
         }
@@ -171,7 +187,7 @@ class CheckingEngine {
             this.validateSequenceCombinedFragments(model.sequenceDiagrams, model.descriptions, issues, diagramAnalysis);
         }
 
-        // Global mapping consistency across steps 2â€“5
+        // Global mapping consistency across steps 2Ã¢â‚¬â€œ5
         if (!section) {
             this.validateGlobalMapping(model, issues, diagramAnalysis);
         }
@@ -278,12 +294,27 @@ class CheckingEngine {
             this.validateClassDiagramStructure(model.classDiagram, issues, diagramAnalysis);
         }
 
-        // 4b. SSD operation <-> Class operation - USE ASYNC
+        // 4b. Class diagram attribute extraction & verification from Descriptions & SSDs
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagramAttributes(model.classDiagram, model.descriptions, model.ssds, issues, diagramAnalysis);
+        }
+
+        // 4c. Class diagram association lines validation
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagramAssociations(model.classDiagram, model.descriptions, model.ssds, issues, diagramAnalysis);
+        }
+
+        // 4d. Class diagram inheritance & abstraction validation
+        if (!section || section === 'class-diagram') {
+            this.validateClassDiagramInheritance(model.classDiagram, model.descriptions, model.ssds, issues, diagramAnalysis, requirementModel);
+        }
+
+        // 4e. SSD operation <-> Class operation - USE ASYNC
         if (!section || section === 'class-diagram') {
             await this.validateSSDClassOperationsAsync(model.classDiagram, model.ssds, issues, diagramAnalysis);
         }
 
-        // 4c. SSD <-> Class semantic responsibility - USE ASYNC
+        // 4f. SSD <-> Class semantic responsibility - USE ASYNC
         if (!section || section === 'class-diagram') {
             await this.validateSSDClassResponsibilityAsync(model.classDiagram, model.ssds, issues, diagramAnalysis);
         }
@@ -390,12 +421,25 @@ class CheckingEngine {
             if (label) useCaseLabels.set(useCase.id, label);
         });
 
+        const actorGeneralizations = [];
+        (diagram.edges || []).forEach(edge => {
+            const rel = String(edge.data?.relationship || edge.relationship || edge.label || '').toLowerCase().trim();
+            if (rel === 'generalization' || rel === 'generalize' || rel === 'extends') {
+                const srcActor = actorLabels.get(edge.source);
+                const tgtActor = actorLabels.get(edge.target);
+                if (srcActor && tgtActor && srcActor !== tgtActor) {
+                    actorGeneralizations.push({ child: srcActor, parent: tgtActor });
+                }
+            }
+        });
+
         return {
             nodes,
             actors,
             useCases,
             actorLabels,
             useCaseLabels,
+            actorGeneralizations,
             edges: diagram.edges || []
         };
     }
@@ -420,7 +464,7 @@ class CheckingEngine {
 
     /**
      * Resolve a human-readable Use Case name for error messages.
-     * Priority: use case diagram label â†’ description useCaseName â†’ readable fallback.
+     * Priority: use case diagram label Ã¢â€ â€™ description useCaseName Ã¢â€ â€™ readable fallback.
      */
     static getUseCaseName(ucId, useCaseLabels, descriptions = {}) {
         const rawLabel = useCaseLabels.get(ucId);
@@ -443,6 +487,40 @@ class CheckingEngine {
         return validateSentence(text);
     }
 
+    /**
+     * Suggest a valid PascalCase class name from an invalid name.
+     * Converts snake_case, kebab-case, lowercase, or spaced names to PascalCase.
+     */
+    static suggestValidClassName(invalidName) {
+        if (!invalidName || typeof invalidName !== 'string') return null;
+        const trimmed = invalidName.trim();
+        if (!trimmed) return null;
+
+        // Already valid PascalCase?
+        if (/^[A-Z][A-Za-z0-9_]*$/.test(trimmed)) return null;
+
+        // Split by common separators and spaces
+        const words = trimmed
+            .replace(/[_\-]+/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 0);
+
+        if (words.length === 0) return null;
+
+        // Capitalize each word and join
+        const pascalCase = words
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join('');
+
+        // Remove any non-alphanumeric characters except underscore
+        const cleaned = pascalCase.replace(/[^A-Za-z0-9_]/g, '');
+
+        // Ensure it starts with a letter
+        if (!/^[A-Z]/.test(cleaned)) return null;
+
+        return cleaned || null;
+    }
+
     static validateDiagram(diagram, issues, analysis) {
         if (!analysis.nodes.length) {
             issues.push({ type: 'diagram', severity: 'error', location: 'diagram', code: 'DIAGRAM_EMPTY', message: 'Diagram is missing nodes.' });
@@ -451,7 +529,7 @@ class CheckingEngine {
 
         const { actors, useCases, edges, useCaseLabels, actorLabels, nodes } = analysis;
 
-        // â”€â”€ System Boundary Validation â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ System Boundary Validation Ã¢â€â‚¬Ã¢â€â‚¬
         const systemBoundary = nodes.find((n) => n.type === 'systemBoundary');
         if (!systemBoundary) {
             issues.push({
@@ -527,7 +605,7 @@ class CheckingEngine {
             }
         });
 
-        // â”€â”€ Use Case Validation â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Use Case Validation Ã¢â€â‚¬Ã¢â€â‚¬
         if (useCases.length === 0) {
             issues.push({
                 type: 'diagram', severity: 'error', location: 'diagram',
@@ -639,13 +717,13 @@ class CheckingEngine {
             return;
         }
 
-        // No parseable case-study content → nothing meaningful to check.
+        // No parseable case-study content â†’ nothing meaningful to check.
         if (reqUseCases.length === 0 && reqActors.length === 0) return;
 
         const { actors, useCases, edges, actorLabels, useCaseLabels, nodes } = analysis;
         const { actorRoleSimilarity, classifyUseCaseMatch, normalizeRoleToken } = require('../nlp/similarity');
 
-        const HIGH_CONFIDENCE = 0.75; // only ≥ this may become a REQUIRED user goal
+        const HIGH_CONFIDENCE = 0.75; // only â‰¥ this may become a REQUIRED user goal
         const actorLabelList = actors.map((a) => actorLabels.get(a.id) || '').filter(Boolean);
         const ucLabelList = useCases.map((u) => useCaseLabels.get(u.id) || '').filter(Boolean);
 
@@ -699,17 +777,28 @@ class CheckingEngine {
             const gen = require('../nlp/suggestionGenerator');
             const expectedSystem = (gen.deriveSystemNameCandidates
                 ? gen.deriveSystemNameCandidates(requirementModel) || [] : [])[0] || null;
-            issues.push({
-                type: 'diagram', severity: 'warning', location: 'diagram',
-                code: 'CASE_STUDY_SYSTEM_NAME_MISSING',
-                message: 'The system boundary has no valid name. Give the system a name that represents the assignment domain.',
-                context: {
+            const existingSysIssue = issues.find((i) => i.code === 'SYSTEM_NAME_INVALID' || i.code === 'SYSTEM_BOUNDARY_MISSING');
+            if (existingSysIssue) {
+                existingSysIssue.context = {
+                    ...(existingSysIssue.context || {}),
                     specCode: 'MISSING_SYSTEM_NAME',
                     expectedSystem,
                     submittedSystem: sysLabel || null,
                     suggestion: this.systemCandidateSuggestion(requirementModel),
-                },
-            });
+                };
+            } else {
+                issues.push({
+                    type: 'diagram', severity: 'warning', location: 'diagram',
+                    code: 'CASE_STUDY_SYSTEM_NAME_MISSING',
+                    message: 'The system boundary has no valid name. Give the system a name that represents the assignment domain.',
+                    context: {
+                        specCode: 'MISSING_SYSTEM_NAME',
+                        expectedSystem,
+                        submittedSystem: sysLabel || null,
+                        suggestion: this.systemCandidateSuggestion(requirementModel),
+                    },
+                });
+            }
         } else {
             const report = this.systemNameMatch(requirementModel, reqText, sysLabel);
             if (report.bestDomainTerm && report.score < 0.5) {
@@ -729,7 +818,7 @@ class CheckingEngine {
             }
         }
 
-        // 2. MISSING ACTORS — every dynamic actor required by the assignment.
+        // 2. MISSING ACTORS â€” every dynamic actor required by the assignment.
         reqActors.forEach((reqActor) => {
             if (String(reqActor).toLowerCase() === 'system') return;
             let best = { score: 0, label: null };
@@ -775,7 +864,7 @@ class CheckingEngine {
 
             if (best.score >= 0.97) return; // found (exact / synonym)
             if (best.req && best.score >= 0.72) {
-                // typo → name-quality info (seeded into findings via specCode)
+                // typo â†’ name-quality info (seeded into findings via specCode)
                 issues.push({
                     type: 'diagram', severity: 'info', location: 'diagram',
                     code: 'ACTOR_NAME_QUALITY',
@@ -791,7 +880,7 @@ class CheckingEngine {
                 return;
             }
             if (best.req && best.score >= 0.4) {
-                // close but semantically a different role → name mismatch warning
+                // close but semantically a different role â†’ name mismatch warning
                 issues.push({
                     type: 'diagram', severity: 'warning', location: 'diagram',
                     code: 'CASE_STUDY_ACTOR_NAME_MISMATCH',
@@ -807,7 +896,7 @@ class CheckingEngine {
                 });
                 return;
             }
-            // No assignment support at all → unsupported actor warning
+            // No assignment support at all â†’ unsupported actor warning
             issues.push({
                 type: 'diagram', severity: 'warning', location: 'diagram',
                 code: 'CASE_STUDY_ACTOR_UNSUPPORTED',
@@ -847,7 +936,7 @@ class CheckingEngine {
                 return;
             }
 
-            // Noun-only name (no capability verb) → invalid derived name.
+            // Noun-only name (no capability verb) â†’ invalid derived name.
             if (!CAPABILITY_VERB_RE.test(label)) {
                 const requirement = this.requirementSentence(reqText, reqUc);
                 issues.push({
@@ -883,6 +972,8 @@ class CheckingEngine {
                         useCase: label,
                         submitted: best.label,
                         matchedScore: Math.round(best.score * 100) / 100,
+                        isMatch: true,
+                        suggestion: null,
                     },
                 });
                 return;
@@ -933,7 +1024,7 @@ class CheckingEngine {
             });
         });
 
-        // 5. ACTOR responsibility mismatch — every required capability's assigned actor.
+        // 5. ACTOR responsibility mismatch â€” every required capability's assigned actor.
         reqUseCases.forEach((reqUc) => {
             if (!reqUc.primaryActor) return;
             const label = String(reqUc.name || '').trim();
@@ -1021,6 +1112,7 @@ class CheckingEngine {
             message: issue.message,
             relatedId: issue.relatedId || null,
             context: { ...(issue.context || {}) },
+            isMatch: issue.code === 'CASE_STUDY_MATCH_FOUND' || issue.context?.specCode === 'MATCH_FOUND' || issue.context?.isMatch === true,
         }));
 
         const byCode = {};
@@ -1110,7 +1202,7 @@ class CheckingEngine {
         const foundUseCaseCount = analysis.useCases.filter(
             (u) => (analysis.useCaseLabels || new Map()).get(u.id)).length;
 
-        // Overall verdict drives the UI banner: insufficient → validation-only.
+        // Overall verdict drives the UI banner: insufficient â†’ validation-only.
         const overall = !reliable
             ? 'insufficient'
             : (errorCount > 0 ? 'errors' : (warningCount > 0 ? 'warnings' : 'consistent'));
@@ -1203,7 +1295,7 @@ class CheckingEngine {
     /** pull the most relevant requirement sentence for a use case from the assignment text */
     static requirementSentence(reqText, reqUc) {
         const sentences = (typeof reqText === 'string' ? reqText : (reqText.sources || []).join(' '));
-        return sentences.length > 0 ? sentences.slice(0, 120) + (sentences.length > 120 ? '…' : '') : '';
+        return sentences.length > 0 ? sentences.slice(0, 120) + (sentences.length > 120 ? 'â€¦' : '') : '';
     }
 
     /** assignment-aware suggestion text listing viable system-name candidates */
@@ -1341,7 +1433,7 @@ class CheckingEngine {
             let desc = descriptions[node.id];
             const nodeLabel = this.getNodeLabel(node.id, useCaseLabels);
 
-            // ID-based lookup failed â€” try name-based fallback for stale relatedId
+            // ID-based lookup failed Ã¢â‚¬â€ try name-based fallback for stale relatedId
             if (!desc) {
                 const nodeNameNorm = normalizeName(nodeLabel);
                 if (nodeNameNorm && descriptionByName.has(nodeNameNorm)) {
@@ -1385,7 +1477,7 @@ class CheckingEngine {
                 if (descName !== diagramLabel && descName !== 'unnamed' && diagramLabel !== 'unnamed') {
                     const semantic = evaluateFunctionMatch(desc.useCaseName, nodeLabel);
                     if (semantic.matchType === 'STRONG' || semantic.matchType === 'EXACT') {
-                        // Semantically equivalent (synonyms / word order) â€” acceptable, no error
+                        // Semantically equivalent (synonyms / word order) Ã¢â‚¬â€ acceptable, no error
                     } else if (semantic.matchType === 'PARTIAL') {
                         issues.push({
                             type: 'consistency',
@@ -1481,7 +1573,7 @@ class CheckingEngine {
                 }
             }
 
-            // 2. Check preconditions â€” accept string or array
+            // 2. Check preconditions Ã¢â‚¬â€ accept string or array
             let preValue = desc.preconditions;
             if (Array.isArray(preValue)) preValue = preValue.join(' ');
             const preStr = (typeof preValue === 'string' ? preValue : '').trim();
@@ -1512,7 +1604,7 @@ class CheckingEngine {
                 }
             }
 
-            // 3. Check postconditions â€” accept string or array
+            // 3. Check postconditions Ã¢â‚¬â€ accept string or array
             let postValue = desc.postconditions;
             if (Array.isArray(postValue)) postValue = postValue.join(' ');
             const postStr = (typeof postValue === 'string' ? postValue : '').trim();
@@ -1632,7 +1724,7 @@ class CheckingEngine {
             const ssdRawData = ssds[nodeId];
 
             // Resolve a human-readable name for this Use Case in error messages:
-            // Priority: useCaseLabels (from diagram) â†’ description.useCaseName â†’ 'this Use Case'
+            // Priority: useCaseLabels (from diagram) Ã¢â€ â€™ description.useCaseName Ã¢â€ â€™ 'this Use Case'
             const ucName = this.getUseCaseName(nodeId, useCaseLabels, descriptions);
 
             if (!ssdRawData) return;
@@ -1657,7 +1749,7 @@ class CheckingEngine {
                     type: 'ssd',
                     severity: 'error',
                     code: 'INCOMPLETE_SSD',
-                    message: `SSD for "${ucName}" is incomplete â€” add both an Actor and a System lifeline.`,
+                    message: `SSD for "${ucName}" is incomplete Ã¢â‚¬â€ add both an Actor and a System lifeline.`,
                     relatedId: nodeId,
                     context: { useCaseId: nodeId },
                     location: 'ssd'
@@ -1675,7 +1767,7 @@ class CheckingEngine {
                         type: errObj.type || 'ssd',
                         severity: errObj.severity || 'error',
                         code: errObj.code || 'SSD_SEMANTIC_ERROR',
-                        // Never include raw UUIDs in the message â€” use the friendly ucName
+                        // Never include raw UUIDs in the message Ã¢â‚¬â€ use the friendly ucName
                         message: `${errObj.message} (Use Case: "${ucName}")`,
                         relatedId: nodeId,
                         context: { useCaseId: nodeId, elementId: errObj.relatedId },
@@ -1763,8 +1855,12 @@ class CheckingEngine {
 
             const stepTextNoSpaces = stepText.replace(/[^a-z0-9]/g, '');
 
-            // Look for matching message
+            // Look for matching message with optimal semantic matching
             let matchedMsgIdx = -1;
+            let bestScore = -1;
+
+            const parsedSSDStep = parseScenarioStep(stepTextOrig);
+            const sg = suggestFromSentence(stepTextOrig);
 
             for (let offset = 0; offset < messages.length; offset++) {
                 let i = (expectedMessageIdx + offset) % messages.length;
@@ -1772,34 +1868,35 @@ class CheckingEngine {
 
                 const msg = messages[i];
                 const msgOrig = (msg.name || '').trim();
+                const msgClean = msgOrig.split('(')[0].trim();
                 const msgNorm = msgOrig.toLowerCase().replace(/[^a-z0-9]/g, '');
                 if (!msgNorm) continue;
 
-                let isMatch = false;
+                let score = 0;
 
+                // Primary: evaluateFunctionMatch between parsed names and message name
+                const evalParsed = evaluateFunctionMatch(parsedSSDStep.messageName, msgClean);
+                const evalSg = evaluateFunctionMatch(sg.nearestFunction, msgClean);
+                const evalRaw = evaluateFunctionMatch(stepTextNoSpaces, msgNorm);
+                score = Math.max(evalParsed.score, evalSg.score, evalRaw.score);
+
+                // Exact or substring inclusion
                 if (stepTextNoSpaces.includes(msgNorm) || msgNorm.includes(stepTextNoSpaces)) {
-                    isMatch = true;
-                } else {
-                    for (let v of SSD_VERBS) {
-                        if (msgNorm.startsWith(v) && stepTextNoSpaces.includes(v)) {
-                            isMatch = true; break;
-                        }
-                    }
-                    if (!isMatch) {
-                        for (let c = 0; c <= msgNorm.length - 4; c++) {
-                            const sub = msgNorm.substr(c, 4);
-                            if (stepTextNoSpaces.includes(sub)) {
-                                isMatch = true;
-                                break;
-                            }
-                        }
+                    score = Math.max(score, 0.88);
+                }
+
+                // Verb-prefix matching fallback
+                for (let v of SSD_VERBS) {
+                    if (msgNorm.startsWith(v) && stepTextNoSpaces.includes(v)) {
+                        score = Math.max(score, 0.65);
+                        break;
                     }
                 }
 
-                if (isMatch) {
-                    // console.log(\`Step \${stepNo} ("\${stepTextNoSpaces}") MATCHED msg \${i} ("\${msgNorm}")\`);
+                if (score >= 0.35 && score > bestScore) {
+                    bestScore = score;
                     matchedMsgIdx = i;
-                    break;
+                    if (score >= 0.9) break; // confident match
                 }
             }
 
@@ -1834,13 +1931,13 @@ class CheckingEngine {
                 const isActorStep = stepText.includes('actor') || stepText.includes('user') || (desc.primaryActor && stepText.includes(desc.primaryActor.toLowerCase()));
                 const isSystemStep = stepText.startsWith('system');
 
-                // â”€â”€ CLASSIFY SYSTEM STEP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // Ã¢â€â‚¬Ã¢â€â‚¬ CLASSIFY SYSTEM STEP Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
                 // Determine whether this is an Internal Operation (self-loop)
-                // or an External Response (System â†’ Actor arrow)
+                // or an External Response (System Ã¢â€ â€™ Actor arrow)
                 const systemClass = isSystemStep ? this.classifySystemStep(stepTextOrig) : null;
                 const expectSelfLoop = systemClass === 'self';       // e.g. "System calculates ..."
                 const expectExternal = systemClass === 'external';   // e.g. "System displays ..."
-                // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
                 if (isSystemStep && !isActorStep && sender && sender.type === 'actor') {
                     issues.push({
@@ -1858,7 +1955,7 @@ class CheckingEngine {
                     });
                 }
 
-                // â”€â”€ SELF-LOOP VALIDATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // Ã¢â€â‚¬Ã¢â€â‚¬ SELF-LOOP VALIDATION Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
                 if (expectSelfLoop && sender && receiver) {
                     const isSelfLoop = msg.type === 'self' || sender.id === receiver.id;
                     if (!isSelfLoop) {
@@ -1878,7 +1975,7 @@ class CheckingEngine {
                     }
                 }
 
-                // â”€â”€ EXTERNAL RESPONSE VALIDATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // Ã¢â€â‚¬Ã¢â€â‚¬ EXTERNAL RESPONSE VALIDATION Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
                 if (expectExternal && sender && receiver) {
                     const isSelfLoop = msg.type === 'self' || sender.id === receiver.id;
                     if (isSelfLoop) {
@@ -1886,13 +1983,13 @@ class CheckingEngine {
                             type: 'consistency',
                             severity: 'warning',
                             code: 'SSD_CONSISTENCY_SHOULD_BE_EXTERNAL',
-                            message: 'Expected System â†’ Actor Message',
+                            message: 'Expected System Ã¢â€ â€™ Actor Message',
                             relatedId: ucId,
                             location: 'ssd',
                             context: {
                                 stepNumber: `${stepNo}`,
                                 problem: `Step ${stepNo} ("${stepTextOrig.substring(0, 60)}") is an output/response from System. Message ${msg.order} ("${msgOrig}") should target the Actor, not be a self-loop.`,
-                                suggestion: `Change "${msgOrig}" to a normal System â†’ Actor arrow.`
+                                suggestion: `Change "${msgOrig}" to a normal System Ã¢â€ â€™ Actor arrow.`
                             }
                         });
                     } else if (receiver.type !== 'actor') {
@@ -1912,7 +2009,7 @@ class CheckingEngine {
                     }
                 }
 
-                // Generic target check â€“ skip for classified messages (handled above)
+                // Generic target check Ã¢â‚¬â€œ skip for classified messages (handled above)
                 if (!expectSelfLoop && !expectExternal && receiver && receiver.type !== 'system' && !msg.isReturn) {
                     issues.push({
                         type: 'consistency',
@@ -1946,7 +2043,7 @@ class CheckingEngine {
                     });
                 }
 
-                // Validate naming â€” also surface smart suggestions for how to name the message
+                // Validate naming Ã¢â‚¬â€ also surface smart suggestions for how to name the message
                 const sg = this.suggestFromSentence(stepTextOrig);
                 const hasParens = msgOrig.includes('(') || msgOrig.includes(')');
 
@@ -1974,7 +2071,7 @@ class CheckingEngine {
                 }
 
             } else {
-                // Not found â€” generate smart naming suggestions from the step sentence
+                // Not found Ã¢â‚¬â€ generate smart naming suggestions from the step sentence
                 const sg = this.suggestFromSentence(stepTextOrig);
 
                 issues.push({
@@ -1987,7 +2084,7 @@ class CheckingEngine {
                     context: {
                         stepNumber: `${stepNo}`,
                         problem: `Step ${stepNo} ("${stepTextOrig.substring(0, 50)}...") has no mapped message in SSD.`,
-                        suggestion: `Add a message named "${sg.nearestFunction}" in SSD 3.${displayNum}.`,
+                        suggestion: `Add a message named "${sg.nearestFunction}()" in SSD 3.${displayNum}.`,
                         suggestions: {
                             nearestMessage: sg.nearestMessage,
                             nearestFunction: sg.nearestFunction,
@@ -2014,7 +2111,7 @@ class CheckingEngine {
                     context: {
                         stepNumber: `?`,
                         problem: `Message ${msg.order} ("${msgOrig}") is not mapped to any step in the Main Success Scenario.`,
-                        suggestion: `Delete message "${msgOrig}".`
+                        suggestion: `Message "${msgOrig}" is not mapped to any step in the main flow; consider adding a scenario step for it or verifying if it belongs in an alternative flow.`
                     }
                 });
             }
@@ -2023,87 +2120,10 @@ class CheckingEngine {
 
 
     static validateDescriptionSSDSemantics(descriptions, ssds, issues, analysis, targetId = null) {
-        if (!descriptions || !ssds) return;
-
-        const { useCaseLabels, actorLabels } = analysis;
-        const availableActors = actorLabels ? Array.from(actorLabels.values()) : [];
-        const sortedUCs = [...(analysis.useCases || [])].sort((a, b) => {
-            const posA = a.position || { x: 0, y: 0 };
-            const posB = b.position || { x: 0, y: 0 };
-            return (posA.y - posB.y) || (posA.x - posB.x);
-        });
-
-        Object.entries(ssds).forEach(([ucId, rawSSD]) => {
-            if (targetId && ucId !== targetId) return;
-            const desc = descriptions[ucId];
-            if (!desc?.mainFlow?.length) return;
-
-            const ucLabel = useCaseLabels.get(ucId) || desc.useCaseName || ucId;
-            const { semanticData } = this.processSSDData(rawSSD);
-            if (!semanticData?.messages?.length) return;
-
-            const steps = desc.mainFlow.filter((s) => {
-                const t = (s.action || '').trim();
-                return t && !/^(if|else|then)\b/i.test(t);
-            });
-            if (steps.length === 0) return;
-
-            const stepSemantics = steps.map((s, i) =>
-                semanticProcessor.processDescriptionStep(s.action, ucId, availableActors)
-            );
-            const messageSemantics = semanticData.messages.map((m) =>
-                semanticProcessor.processSSDMessage(m, ucId)
-            );
-
-            const stepMatches = semanticProcessor.findBestStepMessageMatch(stepSemantics, messageSemantics, {
-                threshold: 0.5
-            });
-
-            const matchedSteps = new Set();
-            const matchedMessages = new Set();
-            stepMatches.forEach((match) => {
-                matchedSteps.add(match.stepIndex);
-                matchedMessages.add(match.messageIndex);
-            });
-
-            steps.forEach((step, idx) => {
-                if (matchedSteps.has(idx)) return;
-                const stepText = (step.action || '').trim();
-                const stepNo = step.step || (idx + 1);
-                const sg = this.suggestFromSentence(stepText);
-                issues.push({
-                    type: 'consistency',
-                    severity: 'warning',
-                    code: 'SSD_SEMANTIC_MISSING_MESSAGE',
-                    message: `Step "${stepText}" in "${ucLabel}" has no semantically matching SSD message.`,
-                    relatedId: ucId,
-                    location: 'ssd',
-                    context: {
-                        stepNumber: `${stepNo}`,
-                        problem: `Step ${stepNo} ("${stepText}") cannot be semantically aligned with any message in SSD 3.${this._ucDisplayNumber(ucId, sortedUCs)}.`,
-                        suggestion: `Add a message named "${sg.nearestFunction}" to the SSD, or rename an existing message to match this step.`
-                    }
-                });
-            });
-
-            semanticData.messages.forEach((msg, idx) => {
-                if (matchedMessages.has(idx) || msg.isReturn) return;
-                const msgName = (msg.name || '').trim();
-                if (!msgName) return;
-                issues.push({
-                    type: 'consistency',
-                    severity: 'info',
-                    code: 'SSD_SEMANTIC_UNUSED_MESSAGE',
-                    message: `SSD message "${msgName}" in "${ucLabel}" does not semantically match any main-flow step.`,
-                    relatedId: ucId,
-                    location: 'ssd',
-                    context: {
-                        problem: `Message "${msgName}" has no corresponding semantic intent in the main scenario.`,
-                        suggestion: `Ensure "${msgName}" is intentional; consider removing it or adding a matching step.`
-                    }
-                });
-            });
-        });
+        // Unified SSD semantic alignment pipeline:
+        // Full semantic matching and consistency validation is handled authoritatively
+        // in validateSSDInteractionFlow to prevent duplicated or contradictory suggestions.
+        return;
     }
 
     static _ucDisplayNumber(ucId, sortedUCs) {
@@ -2240,7 +2260,7 @@ class CheckingEngine {
                     }
                 }
 
-                // T2-5: SSD ↔ Sequence message-level cross-check
+                // T2-5: SSD â†” Sequence message-level cross-check
                 if (ssdSemantic?.messages?.length && seqSemantic?.messages?.length) {
                     const { evaluateFunctionMatch, normalizeToken } = require('../nlp/similarity');
                     const { PHASE_THRESHOLDS } = require('../nlp/constants');
@@ -2711,7 +2731,7 @@ class CheckingEngine {
             const hasFragmentsData = Array.isArray(fragments);
             const hasFragments = hasFragmentsData && fragments.length > 0;
 
-            // â”€â”€ Structural fragment validation (only when fragment data is present) â”€â”€
+            // Ã¢â€â‚¬Ã¢â€â‚¬ Structural fragment validation (only when fragment data is present) Ã¢â€â‚¬Ã¢â€â‚¬
             if (hasFragmentsData) {
                 fragments.forEach((frag, idx) => {
                     const operator = String(frag?.operator || frag?.type || '').toLowerCase().trim();
@@ -2757,7 +2777,7 @@ class CheckingEngine {
                 });
             }
 
-            // â”€â”€ Cross-diagram: conditional scenario should be reflected in a fragment â”€â”€
+            // Ã¢â€â‚¬Ã¢â€â‚¬ Cross-diagram: conditional scenario should be reflected in a fragment Ã¢â€â‚¬Ã¢â€â‚¬
             const desc = (descriptions || {})[uc.id];
             if (!desc || !hasFragmentsData || hasFragments) return;
 
@@ -2795,7 +2815,13 @@ class CheckingEngine {
             if (node.type !== 'class' && node.type !== 'interface') return;
             const label = (node.data?.label || '').trim();
             if (!label) return;
-            classes.push({ id: node.id, label, type: node.type });
+            classes.push({
+                id: node.id,
+                label,
+                type: node.type,
+                attributes: (node.data?.attributes || []).map(parseClassAttribute).filter(Boolean),
+                rawAttributes: node.data?.attributes || []
+            });
             (node.data?.methods || []).forEach((raw) => {
                 const signature = parseMethodSignature(raw);
                 if (!signature || !signature.name) return;
@@ -2886,23 +2912,60 @@ class CheckingEngine {
             if (!desc?.mainFlow?.length) return;
             const ucName = this.getUseCaseName(uc.id, useCaseLabels, descriptions);
             const nouns = new Set();
+            const _GENERIC_CLASS_NOISE = new Set([
+                'phase', 'information', 'listing', 'case', 'data', 'detail', 'details',
+                'content', 'item', 'items', 'value', 'values', 'result', 'results',
+                'option', 'options', 'step', 'steps', 'action', 'actions', 'type',
+                'types', 'name', 'names', 'thing', 'things', 'process', 'way',
+                'place', 'time', 'reason', 'manner', 'list', 'role', 'status',
+                'control', 'panel', 'form', 'view', 'page', 'screen', 'menu',
+                'number', 'count', 'total', 'amount', 'specific', 'selected',
+                'registered', 'particular', 'relevant', 'desired', 'appropriate',
+                'user', 'users', 'system', 'actor', 'admin', 'administrator',
+                'manage', 'manages', 'managed', 'managing', 'select', 'selects',
+                'selected', 'selecting', 'update', 'updates', 'updated', 'updating',
+                'display', 'displays', 'displayed', 'displaying', 'access', 'accesses',
+                'create', 'creates', 'delete', 'deletes', 'view', 'views', 'submit', 'submits',
+                'valid', 'based', 'gains', 'functionalities', 'chose', 'choses', 'mange',
+                'registerad', 'credentials', 'password', 'login', 'logout', 'signup', 'signin',
+                'enter', 'enters', 'entering', 'input', 'inputs', 'provide', 'provides',
+                'verify', 'verifies', 'validated', 'validation', 'save', 'saves', 'saved',
+                'member', 'members', 'account', 'accounts', 'profile', 'profiles',
+                'selector', 'information', 'list', 'lists', 'change', 'changes'
+            ]);
+
             desc.mainFlow.forEach((step) => {
-                const words = (step.action || '').split(/\s+/);
+                const rawAction = (step.action || '').replace(/\([^)]*\)/g, ' ');
+                const words = rawAction.split(/\s+/);
                 words.forEach((w) => {
-                    const clean = w.replace(/[^a-zA-Z]/g, '');
-                    if (clean.length > 3 && !STOP_WORDS.has(clean.toLowerCase()) && clean.toLowerCase() !== 'system') {
-                        nouns.add(clean);
+                    const clean = w.replace(/[^a-zA-Z]/g, '').trim();
+                    const cleanLower = clean.toLowerCase();
+                    const lemma = lemmatizeToken(cleanLower);
+
+                    if (
+                        clean.length > 3 &&
+                        !STOP_WORDS.has(cleanLower) &&
+                        !_GENERIC_CLASS_NOISE.has(cleanLower) &&
+                        !_GENERIC_CLASS_NOISE.has(lemma) &&
+                        !VERB_DICTIONARY.has(cleanLower) &&
+                        !VERB_DICTIONARY.has(lemma) &&
+                        !INTERNAL_VERBS.has(cleanLower) &&
+                        !EXTERNAL_VERBS.has(cleanLower)
+                    ) {
+                        nouns.add(cleanLower);
                     }
                 });
             });
+
             nouns.forEach((noun) => {
                 const hasClass = classes.some((c) => this.fuzzyIncludes(c.label, noun));
                 if (!hasClass) {
+                    const capitalizedNoun = noun.charAt(0).toUpperCase() + noun.slice(1);
                     issues.push({
                         type: 'consistency',
-                        severity: 'info',
+                        severity: 'suggestion',
                         code: 'CLASS_ENTITY_SUGGESTION',
-                        message: `Consider a class for "${noun}" (from "${ucName}" scenario).`,
+                        message: `Consider a class for "${capitalizedNoun}" (from "${ucName}" scenario).`,
                         relatedId: uc.id,
                         location: 'class-diagram'
                     });
@@ -2911,6 +2974,231 @@ class CheckingEngine {
         });
     }
 
+
+    static validateClassDiagramAttributes(classDiagram, descriptions, ssds, issues, analysis) {
+        if (!classDiagram?.nodes?.length) return;
+
+        const classNodes = (classDiagram.nodes || []).filter((n) => n.type === 'class' || n.type === 'interface');
+        if (classNodes.length === 0) return;
+
+        // Extract expected attributes from descriptions and SSDs using ClassModelExtractor
+        const expectedClassModel = ClassModelExtractor.extractExpectedClassModel(descriptions, ssds, classNodes);
+
+        // Check each expected attribute against actual class attributes
+        expectedClassModel.attributes.forEach((expected) => {
+            const { className, attribute, source, context } = expected;
+            const targetClass = classNodes.find((c) => (c.data?.label || '').toLowerCase() === className.toLowerCase());
+            if (!targetClass) return;
+
+            const actualAttrs = targetClass.data?.attributes || [];
+            const hasAttribute = actualAttrs.some((attrRaw) => {
+                const attr = this.parseClassAttribute(attrRaw);
+                return attr && this.fuzzyMatch(attr.name, attribute);
+            });
+
+            if (hasAttribute) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'info',
+                    code: 'CLASS_ATTRIBUTE_VERIFIED',
+                    message: `Class "${className}" has expected attribute "${attribute}" (from ${source}).`,
+                    location: 'class-diagram',
+                    context: { className, attribute, source, ...context, verified: true }
+                });
+            } else {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'error',
+                    code: 'CLASS_ATTRIBUTE_MISSING',
+                    message: `Class "${className}" is missing expected attribute "${attribute}" (from ${source}).`,
+                    location: 'class-diagram',
+                    context: {
+                        className,
+                        attribute,
+                        source,
+                        ...context,
+                        suggestion: `Add attribute: - ${attribute}: String (or appropriate type) to class "${className}".`
+                    }
+                });
+            }
+        });
+    }
+
+    static validateClassDiagramAssociations(classDiagram, descriptions, ssds, issues, analysis) {
+        if (!classDiagram?.nodes?.length) return;
+
+        const classNodes = (classDiagram.nodes || []).filter((n) => n.type === 'class' || n.type === 'interface');
+        if (classNodes.length === 0) return;
+
+        const edges = classDiagram.edges || [];
+        const classNames = classNodes.map((c) => (c.data?.label || '').trim()).filter(Boolean);
+
+        // Extract expected associations from descriptions and SSDs
+        const expectedAssociations = ClassModelExtractor.extractExpectedAssociations(descriptions, ssds, classNodes);
+
+        expectedAssociations.forEach((expected) => {
+            const { source, target, reason, context } = expected;
+            const sourceClass = classNodes.find((c) => (c.data?.label || '').toLowerCase() === source.toLowerCase());
+            const targetClass = classNodes.find((c) => (c.data?.label || '').toLowerCase() === target.toLowerCase());
+
+            if (!sourceClass || !targetClass) return;
+
+            // Check if association edge exists
+            const hasAssociation = edges.some((edge) => {
+                const edgeSrc = (nodesById.get(edge.source)?.data?.label || '').toLowerCase();
+                const edgeTgt = (nodesById.get(edge.target)?.data?.label || '').toLowerCase();
+                return (edgeSrc === source.toLowerCase() && edgeTgt === target.toLowerCase()) ||
+                    (edgeSrc === target.toLowerCase() && edgeTgt === source.toLowerCase());
+            });
+
+            const nodesById = new Map(classNodes.map((n) => [n.id, n]));
+
+            if (hasAssociation) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'info',
+                    code: 'CLASS_ASSOCIATION_VERIFIED',
+                    message: `Association between "${source}" and "${target}" verified (${reason}).`,
+                    location: 'class-diagram',
+                    context: { source, target, reason, ...context, verified: true }
+                });
+            } else {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'error',
+                    code: 'CLASS_ASSOCIATION_MISSING',
+                    message: `Missing association between "${source}" and "${target}" (${reason}).`,
+                    location: 'class-diagram',
+                    context: {
+                        source,
+                        target,
+                        reason,
+                        ...context,
+                        suggestion: `Add an association line between "${source}" and "${target}" in the Class Diagram.`
+                    }
+                });
+            }
+        });
+    }
+
+    static validateClassDiagramInheritance(classDiagram, descriptions, ssds, issues, analysis, requirementModel) {
+        if (!classDiagram?.nodes?.length) return;
+
+        const classNodes = (classDiagram.nodes || []).filter((n) => n.type === 'class' || n.type === 'interface');
+        if (classNodes.length < 2) return;
+
+        const edges = classDiagram.edges || [];
+        const nodesById = new Map(classNodes.map((n) => [n.id, n]));
+        const classNames = classNodes.map((c) => (c.data?.label || '').trim()).filter(Boolean);
+
+        // Get requirement text and actor generalizations
+        const requirementText = requirementModel?.sources?.join(' ') || '';
+        const actorGeneralizations = analysis.actorGeneralizations || [];
+
+        // Extract expected generalizations
+        const expectedGeneralizations = ClassModelExtractor.extractExpectedGeneralizations(requirementText, actorGeneralizations, classNodes);
+
+        // Check expected generalizations
+        expectedGeneralizations.forEach((expected) => {
+            const { child, parent, reason } = expected;
+            const childClass = classNodes.find((c) => (c.data?.label || '').toLowerCase() === child.toLowerCase());
+            const parentClass = classNodes.find((c) => (c.data?.label || '').toLowerCase() === parent.toLowerCase());
+
+            if (!childClass || !parentClass) return;
+
+            const hasInheritance = edges.some((edge) => {
+                const edgeSrc = nodesById.get(edge.source);
+                const edgeTgt = nodesById.get(edge.target);
+                if (!edgeSrc || !edgeTgt) return false;
+                const srcLabel = (edgeSrc.data?.label || '').toLowerCase();
+                const tgtLabel = (edgeTgt.data?.label || '').toLowerCase();
+                const type = (edge.data?.type || edge.type || '').toLowerCase();
+                return type === 'inheritance' && srcLabel === child.toLowerCase() && tgtLabel === parent.toLowerCase();
+            });
+
+            if (hasInheritance) {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'info',
+                    code: 'CLASS_INHERITANCE_VERIFIED',
+                    message: `Inheritance verified: "${child}" inherits from "${parent}" (${reason}).`,
+                    location: 'class-diagram',
+                    context: { child, parent, reason, verified: true }
+                });
+            } else {
+                issues.push({
+                    type: 'consistency',
+                    severity: 'error',
+                    code: 'CLASS_INHERITANCE_MISSING',
+                    message: `Missing inheritance: "${child}" should inherit from "${parent}" (${reason}).`,
+                    location: 'class-diagram',
+                    context: {
+                        child,
+                        parent,
+                        reason,
+                        suggestion: `Add an inheritance (generalization) arrow from "${child}" to "${parent}".`
+                    }
+                });
+            }
+        });
+
+        // Detect redundant attributes in subclasses (attributes already inherited from parent)
+        const inheritanceEdges = edges.filter((edge) => {
+            const type = (edge.data?.type || edge.type || '').toLowerCase();
+            return type === 'inheritance';
+        });
+
+        inheritanceEdges.forEach((edge) => {
+            const childNode = nodesById.get(edge.source);
+            const parentNode = nodesById.get(edge.target);
+            if (!childNode || !parentNode) return;
+
+            const childLabel = childNode.data?.label || '';
+            const parentLabel = parentNode.data?.label || '';
+            const childAttrs = (childNode.data?.attributes || []).map((a) => this.parseClassAttribute(a)).filter(Boolean);
+            const parentAttrs = (parentNode.data?.attributes || []).map((a) => this.parseClassAttribute(a)).filter(Boolean);
+
+            childAttrs.forEach((childAttr) => {
+                const isRedundant = parentAttrs.some((parentAttr) => this.fuzzyMatch(childAttr.name, parentAttr.name));
+                if (isRedundant) {
+                    issues.push({
+                        type: 'consistency',
+                        severity: 'warning',
+                        code: 'CLASS_INHERITANCE_REDUNDANT_ATTR',
+                        message: `Class "${childLabel}" declares attribute "${childAttr.name}" which is already inherited from "${parentLabel}".`,
+                        location: 'class-diagram',
+                        context: {
+                            child: childLabel,
+                            parent: parentLabel,
+                            attribute: childAttr.name,
+                            suggestion: `Remove "${childAttr.name}" from "${childLabel}"; it is inherited from "${parentLabel}".`
+                        }
+                    });
+                }
+            });
+        });
+
+        // Detect generalization opportunities (shared attributes among siblings)
+        const opportunities = ClassModelExtractor.detectGeneralizationOpportunities(classNodes, inheritanceEdges.map((e) => [
+            nodesById.get(e.source)?.data?.label || '',
+            nodesById.get(e.target)?.data?.label || ''
+        ]));
+
+        opportunities.forEach((opp) => {
+            issues.push({
+                type: 'consistency',
+                severity: 'info',
+                code: 'CLASS_GENERALIZATION_OPPORTUNITY',
+                message: opp.suggestion,
+                location: 'class-diagram',
+                context: {
+                    classes: opp.classes,
+                    sharedAttributes: opp.sharedAttributes,
+                    suggestion: opp.suggestion
+                }
+            });
+        });
+    }
 
     static validateClassDiagramStructure(classDiagram, issues, analysis) {
         if (!classDiagram?.nodes?.length) return;
@@ -2925,6 +3213,8 @@ class CheckingEngine {
             const label = (node.data?.label || '').trim();
             if (!label) return;
             if (!/^[A-Z][A-Za-z0-9_]*$/.test(label)) {
+                // Generate PascalCase suggestion from the invalid name
+                const suggestion = this.suggestValidClassName(label);
                 issues.push({
                     type: 'class-diagram',
                     severity: 'warning',
@@ -2932,7 +3222,10 @@ class CheckingEngine {
                     message: `Class name "${label}" is not a valid UML class name.`,
                     location: 'class-diagram',
                     context: {
-                        suggestion: 'Use PascalCase with no spaces, starting with an uppercase letter (e.g., Order, Student, PaymentService).'
+                        suggestion: suggestion
+                            ? `Rename to "${suggestion}" (PascalCase, no spaces, starting with uppercase).`
+                            : 'Use PascalCase with no spaces, starting with an uppercase letter (e.g., Order, Student, PaymentService).',
+                        suggestedName: suggestion
                     }
                 });
             }
@@ -3072,7 +3365,7 @@ class CheckingEngine {
                         // Strip any prefix like "src: " or "1..*" tokens separated by spaces
                         const parts = raw.split(/\s*,\s*|\s+(?=\d|\*)/).map((p) => p.trim()).filter(Boolean);
                         parts.forEach((part) => {
-                            if (part.includes(' ')) return; // free text like "exactly two" â€” skip
+                            if (part.includes(' ')) return; // free text like "exactly two" Ã¢â‚¬â€ skip
                             if (!MULTIPLICITY_RE.test(part)) {
                                 issues.push({
                                     type: 'class-diagram',
@@ -3187,7 +3480,7 @@ class CheckingEngine {
 
                 const semantic = semanticProcessor.processSSDMessage(msg, ucId);
 
-                // Check 1 â€” an appropriate class exists.
+                // Check 1 Ã¢â‚¬â€ an appropriate class exists.
                 if (classes.length === 0) {
                     issues.push({
                         type: 'consistency',
@@ -3204,7 +3497,7 @@ class CheckingEngine {
                     return;
                 }
 
-                // Checks 2 & 3 â€” the operation exists and is semantically equivalent.
+                // Checks 2 & 3 Ã¢â‚¬â€ the operation exists and is semantically equivalent.
                 let best = null;
                 methods.forEach((m) => {
                     const mSemantic = SemanticRepresentation.fromClassMethod(m);
@@ -3235,7 +3528,7 @@ class CheckingEngine {
                 const { method, verdict } = best;
                 const paramNames = (method.parameters || []).map((p) => p.name).join(', ');
 
-                // Check 4 â€” parameters present & aligned (takes precedence over name nuance).
+                // Check 4 Ã¢â‚¬â€ parameters present & aligned (takes precedence over name nuance).
                 if (!verdict.checks.parameters.matched) {
                     issues.push({
                         type: 'consistency',
@@ -3268,7 +3561,7 @@ class CheckingEngine {
                     });
                 }
 
-                // Check 6 â€” return type defined where required.
+                // Check 6 Ã¢â‚¬â€ return type defined where required.
                 if (verdict.checks.returnType.required && !verdict.checks.returnType.present) {
                     issues.push({
                         type: 'consistency',
@@ -3284,7 +3577,7 @@ class CheckingEngine {
                     });
                 }
 
-                // Check 5 â€” parameter types declared where required.
+                // Check 5 Ã¢â‚¬â€ parameter types declared where required.
                 if (verdict.checks.paramTypes.missing.length > 0) {
                     issues.push({
                         type: 'consistency',
@@ -3300,7 +3593,7 @@ class CheckingEngine {
                     });
                 }
 
-                // Check 7 â€” visibility valid for an actor-invoked operation.
+                // Check 7 Ã¢â‚¬â€ visibility valid for an actor-invoked operation.
                 if (!verdict.checks.visibility.valid) {
                     issues.push({
                         type: 'consistency',
@@ -3321,8 +3614,8 @@ class CheckingEngine {
 
     /**
      * Derive evidence-based alternative responsibility homes from an operation's
-     * object noun. Purely constructive â€” these are the classes a student might
-     * reasonably create for that domain (Payment â†’ Payment/PaymentService/...).
+     * object noun. Purely constructive Ã¢â‚¬â€ these are the classes a student might
+     * reasonably create for that domain (Payment Ã¢â€ â€™ Payment/PaymentService/...).
      */
     static _suggestResponsibilityClasses(noun) {
         const base = String(noun || '')
@@ -3406,7 +3699,7 @@ class CheckingEngine {
                     const suggestedClass = candidateClasses[0].label;
                     const noun = nouns[0];
                     // Evidence-based possible homes: existing candidates first,
-                    // then derived alternatives â€” never the current owner.
+                    // then derived alternatives Ã¢â‚¬â€ never the current owner.
                     const suggestedClasses = [];
                     const seen = new Set();
                     candidateClasses.forEach((c) => {
@@ -3444,7 +3737,7 @@ class CheckingEngine {
         });
     }
 
-    // ─── Async versions for embedding-enhanced validation ───
+    // â”€â”€â”€ Async versions for embedding-enhanced validation â”€â”€â”€
 
     static async validateSSDClassOperationsAsync(classDiagram, ssds, issues, analysis) {
         if (!ssds) return;
@@ -3879,7 +4172,10 @@ class CheckingEngine {
 
                 let inClass = false;
                 if (classModel.methods.length > 0) {
-                    inClass = classModel.methods.some((m) => evaluateFunctionMatch(cleanMsg, m.methodName).score >= 0.45);
+                    inClass = classModel.methods.some((m) => {
+                        const targetName = m.name || m.methodName;
+                        return evaluateFunctionMatch(cleanMsg, targetName).score >= 0.45;
+                    });
                 }
 
                 if (!inClass && classModel.methods.length > 0) {
@@ -3920,7 +4216,7 @@ class CheckingEngine {
                 }
             }
 
-            // â”€â”€ Phase 14 structural checks (data-supported by the editor model) â”€â”€
+            // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 14 structural checks (data-supported by the editor model) Ã¢â€â‚¬Ã¢â€â‚¬
             // Duplicate lifelines: same participant drawn twice in one interaction.
             const seenLifelines = new Map();
             semanticData.lifelines.forEach((ll) => {
@@ -4008,7 +4304,9 @@ class CheckingEngine {
             if (!stepTextOrig || stepTextOrig.toLowerCase().startsWith('if') || stepTextOrig.toLowerCase().startsWith('else')) return;
 
             const parsedStep = parseScenarioStep(stepTextOrig);
+            const sg = suggestFromSentence(stepTextOrig);
             let matchedMsgIdx = -1;
+            let bestScore = -1;
 
             for (let offset = 0; offset < messages.length; offset++) {
                 const i = (expectedMessageIdx + offset) % messages.length;
@@ -4018,9 +4316,12 @@ class CheckingEngine {
                 if (!msgClean) continue;
 
                 const matchEval = evaluateFunctionMatch(parsedStep.messageName, msgClean);
-                if (matchEval.score >= 0.4 || fuzzyMatchSync(stepTextOrig, msgClean) >= 0.4) {
+                const sgEval = evaluateFunctionMatch(sg.nearestFunction, msgClean);
+                const score = Math.max(matchEval.score, sgEval.score, fuzzyMatchSync(stepTextOrig, msgClean));
+                if (score >= 0.35 && score > bestScore) {
+                    bestScore = score;
                     matchedMsgIdx = i;
-                    break;
+                    if (score >= 0.9) break;
                 }
             }
 
@@ -4288,3 +4589,4 @@ class CheckingEngine {
         };
     }
 } exports.CheckingEngine = CheckingEngine;
+

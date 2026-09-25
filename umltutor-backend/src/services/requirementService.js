@@ -4,11 +4,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 const prisma = require('../config/prisma');
 const { parseRequirementText } = require('../nlp/promptRequirementParser');
+const RequirementExtractorLLM = require('../nlp/requirementExtractorLLM');
 
 class RequirementService {
 
   parse(text) {
     return parseRequirementText(text);
+  }
+
+  async parseAsync(text) {
+    return RequirementExtractorLLM.extractRequirementsAsync(text);
   }
 
   /**

@@ -1116,15 +1116,49 @@ const buildReportText = (report) => {
         if ((expected.systemCandidates || []).length) lines.push(`Suggested system names: ${expected.systemCandidates.slice(0, 3).join(', ')}`);
 
         const findings = cs.findings || [];
-        if (findings.length) {
-            lines.push('\nFindings:');
-            findings.forEach((f) => {
-                const sev = (f.severity || 'info').toUpperCase();
-                lines.push(`  [${sev}] ${f.message || ''}`);
+        const isMatchFinding = (f) =>
+            f.isMatch ||
+            f.code === 'MATCH_FOUND' ||
+            f.context?.specCode === 'MATCH_FOUND' ||
+            f.legacyCode === 'CASE_STUDY_MATCH_FOUND' ||
+            (typeof f.message === 'string' && f.message.startsWith('Found use case'));
+
+        const matchedFindings = findings.filter(isMatchFinding);
+        const issueFindings = findings.filter(f => !isMatchFinding(f) && (f.severity === 'error' || f.severity === 'warning'));
+
+        if (matchedFindings.length) {
+            lines.push('\nVerified Requirements:');
+            matchedFindings.forEach((f) => {
+                lines.push(`  ✓ ${f.message || ''}`);
+            });
+        }
+        if (issueFindings.length) {
+            lines.push('\nIssues to Resolve:');
+            issueFindings.forEach((f) => {
+                const prefix = f.severity === 'error' ? '✗' : '!';
+                lines.push(`  ${prefix} [${(f.severity || 'info').toUpperCase()}] ${f.message || ''}`);
             });
         }
         if ((cs.counts || {}).total > 0) {
             lines.push(`\n${cs.counts.total} case-study finding(s) - ${cs.counts.error || 0} error(s), ${cs.counts.warning || 0} warning(s), ${cs.counts.info || 0} info`);
+        }
+    }
+
+    // AI Tutor Feedback
+    const aiFeedback = report?.aiFeedback;
+    if (aiFeedback) {
+        pushSection('AI TUTOR FEEDBACK');
+        if (aiFeedback.summary) lines.push(aiFeedback.summary);
+        if (aiFeedback.strengths?.length > 0) {
+            lines.push('\nStrengths:');
+            aiFeedback.strengths.forEach((s) => lines.push(`  • ${s}`));
+        }
+        if (aiFeedback.remediations?.length > 0) {
+            lines.push('\nKey Action Items:');
+            aiFeedback.remediations.forEach((r) => lines.push(`  → ${r}`));
+        }
+        if (aiFeedback.source) {
+            lines.push(`\n[Feedback source: ${aiFeedback.source}]`);
         }
     }
 
