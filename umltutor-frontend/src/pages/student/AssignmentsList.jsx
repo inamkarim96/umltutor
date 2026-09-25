@@ -5,6 +5,43 @@ import { selectUser } from '../../features/auth';
 import { selectClasses, fetchClasses } from '../../features/classroom';
 import { selectAllAssignments, fetchAllAssignments } from '../../features/assignments';
 import { selectSubmissions, fetchMySubmissions } from '../../features/submissions';
+import {
+    BookOpen, Clock, CheckCircle2, Star, ArrowRight,
+    Filter, Layers
+} from 'lucide-react';
+import PageShell from '../../components/dashboard/PageShell';
+
+function getDeadlineStatus(deadline) {
+    if (!deadline) return 'none';
+    const diff = new Date(deadline) - Date.now();
+    const days = diff / 86400000;
+    if (diff < 0) return 'overdue';
+    if (days <= 2) return 'soon';
+    return 'normal';
+}
+
+function StatusChip({ status }) {
+    const map = {
+        graded:    { label: 'Reviewed',    cls: 'apc-chip-green'  },
+        submitted: { label: 'Submitted',   cls: 'apc-chip-blue'   },
+        overdue:   { label: 'Overdue',     cls: 'apc-chip-red'    },
+        locked:    { label: 'Locked',      cls: 'apc-chip-gray'   },
+        upcoming:  { label: 'Upcoming',    cls: 'apc-chip-blue'   },
+        pending:   { label: 'Pending',     cls: 'apc-chip-amber'  },
+    };
+    const { label, cls } = map[status] || map.pending;
+    return <span className={`apc-chip ${cls}`}>{label}</span>;
+}
+
+function DeadlineChip({ deadline }) {
+    const s = getDeadlineStatus(deadline);
+    if (s === 'none') return <span className="apc-dl-chip apc-dl-none">No deadline</span>;
+    const d = new Date(deadline);
+    const label = s === 'overdue'
+        ? `Overdue · ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+        : `Due ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+    return <span className={`apc-dl-chip apc-dl-${s}`}>{label}</span>;
+}
 
 const StudentAssignmentsList = () => {
     const location = useLocation();
@@ -17,7 +54,7 @@ const StudentAssignmentsList = () => {
 
     const allClasses = useAppSelector(selectClasses);
     const assignments = useAppSelector(selectAllAssignments) || [];
-    const submissionsMap = useAppSelector(selectSubmissions) || [];
+    const mySubmissions = useAppSelector(selectSubmissions) || [];
 
     useEffect(() => {
         dispatch(fetchClasses('STUDENT'));
@@ -25,122 +62,136 @@ const StudentAssignmentsList = () => {
         dispatch(fetchMySubmissions());
     }, [dispatch]);
 
-    const myClasses = (allClasses || []).filter(c => c.studentIds?.includes(user?.id) || c.students?.some(s => s.id === user?.id));
-    const mySubmissions = submissionsMap;
+    const myClasses = useMemo(
+        () => (allClasses || []).filter(c =>
+            c.studentIds?.includes(user?.id) || c.students?.some(s => s.id === user?.id)
+        ),
+        [allClasses, user?.id]
+    );
 
     const filteredAssignments = useMemo(() => {
-        let list = assignments.filter(a =>
-            myClasses.some(c => c.id === a.classId)
-        );
-
-        const myClasses = useMemo(
-            () => (allClasses || []).filter(c => c.studentIds?.includes(user?.id) || c.students?.some(s => s.id === user?.id)),
-            [allClasses, user?.id]
-        );
-
-
-        if (filterClassId) {
-            list = list.filter(a => a.classId === filterClassId);
-        }
-
+        let list = assignments.filter(a => myClasses.some(c => c.id === a.classId));
+        if (filterClassId) list = list.filter(a => a.classId === filterClassId);
         return list;
     }, [assignments, myClasses, filterClassId]);
 
     const activeClass = filterClassId ? myClasses.find(c => c.id === filterClassId) : null;
 
+    // Counts
+    const pending   = filteredAssignments.filter(a => { const sub = mySubmissions.find(s => s.assignmentId === a.id); const st = (sub?.status || '').toLowerCase(); return st !== 'submitted' && st !== 'graded'; }).length;
+    const submitted = filteredAssignments.filter(a => { const sub = mySubmissions.find(s => s.assignmentId === a.id); return sub?.status?.toLowerCase() === 'submitted'; }).length;
+    const graded    = filteredAssignments.filter(a => { const sub = mySubmissions.find(s => s.assignmentId === a.id); return ['graded','completed'].includes(sub?.status?.toLowerCase()); }).length;
+
     return (
-        <div className="min-h-screen bg-transparent p-8 md:p-12">
-            <div>
-                {/* Header Section */}
-                <div className="mb-12">
-                    <div className="flex items-center gap-2 text-[10px] font-extrabold font-heading uppercase tracking-widest text-gray-400 mb-4">
-                        <button onClick={() => navigate('/student/dashboard')} className="hover:text-accent transition-colors">Dashboard</button>
-                        <span>/</span>
-                        {activeClass ? (
-                            <>
-                                <button onClick={() => navigate(`/student/classes/${activeClass.id}`)} className="hover:text-accent transition-colors">{activeClass.name}</button>
-                                <span>/</span>
-                                <span className="text-ink">Assignments</span>
-                            </>
-                        ) : (
-                            <span className="text-ink">All Assignments</span>
-                        )}
+        <PageShell
+            title={activeClass ? activeClass.name : 'All Assignments'}
+            subtitle={activeClass ? `Tasks for ${activeClass.name}` : 'Comprehensive view of all your academic tasks'}
+            icon={<Layers size={22} />}
+            badge={filteredAssignments.length}
+            breadcrumbs={activeClass ? [
+                { label: activeClass.name, path: `/student/classes/${activeClass.id}` },
+                { label: 'Assignments' }
+            ] : [{ label: 'All Assignments' }]}
+        >
+            {/* Summary strip */}
+            {filteredAssignments.length > 0 && (
+                <div className="apc-summary-strip">
+                    <div className="apc-summary-item">
+                        <Layers size={14} />
+                        <span className="apc-summary-val">{filteredAssignments.length}</span>
+                        <span className="apc-summary-label">Total</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold font-heading text-ink tracking-tight">
-                        {activeClass ? activeClass.name : "Your Assignments"}
-                        <span className="block text-lg font-medium text-muted mt-2 italic">
-                            {activeClass ? `Manage tasks for ${activeClass.name}` : "Comprehensive list of all your academic tasks"}
-                        </span>
-                    </h1>
+                    <div className="apc-summary-sep" />
+                    <div className="apc-summary-item apc-summary-amber">
+                        <Clock size={14} />
+                        <span className="apc-summary-val">{pending}</span>
+                        <span className="apc-summary-label">Pending</span>
+                    </div>
+                    <div className="apc-summary-sep" />
+                    <div className="apc-summary-item apc-summary-blue">
+                        <BookOpen size={14} />
+                        <span className="apc-summary-val">{submitted}</span>
+                        <span className="apc-summary-label">Submitted</span>
+                    </div>
+                    <div className="apc-summary-sep" />
+                    <div className="apc-summary-item apc-summary-green">
+                        <CheckCircle2 size={14} />
+                        <span className="apc-summary-val">{graded}</span>
+                        <span className="apc-summary-label">Reviewed</span>
+                    </div>
                 </div>
+            )}
 
-                {/* Filter/Tabs */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {filteredAssignments.length > 0 ? (
-                        filteredAssignments.map(asgn => {
-                            const submission = mySubmissions.find(s => s.assignmentId === asgn.id);
-                            const status = submission?.status?.toLowerCase();
-                            const isSubmitted = status === 'submitted' || status === 'graded';
-                            const isOverdue = asgn.deadline && new Date(asgn.deadline) < new Date() && !isSubmitted;
+            {/* Cards grid */}
+            {filteredAssignments.length > 0 ? (
+                <div className="apc-grid">
+                    {filteredAssignments.map(asgn => {
+                        const submission = mySubmissions.find(s => s.assignmentId === asgn.id);
+                        const subStatus = submission?.status?.toLowerCase();
+                        const isSubmitted = subStatus === 'submitted' || subStatus === 'graded';
+                        const isOverdue = asgn.deadline && new Date(asgn.deadline) < new Date() && !isSubmitted;
+                        const dlStatus = getDeadlineStatus(asgn.deadline);
+                        const displayStatus = subStatus === 'graded' ? 'graded' :
+                            isSubmitted ? 'submitted' :
+                            isOverdue ? 'overdue' : 'pending';
+                        const className = myClasses.find(c => c.id === asgn.classId);
 
-                            return (
-                                <div
-                                    key={asgn.id}
-                                    onClick={() => navigate(`/student/assignments/${asgn.title.toLowerCase().replace(/\s+/g, '-')}/work`)}
-                                    className="bg-white rounded-lg border border-black/5 shadow-card hover:shadow-hover hover:-translate-y-2 transition-all group flex flex-col h-full overflow-hidden relative"
-                                >
-                                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent/10/30 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
+                        return (
+                            <div
+                                key={asgn.id}
+                                className={`apc-card ${isOverdue ? 'apc-card-overdue' : ''}`}
+                                onClick={() => navigate(`/student/assignments/${asgn.title.toLowerCase().replace(/\s+/g, '-')}/work`)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={e => { if (e.key === 'Enter') navigate(`/student/assignments/${asgn.title.toLowerCase().replace(/\s+/g, '-')}/work`); }}
+                            >
+                                {/* Accent top bar by status */}
+                                <div className={`apc-card-bar apc-bar-${displayStatus}`} />
 
-                                    <div className="p-8 flex-1 relative z-10">
-                                        <div className="flex justify-between items-start mb-6">
-                                            <span className={`px-3 py-1 ${
-                                                status === 'graded' ? 'bg-status-green/10 text-status-green border-emerald-100' : 
-                                                isSubmitted ? 'bg-accent/10 text-accent border-accent/10' : 
-                                                isOverdue ? 'bg-status-red/10 text-status-red border-red-100' : 
-                                                'bg-blue-50 text-blue-600 border-blue-100'
-                                            } text-[10px] font-extrabold font-heading rounded-lg uppercase tracking-widest border`}>
-                                                {status === 'graded' ? 'Reviewed' : isSubmitted ? 'Submitted' : isOverdue ? 'Overdue' : 'Pending'}
-                                            </span>
-                                            <span className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest bg-surface-3 px-2 py-1 rounded-lg">
-                                                {myClasses.find(c => c.id === asgn.classId)?.code}
-                                            </span>
-                                        </div>
-                                        <h3 className="text-xl font-extrabold font-heading text-ink mb-3 group-hover:text-accent transition-colors">{asgn.title}</h3>
-                                        <p className="text-sm text-muted line-clamp-3 font-medium leading-relaxed">{asgn.description}</p>
+                                <div className="apc-card-body">
+                                    <div className="apc-card-top">
+                                        <StatusChip status={displayStatus} />
+                                        {className && (
+                                            <span className="apc-class-tag">{className.code || className.name}</span>
+                                        )}
                                     </div>
 
-                                    <div className="px-8 py-6 bg-surface-3/50 border-t border-gray-50 flex justify-between items-center relative z-10">
-                                        <div>
-                                            <p className="text-[9px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1">Deadline</p>
-                                            <p className="text-xs font-bold font-body text-gray-700">{asgn.deadline ? new Date(asgn.deadline).toLocaleDateString() : 'No Date'}</p>
-                                        </div>
-                                        {(submission?.score !== undefined && submission?.score !== null) ? (
-                                            <div className="text-right">
-                                                <p className="text-[9px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1">Grade</p>
-                                                <p className="text-sm font-extrabold font-heading text-accent bg-accent/10 px-3 py-1 rounded-full">{submission.score}%</p>
-                                            </div>
+                                    <h3 className="apc-card-title">{asgn.title}</h3>
+                                    {asgn.description && (
+                                        <p className="apc-card-desc">{asgn.description}</p>
+                                    )}
+
+                                    <div className="apc-card-footer">
+                                        <DeadlineChip deadline={asgn.deadline} />
+                                        {submission?.score != null ? (
+                                            <span className="apc-score" style={{
+                                                background: submission.score >= 80 ? 'var(--green-soft)' : submission.score >= 50 ? 'var(--amber-soft)' : 'var(--red-soft)',
+                                                color: submission.score >= 80 ? 'var(--green)' : submission.score >= 50 ? 'var(--amber)' : 'var(--red)',
+                                            }}>
+                                                {submission.score}%
+                                            </span>
                                         ) : (
-                                            <div className="text-right">
-                                                <p className="text-[9px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1">Weight</p>
-                                                <p className="text-sm font-extrabold font-heading text-gray-700">100 Pts</p>
-                                            </div>
+                                            <span className="apc-pts">100 pts</span>
                                         )}
                                     </div>
                                 </div>
-                            );
-                        })
-                    ) : (
-                        <div className="col-span-full py-20 text-center">
-                            <div className="text-5xl mb-6">📄</div>
-                            <h3 className="text-2xl font-bold font-body text-ink mb-2">No assignments found</h3>
-                            <p className="text-gray-400">Take a break! There are no tasks waiting for you in this section.</p>
-                        </div>
-                    )}
+
+                                <div className="apc-card-cta">
+                                    <ArrowRight size={15} />
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
-            </div>
-        </div>
+            ) : (
+                <div className="apc-empty">
+                    <div className="apc-empty-icon">📄</div>
+                    <h3>No assignments found</h3>
+                    <p>Take a break — no tasks are waiting for you here.</p>
+                </div>
+            )}
+        </PageShell>
     );
 };
 
 export default StudentAssignmentsList;
-

@@ -1,20 +1,46 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const StatisticsCard = React.memo(({ label, value, note, icon, color, path }) => {
+const StatisticsCard = React.memo(({ label, value, note, icon, color = 'blue', path, badge }) => {
     const navigate = useNavigate();
 
+    const handleClick = () => {
+        if (path) navigate(path);
+    };
+
     return (
-        <button className={`sdb-stat sdb-stat-${color}`} onClick={() => navigate(path)}>
-            <div className="sdb-stat-icon">{icon}</div>
-            <div className="sdb-stat-body">
-                <div className="sdb-stat-value">{value}</div>
-                <div className="sdb-stat-label">{label}</div>
-                <div className="sdb-stat-note">{note}</div>
+        <div
+            className={`sdb-stat-card sdb-stat-card-${color}`}
+            onClick={handleClick}
+            role={path ? 'button' : undefined}
+            tabIndex={path ? 0 : undefined}
+            onKeyDown={(e) => {
+                if (path && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleClick();
+                }
+            }}
+            aria-label={`${label}: ${value}. ${note || ''}`}
+        >
+            <div className="sdb-stat-card-top">
+                <div className="sdb-stat-card-icon" aria-hidden="true">
+                    {icon}
+                </div>
+                {badge && <span className="sdb-stat-card-badge">{badge}</span>}
+                {path && (
+                    <div className="sdb-stat-card-arrow" aria-hidden="true">
+                        <ArrowUpRight size={14} />
+                    </div>
+                )}
             </div>
-            <ArrowRight size={16} className="sdb-stat-arrow" />
-        </button>
+
+            <div className="sdb-stat-card-body">
+                <div className="sdb-stat-card-value">{value ?? 0}</div>
+                <div className="sdb-stat-card-label">{label}</div>
+                {note && <div className="sdb-stat-card-note">{note}</div>}
+            </div>
+        </div>
     );
 });
 

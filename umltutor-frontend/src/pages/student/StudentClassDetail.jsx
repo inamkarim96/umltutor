@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import {
     selectClasses,
@@ -11,22 +11,104 @@ import { selectUser } from '../../features/auth';
 import {
     BookOpen,
     Clock,
-    ChevronRight,
-    Layout,
     GraduationCap,
-    ArrowLeft,
     Calendar,
-    FileText,
-    ArrowUpRight,
     MessageSquare,
     Files,
-    Hash
+    ArrowRight,
+    CheckCircle2,
+    AlertCircle
 } from 'lucide-react';
 import AnnouncementBoard from '../../features/teacher/components/AnnouncementBoard';
 import FileBrowser from '../../features/teacher/components/FileBrowser';
+import PageShell from '../../components/dashboard/PageShell';
+
+function StatusChip({ status }) {
+    if (status === 'overdue') {
+        return (
+            <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: '#fef2f2',
+                color: '#b91c1c',
+                border: '1px solid #fca5a5',
+                whiteSpace: 'nowrap'
+            }}>
+                <AlertCircle size={12} /> Overdue
+            </span>
+        );
+    }
+    if (status === 'graded') {
+        return (
+            <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: '#eef2ff',
+                color: '#4338ca',
+                border: '1px solid #c7d2fe',
+                whiteSpace: 'nowrap'
+            }}>
+                <CheckCircle2 size={12} /> Graded
+            </span>
+        );
+    }
+    if (status === 'submitted') {
+        return (
+            <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: '#ecfdf5',
+                color: '#047857',
+                border: '1px solid #a7f3d0',
+                whiteSpace: 'nowrap'
+            }}>
+                <CheckCircle2 size={12} /> Submitted
+            </span>
+        );
+    }
+    return (
+        <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '11px',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            padding: '4px 10px',
+            borderRadius: '8px',
+            background: '#eff6ff',
+            color: '#1d4ed8',
+            border: '1px solid #bfdbfe',
+            whiteSpace: 'nowrap'
+        }}>
+            <Clock size={12} /> Active
+        </span>
+    );
+}
 
 const StudentClassDetail = () => {
-    // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
     const name = window.location.pathname
         .split('/')
         .find((segment, i, arr) => arr[i - 1] === 'classes' && segment.length > 0);
@@ -34,14 +116,13 @@ const StudentClassDetail = () => {
     const dispatch = useAppDispatch();
     const allClasses = useAppSelector(selectClasses);
     const assignments = useAppSelector(selectAllAssignments) || [];
-    const submissionsMap = useAppSelector(selectSubmissions);
+    const submissionsMap = useAppSelector(selectSubmissions) || [];
     const user = useAppSelector(selectUser);
-    
-    // UI State
-    const [activeTab, setActiveTab] = useState('posts'); // posts, files, assignments, grades
+
+    // Default to 'assignments' tab
+    const [activeTab, setActiveTab] = useState('assignments');
 
     useEffect(() => {
-        // Ensure data is loaded
         if (allClasses.length === 0) dispatch(fetchClasses('STUDENT'));
         dispatch(fetchAllAssignments('STUDENT'));
         dispatch(fetchMySubmissions());
@@ -58,216 +139,310 @@ const StudentClassDetail = () => {
         return assignments.filter(a => a.classId === classId);
     }, [assignments, classId]);
 
-    const mySubmissions = useMemo(() => {
-        return submissionsMap || [];
-    }, [submissionsMap]);
+    // Calculate class completion stats
+    const stats = useMemo(() => {
+        const total = classAssignments.length;
+        if (total === 0) return { total: 0, submitted: 0, pct: 0, avgScore: null };
+
+        const classAsgnIds = new Set(classAssignments.map(a => a.id));
+        const classSubs = submissionsMap.filter(s =>
+            classAsgnIds.has(s.assignmentId) &&
+            (s.status?.toLowerCase() === 'submitted' || s.status?.toLowerCase() === 'graded')
+        );
+
+        const submitted = classSubs.length;
+        const pct = Math.round((submitted / total) * 100);
+
+        const gradedSubs = classSubs.filter(s => s.score != null);
+        const avgScore = gradedSubs.length > 0
+            ? Math.round(gradedSubs.reduce((acc, s) => acc + Number(s.score), 0) / gradedSubs.length)
+            : null;
+
+        return { total, submitted, pct, avgScore };
+    }, [classAssignments, submissionsMap]);
 
     if (!currentClass) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-transparent p-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mb-4"></div>
-                <p className="text-muted font-medium">Loading class details...</p>
-            </div>
+            <PageShell
+                backPath="/student/classes"
+                breadcrumbs={[{ label: 'My Classes', path: '/student/classes' }]}
+            >
+                <div className="apc-loading-state">
+                    <div className="apc-spinner" />
+                    <p className="apc-loading-text">Loading Class Details...</p>
+                </div>
+            </PageShell>
         );
     }
 
     const tabs = [
-        { id: 'posts', label: 'Post', icon: <MessageSquare size={18} /> },
-        { id: 'files', label: 'File', icon: <Files size={18} /> },
-        { id: 'assignments', label: 'Assignment', icon: <BookOpen size={18} /> },
+        { id: 'assignments', label: 'Assignments', count: classAssignments.length, icon: <BookOpen size={18} /> },
+        { id: 'posts', label: 'Announcements', icon: <MessageSquare size={18} /> },
+        { id: 'files', label: 'Files & Resources', icon: <Files size={18} /> },
     ];
 
     return (
-        <div className="min-h-screen bg-transparent pb-12">
-            <div className="px-4 sm:px-6 lg:px-8 pt-8">
-                <button
-                    onClick={() => navigate('/student/dashboard')}
-                    className="mb-6 text-muted font-extrabold text-sm hover:text-accent transition-all flex items-center gap-2 group"
-                >
-                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-card border border-black/5 group-hover:bg-accent/10 group-hover:border-accent/10 transition-all">
-                        <ArrowLeft size={16} />
-                    </div>
-                    Back to Dashboard
-                </button>
-            </div>
-
-            <div className="bg-white border-b border-black/5 shadow-card p-4 md:p-12 mb-10 overflow-hidden relative">
-                <div>
-                    {/* Breadcrumbs */}
-                    <nav className="flex items-center gap-2 text-xs font-bold font-body text-gray-400 mb-6 uppercase tracking-widest">
-                        <Link to="/student/dashboard" className="hover:text-accent transition-colors">Dashboard</Link>
-                        <ChevronRight size={14} />
-                        <span className="text-accent">Classes</span>
-                        <ChevronRight size={14} />
-                        <span className="text-ink">{currentClass.name}</span>
-                    </nav>
-
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 bg-accent text-white rounded-lg flex items-center justify-center font-extrabold font-heading text-xl shadow-hover shadow-accent/20">
-                                    {currentClass.name.charAt(0)}
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="px-3 py-1 bg-accent/10 text-accent text-[10px] font-extrabold font-heading rounded-lg uppercase tracking-widest">
-                                            {currentClass.code}
-                                        </span>
-                                        <span className="px-3 py-1 bg-status-green/10 text-status-green text-[10px] font-extrabold font-heading rounded-lg uppercase tracking-widest flex items-center gap-1">
-                                            <GraduationCap size={10} /> Enrolled
-                                        </span>
-                                    </div>
-                                </div>
+        <PageShell
+            backPath="/student/classes"
+            breadcrumbs={[
+                { label: 'My Classes', path: '/student/classes' },
+                { label: currentClass.name }
+            ]}
+        >
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* ── Class Hero Banner ── */}
+                <div className="cld-hero-card">
+                    <div className="cld-hero-inner">
+                        <div className="cld-hero-main">
+                            <div className="cld-hero-avatar">
+                                {currentClass.name.charAt(0).toUpperCase()}
                             </div>
-                            <h1 className="text-5xl font-extrabold font-heading text-ink tracking-tight mb-4 leading-tight">
-                                {currentClass.name}
-                            </h1>
-                            <p className="text-muted max-w-2xl font-medium text-lg leading-relaxed">
-                                {currentClass.description || "Welcome back to your workspace. Stay updated with announcements and manage your assignments."}
-                            </p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-3">
-                            <div className="bg-[#f1f5f9] px-6 py-6 rounded-3xl border border-white shadow-inner flex flex-col items-center min-w-[140px]">
-                                <p className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest mb-1">Status</p>
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-status-green/100 animate-pulse"></div>
-                                    <p className="text-xs font-bold font-body text-gray-700 uppercase tracking-tighter tracking-wider">Active</p>
+                            <div className="cld-hero-info">
+                                <div className="cld-hero-tags">
+                                    <span className="cld-code-badge">
+                                        {currentClass.code || 'COURSE'}
+                                    </span>
+                                    <span className="cld-status-badge">
+                                        <span className="cld-status-dot" /> Enrolled
+                                    </span>
+                                    {currentClass.teacherName && (
+                                        <span className="cld-teacher-chip">
+                                            <GraduationCap size={13} /> Instructor: {currentClass.teacherName}
+                                        </span>
+                                    )}
                                 </div>
+
+                                <h1 className="cld-title">{currentClass.name}</h1>
+                                <p className="cld-desc">
+                                    {currentClass.description || 'Welcome to your course workspace. Track assignments, access announcements, and review your feedback here.'}
+                                </p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            <div className="w-full bg-white border-y border-black/5 flex overflow-x-auto no-scrollbar sticky top-0 z-20 shadow-card shadow-gray-50/50">
-                <div className="flex items-center gap-12 px-8 md:px-12">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`py-6 relative font-extrabold font-heading text-[10px] uppercase tracking-[0.2em] transition-all whitespace-nowrap group ${
-                                activeTab === tab.id 
-                                ? 'text-accent' 
-                                : 'text-gray-400 hover:text-muted'
-                            }`}
-                        >
-                            <div className="flex items-center gap-2.5">
-                                <span className={`transition-transform duration-300 ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110 opacity-70 group-hover:opacity-100'}`}>
-                                    {React.cloneElement(tab.icon, { size: 18 })}
+                        {/* Quick Stats on the right */}
+                        <div className="cld-stats-group">
+                            <div className="cld-stat-card">
+                                <span className="cld-stat-lbl">Assignments</span>
+                                <span className="cld-stat-num">{stats.total}</span>
+                            </div>
+                            <div className="cld-stat-card">
+                                <span className="cld-stat-lbl">Completed</span>
+                                <span className="cld-stat-num cld-stat-green">
+                                    {stats.submitted} / {stats.total}
                                 </span>
-                                {tab.label}
                             </div>
-                            
-                            {/* Active Indicator */}
-                            {activeTab === tab.id ? (
-                                <div className="absolute bottom-0 left-0 w-full h-1 bg-accent rounded-t-full shadow-[0_-4px_12px_rgba(79,70,229,0.3)]" />
-                            ) : (
-                                <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-0.5 bg-gray-200 transition-all duration-300" />
+                            {stats.avgScore !== null && (
+                                <div className="cld-stat-card">
+                                    <span className="cld-stat-lbl">Avg Grade</span>
+                                    <span className="cld-stat-num cld-stat-purple">
+                                        {stats.avgScore}%
+                                    </span>
+                                </div>
                             )}
-                        </button>
-                    ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── High-Contrast, Crystal Clear Navigation Tab Bar ── */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 14px -2px rgba(15, 23, 42, 0.06)',
+                    marginBottom: '28px',
+                    flexWrap: 'wrap'
+                }}>
+                    {tabs.map(tab => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                type="button"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '11px 22px',
+                                    borderRadius: '12px',
+                                    border: isActive ? '1px solid #4338ca' : '1px solid transparent',
+                                    background: isActive ? '#4f46e5' : '#f8fafc',
+                                    color: isActive ? '#ffffff' : '#1e293b',
+                                    fontSize: '14px',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.18s ease',
+                                    boxShadow: isActive ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none',
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!isActive) {
+                                        e.currentTarget.style.background = '#eef2ff';
+                                        e.currentTarget.style.color = '#4338ca';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!isActive) {
+                                        e.currentTarget.style.background = '#f8fafc';
+                                        e.currentTarget.style.color = '#1e293b';
+                                    }
+                                }}
+                            >
+                                <span style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: isActive ? '#ffffff' : '#4f46e5'
+                                }}>
+                                    {tab.icon}
+                                </span>
+                                <span>{tab.label}</span>
+                                {tab.count != null && (
+                                    <span style={{
+                                        background: isActive ? 'rgba(255, 255, 255, 0.28)' : '#e0e7ff',
+                                        color: isActive ? '#ffffff' : '#4338ca',
+                                        fontSize: '11px',
+                                        fontWeight: 900,
+                                        padding: '2px 8px',
+                                        borderRadius: '100px',
+                                    }}>
+                                        {tab.count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* ── Tab Content ── */}
+                <div>
+                    {/* ASSIGNMENTS TAB */}
+                    {activeTab === 'assignments' && (
+                        <div>
+                            {classAssignments.length === 0 ? (
+                                <div style={{
+                                    background: '#ffffff',
+                                    border: '2px dashed #cbd5e1',
+                                    borderRadius: '20px',
+                                    padding: '60px 20px',
+                                    textAlign: 'center'
+                                }}>
+                                    <BookOpen size={44} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
+                                    <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+                                        No Assignments Posted Yet
+                                    </h3>
+                                    <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+                                        Your instructor hasn't posted any assignments for this class yet.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="apc-grid">
+                                    {classAssignments.map(asgn => {
+                                        const sub = submissionsMap.find(s => s.assignmentId === asgn.id);
+                                        const subStatus = (sub?.status || '').toLowerCase();
+                                        const isSubmitted = subStatus === 'submitted' || subStatus === 'graded';
+                                        const isGraded = subStatus === 'graded';
+                                        const isOverdue = asgn.deadline && new Date(asgn.deadline) < new Date() && !isSubmitted;
+
+                                        const asgnSlug = asgn.title.toLowerCase().replace(/\s+/g, '-');
+                                        const displayStatus = isGraded ? 'graded' : isSubmitted ? 'submitted' : isOverdue ? 'overdue' : 'pending';
+
+                                        const deadlineStr = asgn.deadline
+                                            ? new Date(asgn.deadline).toLocaleDateString(undefined, {
+                                                month: 'short',
+                                                day: 'numeric'
+                                            })
+                                            : null;
+
+                                        const scoreVal = sub?.score != null ? Number(sub.score) : null;
+
+                                        return (
+                                            <div
+                                                key={asgn.id}
+                                                className={`apc-card ${isOverdue ? 'apc-card-overdue' : ''}`}
+                                                onClick={() => navigate(`/student/assignments/${asgnSlug}`)}
+                                                tabIndex={0}
+                                                role="button"
+                                                onKeyDown={(e) => e.key === 'Enter' && navigate(`/student/assignments/${asgnSlug}`)}
+                                            >
+                                                {/* Top accent bar indicating status */}
+                                                <div className={`apc-card-bar apc-bar-${displayStatus}`} />
+
+                                                <div className="apc-card-body">
+                                                    <div className="apc-card-top">
+                                                        <StatusChip status={displayStatus} />
+                                                        {scoreVal !== null && (
+                                                            <span style={{
+                                                                fontFamily: 'var(--font-d)',
+                                                                fontSize: '13px',
+                                                                fontWeight: 900,
+                                                                padding: '3px 10px',
+                                                                borderRadius: '100px',
+                                                                marginLeft: 'auto',
+                                                                background: scoreVal >= 80 ? '#dcfce7' : scoreVal >= 50 ? '#fef3c7' : '#fee2e2',
+                                                                color: scoreVal >= 80 ? '#15803d' : scoreVal >= 50 ? '#b45309' : '#b91c1c',
+                                                                border: scoreVal >= 80 ? '1px solid #86efac' : scoreVal >= 50 ? '1px solid #fde68a' : '1px solid #fca5a5'
+                                                            }}>
+                                                                {scoreVal}%
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <h3 className="apc-card-title">{asgn.title}</h3>
+                                                    <p className="apc-card-desc">
+                                                        {asgn.description || asgn.textContent || 'Build and verify your UML model according to specifications.'}
+                                                    </p>
+
+                                                    <div className="apc-card-footer">
+                                                        <div className="apc-card-deadline">
+                                                            <Calendar size={13} style={{ color: '#64748b' }} />
+                                                            <span>{deadlineStr ? `Due ${deadlineStr}` : 'No deadline'}</span>
+                                                        </div>
+
+                                                        <span className="apc-card-btn">
+                                                            View Details <ArrowRight size={13} />
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ANNOUNCEMENTS TAB */}
+                    {activeTab === 'posts' && (
+                        <div style={{
+                            background: '#ffffff',
+                            borderRadius: '20px',
+                            border: '1px solid #e2e8f0',
+                            padding: '28px',
+                            boxShadow: '0 4px 14px -2px rgba(15, 23, 42, 0.05)'
+                        }}>
+                            <AnnouncementBoard classId={classId} />
+                        </div>
+                    )}
+
+                    {/* FILES & RESOURCES TAB */}
+                    {activeTab === 'files' && (
+                        <div style={{
+                            background: '#ffffff',
+                            borderRadius: '20px',
+                            border: '1px solid #e2e8f0',
+                            overflow: 'hidden',
+                            boxShadow: '0 4px 14px -2px rgba(15, 23, 42, 0.05)'
+                        }}>
+                            <FileBrowser classId={classId} allowStudentUploads={currentClass.allowStudentUploads} />
+                        </div>
+                    )}
                 </div>
             </div>
-
-            <div className="px-4 sm:px-6 lg:px-8 mt-8">
-                {activeTab === 'posts' && (
-                    <div className="animate-in fade-in duration-500">
-                        <AnnouncementBoard classId={classId} />
-                    </div>
-                )}
-
-                {activeTab === 'files' && (
-                    <div className="animate-in fade-in duration-500 bg-white rounded-lg border border-black/5 shadow-card overflow-hidden min-h-[600px]">
-                        <FileBrowser classId={classId} allowStudentUploads={currentClass.allowStudentUploads} />
-                    </div>
-                )}
-
-                {activeTab === 'assignments' && (
-                    <div className="animate-in slide-in-from-bottom-4 duration-500">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-extrabold font-heading text-ink flex items-center gap-3">
-                                <BookOpen size={24} className="text-accent" /> Assignments
-                                <span className="ml-2 px-3 py-1 bg-surface-3 text-muted text-xs rounded-full">{classAssignments.length}</span>
-                            </h2>
-                        </div>
-
-                        {classAssignments.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                                {classAssignments.map(asgn => {
-                                    const submission = mySubmissions.find(s => s.assignmentId === asgn.id);
-                                    const status = (submission?.status || asgn.status || '').toLowerCase();
-                                    const isSubmitted = status === 'submitted' || status === 'graded';
-                                    const isOverdue = asgn.deadline && new Date(asgn.deadline) < new Date() && !isSubmitted;
-
-                                    return (
-                                        <div
-                                            key={asgn.id}
-                                            onClick={() => navigate(`/student/assignments/${asgn.title.toLowerCase().replace(/\s+/g, '-')}/work`)}
-                                            className="bg-white p-6 rounded-3xl border border-black/5 shadow-card hover:border-accent/20 hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between h-full"
-                                        >
-                                            <div>
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <span className={`px-2 py-0.5 text-[10px] font-extrabold font-heading rounded uppercase tracking-widest ${
-                                                        status === 'graded' ? 'bg-accent/10 text-accent' :
-                                                        status === 'submitted' ? 'bg-status-green/10 text-status-green' :
-                                                        isOverdue ? 'bg-status-red/10 text-status-red' : 'bg-amber-50 text-amber-600'
-                                                    }`}>
-                                                        {status === 'graded' ? 'Reviewed' :
-                                                            status === 'submitted' ? 'Submitted' :
-                                                                isOverdue ? 'Late' : 'Open'}
-                                                    </span>
-                                                    <span className="text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest">
-                                                        {asgn.type || 'Standard'} Task
-                                                    </span>
-                                                </div>
-                                                <h3 className="text-xl font-bold font-body text-ink group-hover:text-accent transition-colors mb-2">
-                                                    {asgn.title}
-                                                </h3>
-                                                <p className="text-muted text-sm line-clamp-2 font-medium mb-6">
-                                                    {asgn.description || "No specific instructions provided."}
-                                                </p>
-                                            </div>
-
-                                            <div className="flex items-center justify-between border-t border-gray-50 pt-4">
-                                                <div className="flex items-center gap-4">
-                                                    <div>
-                                                        <p className="text-[9px] font-extrabold font-heading text-gray-400 uppercase tracking-widest">Deadline</p>
-                                                        <div className="flex items-center gap-1.5 text-ink font-bold font-body text-xs mt-0.5">
-                                                            <Calendar size={12} className="text-indigo-500" />
-                                                            {asgn.deadline ? new Date(asgn.deadline).toLocaleDateString() : '—'}
-                                                        </div>
-                                                    </div>
-                                                    {submission?.score !== undefined && submission?.score !== null && (
-                                                        <div>
-                                                            <p className="text-[9px] font-extrabold font-heading text-gray-400 uppercase tracking-widest">Score</p>
-                                                            <p className="text-accent font-extrabold font-heading text-sm">{submission.score}%</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="w-8 h-8 bg-surface-3 text-gray-400 rounded-lg flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-all">
-                                                    <ArrowUpRight size={18} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="bg-white p-20 rounded-[40px] border border-dashed border-black/10 text-center">
-                                <div className="w-20 h-20 bg-surface-3 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                                    <FileText size={32} className="text-gray-300" />
-                                </div>
-                                <h3 className="text-2xl font-extrabold font-heading text-ink mb-2">No Assignments Yet</h3>
-                                <p className="text-muted font-medium max-w-xs mx-auto">Your instructor hasn't posted any assignments yet.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
+        </PageShell>
     );
 };
 
 export default StudentClassDetail;
-

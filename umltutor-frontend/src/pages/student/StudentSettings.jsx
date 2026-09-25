@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SettingsPanel from '../../components/shared/SettingsPanel';
+import PageShell from '../../components/dashboard/PageShell';
+import { Settings } from 'lucide-react';
 
 const StudentSettings = () => {
     const navigate = useNavigate();
@@ -10,13 +12,17 @@ const StudentSettings = () => {
     const fallbackDashboard = isTeacher ? '/teacher/dashboard' : '/student/dashboard';
 
     return (
-        <div className="min-h-screen bg-transparent p-6 md:p-10">
-            <div className="mb-6">
-                <h1 className="text-3xl font-extrabold font-heading text-ink tracking-tight">Account Settings</h1>
-                <p className="text-muted text-sm mt-1">Manage your account preferences, password, and notifications.</p>
+        <PageShell
+            title="Account Settings"
+            subtitle="Manage your profile information, password, and notification preferences"
+            icon={<Settings size={24} />}
+            backPath={fallbackDashboard}
+            breadcrumbs={[{ label: 'Settings' }]}
+        >
+            <div style={{ background: 'var(--surface)', borderRadius: '20px', border: '1px solid var(--border)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
+                <SettingsPanel isOpen={true} onClose={() => navigate(fallbackDashboard)} />
             </div>
-            <SettingsPanel isOpen={true} onClose={() => navigate(fallbackDashboard)} />
-        </div>
+        </PageShell>
     );
 };
 

@@ -10,14 +10,9 @@
 @import "./landing.css";
 
 /* ── Shared Dashboard modules ── */
-@import "./base.css";
-@import "./hero.css";
+@import "./dashboard.css";
 @import "./stats.css";
-@import "./layout-grid.css";
-@import "./card.css";
 @import "./components.css";
-@import "./classList.css";
 @import "./assignments.css";
 @import "./workbench.css";
-@import "./emptyState.css";
-@import "./modal.css";
+@import "./pages.css";

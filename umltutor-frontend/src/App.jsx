@@ -6,6 +6,7 @@ import GlobalEventHandler from './components/shared/GlobalEventHandler';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import NotFound from './components/ui/NotFound';
 import PageLoader from './components/ui/PageLoader';
+import PageTransition from './components/ui/PageTransition';
 import LoginPage from './features/auth/pages/LoginPage';
 import RegisterPage from './features/auth/pages/RegisterPage';
 import LandingPage from './pages/LandingPage';
@@ -189,14 +190,20 @@ function AppContent() {
     );
   }
 
+  const pageContent = (
+    <>
+      {needsLayout ? (
+        <Layout role={role} navConfig={navConfig}>{renderPage()}</Layout>
+      ) : renderPage()}
+    </>
+  );
+
   return (
     <div className="app-root">
       <AnimatedPageBackground variant={bgVariant} />
-      <div className="app-root-content" key={page}>
-        {needsLayout ? (
-          <Layout role={role} navConfig={navConfig}>{renderPage()}</Layout>
-        ) : renderPage()}
-      </div>
+      <PageTransition timeout={300}>
+        {pageContent}
+      </PageTransition>
     </div>
   );
 }
