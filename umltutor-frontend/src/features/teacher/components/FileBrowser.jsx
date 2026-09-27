@@ -117,13 +117,13 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                 <div className="p-6 border-b border-gray-50 bg-surface-3/30 flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1 min-w-[300px]">
                         <div className="relative flex-1">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                             <input 
                                 type="text"
                                 placeholder="Search files and resources..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 bg-white border border-black/5 rounded-lg focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none transition-all font-medium text-sm"
+                                className="w-full pl-12 pr-4 py-3 bg-white border border-black/5 rounded-lg focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none font-medium text-sm"
                             />
                         </div>
                     </div>
@@ -132,20 +132,20 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                         <div className="bg-white border border-black/5 rounded-xl p-1 flex mr-2">
                             <button 
                                 onClick={() => setViewMode('list')}
-                                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-accent/10 text-accent' : 'text-gray-400 hover:bg-surface-3'}`}
+                                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-accent/10 text-accent' : 'text-gray-500 hover:bg-surface-3 hover:text-gray-700'}`}
                             >
                                 <ListIcon size={18} />
                             </button>
                             <button 
                                 onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-accent/10 text-accent' : 'text-gray-400 hover:bg-surface-3'}`}
+                                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-accent/10 text-accent' : 'text-gray-500 hover:bg-surface-3 hover:text-gray-700'}`}
                             >
                                 <Grid size={18} />
                             </button>
                         </div>
                         
                         {canUpload && (
-                            <label className="flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-extrabold font-heading text-xs hover:bg-indigo-700 transition-all cursor-pointer shadow-hover shadow-accent/20 active:scale-95">
+                            <label className="flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-extrabold font-heading text-xs hover:bg-indigo-700 cursor-pointer shadow-hover shadow-accent/20 active:scale-95">
                                 <Upload size={16} /> 
                                 {isUploading ? 'UPLOADING...' : 'UPLOAD FILE'}
                                 <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
@@ -156,7 +156,7 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
 
                 {/* Error Banner */}
                 {error && (
-                    <div className="mx-6 mt-6 p-4 bg-status-red/10 border border-red-100 rounded-lg flex items-center justify-between group animate-in slide-in-from-top-2 duration-300">
+                    <div className="mx-6 mt-6 p-4 bg-status-red/10 border border-red-100 rounded-lg flex items-center justify-between group">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-red-100 text-status-red rounded-lg flex items-center justify-center">
                                 <X size={16} />
@@ -165,7 +165,7 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                         </div>
                         <button 
                             onClick={() => setError(null)}
-                            className="p-1 hover:bg-black/5 rounded-lg transition-all"
+                            className="p-1 hover:bg-black/5 rounded-lg"
                         >
                             <X size={14} className="text-red-400" />
                         </button>
@@ -173,20 +173,20 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                 )}
 
                 {/* Breadcrumbs / Folder Nav */}
-                <div className="px-8 py-4 border-b border-gray-50 bg-white flex items-center gap-2 text-sm text-gray-400 font-bold font-body">
+                <div className="px-8 py-4 border-b border-gray-50 bg-white flex items-center gap-2 text-sm text-gray-600 font-bold font-body">
                     <button 
                         onClick={() => setCurrentFolder(null)}
-                        className={`hover:text-accent transition-colors ${!currentFolder ? 'text-accent' : ''}`}
+                        className={`hover:text-accent ${!currentFolder ? 'text-accent' : ''}`}
                     >
                         Classes
                     </button>
-                    <ChevronRight size={14} />
+                    <ChevronRight size={14} className="text-gray-500" />
                     <span className="text-ink">{currentFolder || 'Root Directory'}</span>
                     
                     {!currentFolder && isTeacher && (
                         <button 
                             onClick={() => setIsCreateFolderOpen(true)}
-                            className="ml-auto text-accent hover:bg-accent/10 px-3 py-1 rounded-lg transition-all flex items-center gap-1 text-[10px] uppercase tracking-widest font-extrabold font-heading"
+                            className="ml-auto text-accent hover:bg-accent/10 px-3 py-1 rounded-lg flex items-center gap-1 text-[10px] uppercase tracking-widest font-extrabold font-heading"
                         >
                             <Plus size={12} /> New Folder
                         </button>
@@ -198,7 +198,7 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                     {/* Create Folder Modal Overlay */}
                     {isCreateFolderOpen && (
                         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-3xl shadow-hover p-6 w-full max-w-sm animate-in zoom-in duration-200">
+                            <div className="bg-white rounded-3xl shadow-hover p-6 w-full max-w-sm">
                                 <h3 className="text-lg font-extrabold font-heading text-ink mb-4">Create New Folder</h3>
                                 <input 
                                     autoFocus
@@ -211,13 +211,13 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                                 <div className="flex gap-3">
                                     <button 
                                         onClick={() => setIsCreateFolderOpen(false)}
-                                        className="flex-1 py-3 bg-surface-3 text-muted rounded-xl font-extrabold font-heading text-xs hover:bg-surface-3 transition-all"
+                                        className="flex-1 py-3 bg-surface-3 text-muted rounded-xl font-extrabold font-heading text-xs hover:bg-surface-3"
                                     >
                                         CANCEL
                                     </button>
                                     <button 
                                         onClick={() => { setCurrentFolder(newFolderName); setNewFolderName(''); setIsCreateFolderOpen(false); }}
-                                        className="flex-1 py-3 bg-accent text-white rounded-xl font-extrabold font-heading text-xs hover:bg-indigo-700 transition-all shadow-hover shadow-accent/20"
+                                        className="flex-1 py-3 bg-accent text-white rounded-xl font-extrabold font-heading text-xs hover:bg-indigo-700 shadow-hover shadow-accent/20"
                                     >
                                         CREATE
                                     </button>
@@ -235,12 +235,12 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                                     <button 
                                         key={folder}
                                         onClick={() => setCurrentFolder(folder)}
-                                        className="group flex flex-col items-center gap-3 p-4 rounded-3xl hover:bg-accent/10/50 border border-transparent hover:border-accent/10 transition-all"
+                                        className="group flex flex-col items-center gap-3 p-4 rounded-3xl hover:bg-accent/10/50 border border-transparent hover:border-accent/10"
                                     >
-                                        <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shadow-card">
+                                        <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center shadow-card">
                                             <Folder size={32} fill="currentColor" fillOpacity={0.2} />
                                         </div>
-                                        <span className="font-bold font-body text-sm text-gray-700 group-hover:text-accent transition-colors text-center truncate w-full">{folder}</span>
+                                        <span className="font-bold font-body text-sm text-gray-700 group-hover:text-accent text-center truncate w-full">{folder}</span>
                                     </button>
                                 ))}
                             </div>
@@ -261,15 +261,15 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                         ) : viewMode === 'grid' ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                                 {filteredResources.map(res => (
-                                    <div key={res.id} className="group relative flex flex-col items-center gap-3 p-4 rounded-3xl hover:bg-accent/10/50 border border-transparent hover:border-accent/10 transition-all">
-                                        <div className="w-16 h-16 bg-surface-3 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shadow-card">
+                                    <div key={res.id} className="group relative flex flex-col items-center gap-3 p-4 rounded-3xl hover:bg-accent/10/50 border border-transparent hover:border-accent/10">
+                                        <div className="w-16 h-16 bg-surface-3 rounded-lg flex items-center justify-center shadow-card">
                                             {getFileIcon(res.type)}
                                         </div>
                                         <div className="w-full">
                                             <p className="font-bold font-body text-xs text-center text-gray-700 truncate mb-1">{res.name}</p>
                                             <p className="text-[9px] text-center text-gray-400 font-extrabold font-heading uppercase tracking-tight">{(res.size / 1024).toFixed(1)} KB</p>
                                         </div>
-                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-1">
+                                        <div className="absolute top-2 right-2 flex flex-col gap-1">
                                             <a href={res.url} target="_blank" rel="noreferrer" className="p-1.5 bg-white shadow-md rounded-lg text-accent hover:text-indigo-800">
                                                 <Download size={14} />
                                             </a>
@@ -285,9 +285,9 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                         ) : (
                             <div className="space-y-2">
                                 {filteredResources.map(res => (
-                                    <div key={res.id} className="flex items-center justify-between p-4 bg-white border border-gray-50 hover:border-accent/10 rounded-lg hover:shadow-card transition-all group">
+                                    <div key={res.id} className="flex items-center justify-between p-4 bg-white border border-gray-50 hover:border-accent/10 rounded-lg hover:shadow-card group">
                                         <div className="flex items-center gap-4 min-w-0">
-                                            <div className="p-2 bg-surface-3 rounded-xl group-hover:bg-accent/10 transition-colors">
+                                            <div className="p-2 bg-surface-3 rounded-xl">
                                                 {getFileIcon(res.type)}
                                             </div>
                                             <div className="min-w-0">
@@ -304,7 +304,7 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                                                 href={res.url} 
                                                 target="_blank" 
                                                 rel="noreferrer"
-                                                className="p-2.5 text-accent hover:bg-accent/10 rounded-xl transition-all"
+                                                className="p-2.5 text-accent hover:bg-accent/10 rounded-xl"
                                                 title="Download"
                                             >
                                                 <Download size={18} />
@@ -312,7 +312,7 @@ const FileBrowser = ({ classId, allowStudentUploads = false }) => {
                                             {(isTeacher || user?.id === res.uploadedBy) && (
                                                 <button 
                                                     onClick={() => handleDelete(res.id)}
-                                                    className="p-2.5 text-gray-400 hover:text-status-red hover:bg-status-red/10 rounded-xl transition-all"
+                                                    className="p-2.5 text-gray-400 hover:text-status-red hover:bg-status-red/10 rounded-xl"
                                                     title="Delete"
                                                 >
                                                     <Trash2 size={18} />

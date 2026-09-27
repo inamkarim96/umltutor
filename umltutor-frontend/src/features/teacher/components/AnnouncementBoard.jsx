@@ -110,13 +110,13 @@ const AnnouncementBoard = ({ classId }) => {
                                 value={newPost}
                                 onChange={e => setNewPost(e.target.value)}
                                 placeholder="Share something with your class..."
-                                className="w-full px-5 py-4 rounded-lg bg-surface-3 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none transition-all font-medium resize-none text-gray-700 min-h-[120px]"
+                                className="w-full px-5 py-4 rounded-lg bg-surface-3 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none font-medium resize-none text-gray-700 min-h-[120px]"
                             />
                             <div className="flex justify-end">
                                 <button
                                     type="submit"
                                     disabled={isPosting || !newPost.trim()}
-                                    className="flex items-center gap-2 px-8 py-3 bg-accent text-white rounded-xl font-extrabold font-heading shadow-hover shadow-accent/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
+                                    className="flex items-center gap-2 px-8 py-3 bg-accent text-white rounded-xl font-extrabold font-heading shadow-hover shadow-accent/20 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
                                 >
                                     <Send size={18} /> POST
                                 </button>
@@ -151,8 +151,8 @@ const AnnouncementBoard = ({ classId }) => {
                                             <div>
                                                 <p className="font-extrabold font-heading text-ink text-lg tracking-tight">{post.author?.firstName} {post.author?.lastName}</p>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-bold font-body uppercase tracking-widest bg-surface-3 px-2 py-0.5 rounded-lg border border-black/5">
-                                                        <Clock size={10} className="text-gray-300" />
+                                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-600 font-bold font-body uppercase tracking-widest bg-surface-3 px-2 py-0.5 rounded-lg border border-black/5">
+                                                        <Clock size={10} className="text-gray-500" />
                                                         {new Date(post.createdAt).toLocaleDateString()} at {new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
                                                 </div>
@@ -162,7 +162,7 @@ const AnnouncementBoard = ({ classId }) => {
                                             {canDeleteMain && (
                                                 <button
                                                     onClick={() => handleStartEdit(post)}
-                                                    className="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-accent hover:bg-accent/10 rounded-xl transition-all"
+                                                    className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-accent hover:bg-accent/10 rounded-xl"
                                                     title="Edit Post"
                                                 >
                                                     <Pencil size={18} />
@@ -178,7 +178,7 @@ const AnnouncementBoard = ({ classId }) => {
                                                             onConfirm: () => dispatch(deleteAnnouncement(post.id))
                                                         });
                                                     }}
-                                                    className="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-status-red hover:bg-status-red/10 rounded-xl transition-all"
+                                                    className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-status-red hover:bg-status-red/10 rounded-xl"
                                                     title="Delete Post"
                                                 >
                                                     <Trash2 size={18} />
@@ -187,12 +187,12 @@ const AnnouncementBoard = ({ classId }) => {
                                         </div>
                                     </div>
                                     {editingId === post.id ? (
-                                        <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="space-y-4">
                                             <textarea
                                                 autoFocus
                                                 value={editText}
                                                 onChange={e => setEditText(e.target.value)}
-                                                className="w-full px-5 py-4 rounded-lg bg-surface-3 border-2 border-accent/20 focus:bg-white focus:border-accent focus:ring-4 focus:ring-indigo-600/5 outline-none transition-all font-medium resize-none text-gray-700 min-h-[120px]"
+                                                className="w-full px-5 py-4 rounded-lg bg-surface-3 border-2 border-accent/20 focus:bg-white focus:border-accent focus:ring-4 focus:ring-indigo-600/5 outline-none font-medium resize-none text-gray-700 min-h-[120px]"
                                             />
                                             <div className="flex justify-end gap-2">
                                                 <button
@@ -204,7 +204,7 @@ const AnnouncementBoard = ({ classId }) => {
                                                 <button
                                                     disabled={isUpdating || !editText.trim()}
                                                     onClick={handleSaveEdit}
-                                                    className="flex items-center gap-2 px-6 py-2.5 bg-accent text-white rounded-xl font-extrabold font-heading text-[10px] uppercase tracking-widest shadow-hover shadow-accent/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
+                                                    className="flex items-center gap-2 px-6 py-2.5 bg-accent text-white rounded-xl font-extrabold font-heading text-[10px] uppercase tracking-widest shadow-hover shadow-accent/20 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
                                                 >
                                                     {isUpdating ? <RefreshCw className="animate-spin" size={12} /> : <Check size={12} />} SAVE CHANGES
                                                 </button>
@@ -214,7 +214,7 @@ const AnnouncementBoard = ({ classId }) => {
                                         <div className="pl-1 leading-relaxed text-gray-700 font-medium text-lg whitespace-pre-wrap mb-6">
                                             {post.content}
                                             {post.updatedAt !== post.createdAt && (
-                                                <span className="ml-2 text-[10px] text-gray-400 font-bold font-body italic">(edited)</span>
+                                                <span className="ml-2 text-[10px] text-gray-500 font-bold font-body italic">(edited)</span>
                                             )}
                                         </div>
                                     )}
@@ -225,7 +225,7 @@ const AnnouncementBoard = ({ classId }) => {
                                     {post.replies && post.replies.length > 0 && (
                                         <div className="space-y-6 mb-8 group/thread relative pb-2">
                                             {post.replies.map((reply) => (
-                                                <div key={reply.id} className="flex gap-4 relative animate-in slide-in-from-left-2 duration-300">
+                                                <div key={reply.id} className="flex gap-4 relative">
                                                     <div className="flex-1 bg-white p-5 rounded-lg shadow-card border border-black/5 relative group/reply">
                                                         <div className="flex justify-between items-start mb-2">
                                                             <div className="flex items-center gap-2">
@@ -234,13 +234,13 @@ const AnnouncementBoard = ({ classId }) => {
                                                                 </div>
                                                                 <p className="text-xs font-extrabold font-heading text-ink tracking-tight">{reply.author?.firstName} {reply.author?.lastName}</p>
                                                                 <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                                                <p className="text-[9px] text-gray-400 font-bold font-body uppercase tracking-widest">{new Date(reply.createdAt).toLocaleDateString()}</p>
+                                                                <p className="text-[9px] text-gray-500 font-bold font-body uppercase tracking-widest">{new Date(reply.createdAt).toLocaleDateString()}</p>
                                                             </div>
                                                             {(isTeacher || user?.id === reply.authorId) && (
                                                                 <div className="flex items-center gap-1">
                                                                     <button
                                                                         onClick={() => handleStartEdit(reply)}
-                                                                        className="w-7 h-7 flex items-center justify-center text-gray-200 hover:text-accent hover:bg-accent/10 rounded-lg transition-all"
+                                                                        className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-accent hover:bg-accent/10 rounded-lg"
                                                                     >
                                                                         <Pencil size={12} />
                                                                     </button>
@@ -253,7 +253,7 @@ const AnnouncementBoard = ({ classId }) => {
                                                                                 onConfirm: () => dispatch(deleteAnnouncement(reply.id))
                                                                             });
                                                                         }}
-                                                                        className="w-7 h-7 flex items-center justify-center text-gray-200 hover:text-status-red hover:bg-status-red/10 rounded-lg transition-all"
+                                                                        className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-status-red hover:bg-status-red/10 rounded-lg"
                                                                     >
                                                                         <Trash2 size={12} />
                                                                     </button>
@@ -261,12 +261,12 @@ const AnnouncementBoard = ({ classId }) => {
                                                             )}
                                                         </div>
                                                         {editingId === reply.id ? (
-                                                            <div className="space-y-3 animate-in fade-in duration-300">
+                                                            <div className="space-y-3">
                                                                 <textarea
                                                                     autoFocus
                                                                     value={editText}
                                                                     onChange={e => setEditText(e.target.value)}
-                                                                    className="w-full px-4 py-3 rounded-xl bg-surface-3 border border-accent/20 focus:bg-white focus:border-accent focus:ring-4 focus:ring-indigo-600/5 outline-none transition-all text-sm font-medium resize-none text-gray-700 min-h-[80px]"
+                                                                    className="w-full px-4 py-3 rounded-xl bg-surface-3 border border-accent/20 focus:bg-white focus:border-accent focus:ring-4 focus:ring-indigo-600/5 outline-none text-sm font-medium resize-none text-gray-700 min-h-[80px]"
                                                                 />
                                                                 <div className="flex justify-end gap-2">
                                                                     <button
@@ -278,17 +278,17 @@ const AnnouncementBoard = ({ classId }) => {
                                                                     <button
                                                                         disabled={isUpdating || !editText.trim()}
                                                                         onClick={handleSaveEdit}
-                                                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-accent text-white rounded-lg font-extrabold font-heading text-[9px] uppercase tracking-widest shadow-card hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
+                                                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-accent text-white rounded-lg font-extrabold font-heading text-[9px] uppercase tracking-widest shadow-card hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
                                                                     >
                                                                         {isUpdating ? <RefreshCw className="animate-spin" size={10} /> : <Check size={10} />} SAVE
                                                                     </button>
                                                                 </div>
                                                             </div>
                                                         ) : (
-                                                            <p className="text-sm text-muted font-medium leading-relaxed">
+                                                            <p className="text-sm text-gray-700 font-medium leading-relaxed">
                                                                 {reply.content}
                                                                 {reply.updatedAt !== reply.createdAt && (
-                                                                    <span className="ml-2 text-[9px] text-gray-400 font-bold font-body italic">(edited)</span>
+                                                                    <span className="ml-2 text-[9px] text-gray-500 font-bold font-body italic">(edited)</span>
                                                                 )}
                                                             </p>
                                                         )}
@@ -301,25 +301,25 @@ const AnnouncementBoard = ({ classId }) => {
                                     {/* Reply Input */}
                                     <div className="pl-8">
                                         {replyingTo === post.id ? (
-                                            <div className="flex flex-col gap-2 animate-in slide-in-from-top-2 duration-300">
+                                            <div className="flex flex-col gap-2">
                                                 <textarea
                                                     autoFocus
                                                     value={replyText}
                                                     onChange={e => setReplyText(e.target.value)}
                                                     placeholder="Write your reply..."
-                                                    className="w-full px-4 py-3 rounded-xl bg-white border border-transparent focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none transition-all text-sm font-medium resize-none shadow-card h-24"
+                                                    className="w-full px-4 py-3 rounded-xl bg-white border border-transparent focus:ring-2 focus:ring-indigo-600/10 focus:border-accent outline-none text-sm font-medium resize-none shadow-card h-24"
                                                 />
                                                 <div className="flex justify-end gap-2">
                                                     <button
                                                         onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                                        className="px-4 py-2 text-[10px] font-extrabold font-heading text-gray-400 hover:text-muted uppercase tracking-widest"
+                                                        className="px-4 py-2 text-[10px] font-extrabold font-heading text-gray-500 hover:text-gray-700 uppercase tracking-widest"
                                                     >
                                                         Cancel
                                                     </button>
                                                     <button
                                                         disabled={!replyText.trim()}
                                                         onClick={() => handleCreateReply(post.id)}
-                                                        className="px-4 py-2 bg-accent text-white rounded-lg font-extrabold font-heading text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
+                                                        className="px-4 py-2 bg-accent text-white rounded-lg font-extrabold font-heading text-[10px] uppercase tracking-widest hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
                                                     >
                                                         REPLY
                                                     </button>
@@ -328,9 +328,9 @@ const AnnouncementBoard = ({ classId }) => {
                                         ) : (
                                             <button
                                                 onClick={() => setReplyingTo(post.id)}
-                                                className="flex items-center gap-2 py-2 px-4 hover:bg-white rounded-xl text-gray-400 hover:text-accent transition-all text-xs font-extrabold font-heading uppercase tracking-widest group"
+                                                className="flex items-center gap-2 py-2 px-4 hover:bg-white rounded-xl text-gray-600 hover:text-accent text-xs font-extrabold font-heading uppercase tracking-widest group"
                                             >
-                                                <MessageSquare size={14} className="group-hover:scale-110 transition-transform" /> Reply to conversation
+                                                <MessageSquare size={14} /> Reply to conversation
                                             </button>
                                         )}
                                     </div>

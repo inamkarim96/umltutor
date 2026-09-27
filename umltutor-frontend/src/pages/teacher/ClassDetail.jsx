@@ -265,43 +265,47 @@ const ClassDetail = () => {
                     </div>
                 </div>
 
-                {/* Tab Navigation — Full-width sticky navbar */}
+                {/* Tab Navigation — Segmented Style (consistent with Student Dashboard) */}
             </div>
-            <div className="w-full bg-white border-y border-black/5 flex overflow-x-auto no-scrollbar sticky top-0 z-20 shadow-card shadow-gray-50/50">
-                <div className="flex items-center gap-12 px-8 md:px-12">
+            <div className="w-full bg-white border-y border-black/5 overflow-x-auto sticky top-0 z-20 shadow-card shadow-gray-50/50">
+                <div className="p-4 flex items-center gap-3 overflow-x-auto">
                     {[
-                        { id: 'posts', label: 'Post', icon: MessageSquare },
-                        { id: 'files', label: 'File', icon: FolderOpen },
-                        { id: 'assignments', label: 'Assignment', icon: BookOpen },
-                        { id: 'students', label: 'Student', icon: Users },
+                        { id: 'posts', label: 'Posts', icon: MessageSquare },
+                        { id: 'files', label: 'Files', icon: FolderOpen },
+                        { id: 'assignments', label: 'Assignments', icon: BookOpen },
+                        { id: 'students', label: 'Students', icon: Users },
                         { id: 'settings', label: 'Settings', icon: SettingsIcon },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`py-6 relative font-extrabold font-heading text-[10px] uppercase tracking-[0.2em] transition-all whitespace-nowrap group ${activeTab === tab.id
-                                ? 'text-accent'
-                                : 'text-gray-400 hover:text-muted'
+                    ].map(tab => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                type="button"
+                                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold font-heading text-sm whitespace-nowrap ${isActive
+                                    ? 'bg-accent text-white border-accent shadow-hover shadow-accent/30'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                                 }`}
-                        >
-                            <div className="flex items-center gap-2.5">
-                                <span className={`transition-transform duration-300 ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110 opacity-70 group-hover:opacity-100'}`}>
+                                style={{
+                                    borderWidth: '1.5px',
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: isActive ? '0 4px 14px rgba(79, 70, 229, 0.35)' : '0 2px 4px rgba(15, 23, 42, 0.04)',
+                                }}
+                            >
+                                <span style={{ display: 'flex', alignItems: 'center', color: isActive ? '#ffffff' : '#4f46e5' }}>
                                     <tab.icon size={18} />
                                 </span>
-                                {tab.label}
-                            </div>
-                            {activeTab === tab.id ? (
-                                <div className="absolute bottom-0 left-0 w-full h-1 bg-accent rounded-t-full shadow-[0_-4px_12px_rgba(79,70,229,0.3)]" />
-                            ) : (
-                                <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-0.5 bg-gray-200 transition-all duration-300" />
-                            )}
-                        </button>
-                    ))}
+                                <span style={{ color: isActive ? '#ffffff' : '#0f172a', fontWeight: 800, letterSpacing: '-0.2px' }}>
+                                    {tab.label}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
             <div className="min-h-screen bg-transparent p-8 md:p-12">
                 {/* Tab Content */}
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div>
                     {activeTab === 'posts' && (
                         <AnnouncementBoard classId={classId} />
                     )}

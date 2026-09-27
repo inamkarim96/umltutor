@@ -18,12 +18,13 @@ export const ToastProvider = ({ children }) => {
     const newToast = {
       ...toast,
       id,
-      duration: toast.duration ?? (toast.type === 'error' ? 5000 : 3000)
+      duration: toast.duration ?? 0,
+      persistent: toast.persistent ?? true
     };
 
     setToasts(prev => [...prev, newToast]);
 
-    // Auto-remove toast after duration (unless persistent)
+    // Auto-remove toast after duration (only if not persistent)
     if (!newToast.persistent && newToast.duration && newToast.duration > 0) {
       setTimeout(() => {
         removeToast(id);
@@ -149,28 +150,28 @@ const ToastItem = ({ toast, onRemove }) => {
 export const useSuccessToast = () => {
   const { addToast } = useToast();
   return (message, options) => {
-    addToast({ message, type: 'success', ...options });
+    addToast({ message, type: 'success', persistent: true, ...options });
   };
 };
 
 export const useErrorToast = () => {
   const { addToast } = useToast();
   return (message, options) => {
-    addToast({ message, type: 'error', ...options });
+    addToast({ message, type: 'error', persistent: true, ...options });
   };
 };
 
 export const useWarningToast = () => {
   const { addToast } = useToast();
   return (message, options) => {
-    addToast({ message, type: 'warning', ...options });
+    addToast({ message, type: 'warning', persistent: true, ...options });
   };
 };
 
 export const useInfoToast = () => {
   const { addToast } = useToast();
   return (message, options) => {
-    addToast({ message, type: 'info', ...options });
+    addToast({ message, type: 'info', persistent: true, ...options });
   };
 };
 

@@ -83,6 +83,13 @@ const StudentClasses = () => {
                                 <div
                                     key={c.id}
                                     className="cls-card"
+                                    style={{
+                                        background: '#ffffff',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '20px',
+                                        overflow: 'hidden',
+                                        boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04)'
+                                    }}
                                     onClick={() => navigate(`/student/classes/${c.name.toLowerCase().replace(/\s+/g, '-')}`)}
                                     role="button"
                                     tabIndex={0}
@@ -96,42 +103,42 @@ const StudentClasses = () => {
                                         <span className="cls-card-code">{c.code}</span>
                                     </div>
 
-                                    <div className="cls-card-body">
-                                        <h3 className="cls-card-name">{c.name}</h3>
-                                        <p className="cls-card-desc">
+                                    <div className="cls-card-body" style={{ background: '#ffffff', padding: '22px' }}>
+                                        <h3 className="cls-card-name" style={{ color: '#0f172a', fontWeight: 800 }}>{c.name}</h3>
+                                        <p className="cls-card-desc" style={{ color: '#334155', fontWeight: 500 }}>
                                             {c.description || 'No description provided for this classroom yet.'}
                                         </p>
 
                                         <div className="cls-card-meta">
                                             {c.teacherName && (
-                                                <span className="cls-meta-tag">
+                                                <span className="cls-meta-tag" style={{ color: '#1e293b', background: '#f1f5f9', borderColor: '#cbd5e1' }}>
                                                     <GraduationCap size={12} /> {c.teacherName}
                                                 </span>
                                             )}
-                                            <span className="cls-meta-tag">
+                                            <span className="cls-meta-tag" style={{ color: '#1e293b', background: '#f1f5f9', borderColor: '#cbd5e1' }}>
                                                 <Layers size={12} /> {classAssignments.length} assignments
                                             </span>
                                         </div>
 
                                         {/* Progress bar */}
                                         {progress !== null && (
-                                            <div className="cls-progress-wrap">
+                                            <div className="cls-progress-wrap" style={{ marginTop: 'auto', paddingTop: '10px' }}>
                                                 <div className="cls-progress-header">
-                                                    <span className="cls-progress-label">Completion</span>
-                                                    <span className="cls-progress-pct">{progress}%</span>
+                                                    <span className="cls-progress-label" style={{ color: '#475569', fontWeight: 800 }}>Completion</span>
+                                                    <span className="cls-progress-pct" style={{ color: '#0f172a', fontWeight: 900 }}>{progress}%</span>
                                                 </div>
-                                                <div className="cls-progress-track">
+                                                <div className="cls-progress-track" style={{ background: '#e2e8f0', height: '7px' }}>
                                                     <div
                                                         className="cls-progress-fill"
-                                                        style={{ width: `${progress}%`, background: grad }}
+                                                        style={{ width: `${progress}%`, background: grad, height: '100%', borderRadius: '99px' }}
                                                     />
                                                 </div>
-                                                <span className="cls-progress-note">{done} of {classAssignments.length} done</span>
+                                                <span className="cls-progress-note" style={{ color: '#475569', fontWeight: 600 }}>{done} of {classAssignments.length} done</span>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="cls-card-enter">
+                                    <div className="cls-card-enter" style={{ background: '#f8fafc', color: '#4338ca', fontWeight: 800, borderTop: '1px solid #e2e8f0' }}>
                                         Enter Classroom <ChevronRight size={14} />
                                     </div>
                                 </div>

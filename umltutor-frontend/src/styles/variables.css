@@ -13,11 +13,11 @@
   --purple-soft: rgba(139, 92, 246, 0.10);
   --red: #EF4444;
   --red-soft: rgba(239, 68, 68, 0.10);
-  --ink: #0F0F1A;
-  --ink-2: #3D3D5C;
-  --ink-3: #8888A8;
-  --ink-muted: #475569;
-  --ink-faint: #64748B;
+  --ink: #000000;
+  --ink-2: #1a1a1a;
+  --ink-3: #333333;
+  --ink-muted: #2d2d2d;
+  --ink-faint: #404040;
   --surface: #FFFFFF;
   --surface-2: #F8F8FC;
   --surface-3: #EFEFF8;

@@ -243,77 +243,37 @@ const StudentClassDetail = () => {
                     </div>
                 </div>
 
-                {/* ── High-Contrast, Crystal Clear Navigation Tab Bar ── */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 14px -2px rgba(15, 23, 42, 0.06)',
-                    marginBottom: '28px',
-                    flexWrap: 'wrap'
-                }}>
-                    {tabs.map(tab => {
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                type="button"
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    padding: '11px 22px',
-                                    borderRadius: '12px',
-                                    border: isActive ? '1px solid #4338ca' : '1px solid transparent',
-                                    background: isActive ? '#4f46e5' : '#f8fafc',
-                                    color: isActive ? '#ffffff' : '#1e293b',
-                                    fontSize: '14px',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.18s ease',
-                                    boxShadow: isActive ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none',
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (!isActive) {
-                                        e.currentTarget.style.background = '#eef2ff';
-                                        e.currentTarget.style.color = '#4338ca';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (!isActive) {
-                                        e.currentTarget.style.background = '#f8fafc';
-                                        e.currentTarget.style.color = '#1e293b';
-                                    }
-                                }}
-                            >
-                                <span style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    color: isActive ? '#ffffff' : '#4f46e5'
-                                }}>
-                                    {tab.icon}
-                                </span>
-                                <span>{tab.label}</span>
-                                {tab.count != null && (
+{/* ── High-Contrast Navigation Tab Bar ── */}
+                <div className="cld-nav-bar" style={{ marginBottom: '28px' }}>
+                    <div className="cld-segmented-track">
+                        {tabs.map(tab => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    type="button"
+                                    className={`cld-nav-tab ${isActive ? 'active' : ''}`}
+                                >
                                     <span style={{
-                                        background: isActive ? 'rgba(255, 255, 255, 0.28)' : '#e0e7ff',
-                                        color: isActive ? '#ffffff' : '#4338ca',
-                                        fontSize: '11px',
-                                        fontWeight: 900,
-                                        padding: '2px 8px',
-                                        borderRadius: '100px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        color: isActive ? '#ffffff' : '#4f46e5'
                                     }}>
-                                        {tab.count}
+                                        {tab.icon}
                                     </span>
-                                )}
-                            </button>
-                        );
-                    })}
+                                    <span className="tab-label-text">
+                                        {tab.label}
+                                    </span>
+                                    {tab.count != null && (
+                                        <span className="cld-nav-count">
+                                            {tab.count}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 {/* ── Tab Content ── */}

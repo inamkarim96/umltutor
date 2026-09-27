@@ -9,6 +9,13 @@
 html, body {
   height: 100%;
   font-family: var(--font-b);
-  background: var(--surface-2);
+  background: #f1f5f9;
   color: var(--ink);
+}
+
+/* Root app container always sits above fixed animated background */
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
 }

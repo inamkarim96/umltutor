@@ -201,9 +201,11 @@ function AppContent() {
   return (
     <div className="app-root">
       <AnimatedPageBackground variant={bgVariant} />
-      <PageTransition timeout={300}>
-        {pageContent}
-      </PageTransition>
+      <div className="app-root-content">
+        <PageTransition timeout={300}>
+          {pageContent}
+        </PageTransition>
+      </div>
     </div>
   );
 }

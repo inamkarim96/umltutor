@@ -6,6 +6,8 @@
     font-family: var(--font-b);
     color: var(--ink);
     background: var(--surface-2);
+    position: relative;
+    z-index: 2;
 }
 
 .sdb-main {

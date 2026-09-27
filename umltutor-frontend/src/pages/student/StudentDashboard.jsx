@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { selectUser } from '../../features/auth';
@@ -13,6 +13,9 @@ import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import HeroBanner from '../../components/dashboard/HeroBanner';
 import StatisticsCard from '../../components/dashboard/StatisticsCard';
 import DashboardCard from '../../components/dashboard/DashboardCard';
+import ClassRow from '../../components/shared/ClassRow';
+import EmptyState from '../../components/shared/EmptyState';
+import StatusChip from '../../components/shared/StatusChip';
 
 /* ─── Small utility: deadline urgency ─── */
 function getDeadlineStatus(deadline) {
@@ -24,15 +27,6 @@ function getDeadlineStatus(deadline) {
     return 'normal';
 }
 
-function DeadlineChip({ deadline }) {
-    const status = getDeadlineStatus(deadline);
-    if (status === 'none') return <span className="sdb-deadline-chip sdb-dc-none">No deadline</span>;
-    const label = status === 'overdue'
-        ? 'Overdue'
-        : `Due ${new Date(deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
-    return <span className={`sdb-deadline-chip sdb-dc-${status}`}>{label}</span>;
-}
-
 /* ─── UML Phase progress mini-map ─── */
 const UML_PHASES = [
     { key: 'usecase',     label: 'Use Case',    short: 'UC',  color: '#5046E5' },
@@ -42,6 +36,15 @@ const UML_PHASES = [
     { key: 'sequence',    label: 'Sequence',     short: 'SD',  color: '#F59E0B' },
 ];
 
+/* ─── Deadline chip component ─── */
+function DeadlineChip({ deadline }) {
+    const status = getDeadlineStatus(deadline);
+    if (status === 'none') return <span className="sdb-deadline-chip sdb-dc-none">No deadline</span>;
+    const label = status === 'overdue'
+        ? 'Overdue'
+        : `Due ${new Date(deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+    return <span className={`sdb-deadline-chip sdb-dc-${status}`}>{label}</span>;
+}
 
 const StudentDashboard = () => {
     const user = useAppSelector(selectUser);
@@ -157,10 +160,10 @@ const StudentDashboard = () => {
         />
     );
 
-    const statCards = stats.map(stat => <StatisticsCard key={stat.label} {...stat} />);
+const statCards = stats.map(stat => <StatisticsCard key={stat.label} {...stat} />);
 
     /* ── Sidebar: Quick links + UML phases ── */
-    const sidebar = (
+    const sidebar = useMemo(() => (
         <>
             {/* Quick Actions */}
             <div className="sdb-panel-card">
@@ -200,7 +203,7 @@ const StudentDashboard = () => {
                 </div>
             </div>
         </>
-    );
+    ), [navigate]);
 
     return (
         <>
@@ -397,3 +400,6 @@ const StudentDashboard = () => {
 };
 
 export default StudentDashboard;
+
+
+

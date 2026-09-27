@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import {
     selectClasses,
@@ -13,17 +13,17 @@ import {
     deleteAssignment
 } from '../../features/assignments';
 import {
-    BookOpen,
     Plus,
-    Calendar,
     Trash2,
     Edit,
     X,
     CheckCircle,
-    Layout
+    Layout,
+    Clock
 } from 'lucide-react';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import CreateAssignmentModal from '../../features/teacher/components/CreateAssignmentModal';
+import PageShell from '../../components/dashboard/PageShell';
 
 const AssignmentsDashboard = () => {
     const dispatch = useAppDispatch();
@@ -101,141 +101,119 @@ const AssignmentsDashboard = () => {
         }
     };
 
+    const classMap = useMemo(() => {
+        const map = {};
+        classes.forEach(c => { map[c.id] = c; });
+        return map;
+    }, [classes]);
+
     return (
-        <div className="min-h-screen bg-transparent p-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-extrabold font-heading text-ink tracking-tight">Assignments Management</h1>
-                    <p className="text-muted font-medium italic">Create, manage, and track assignments across all your classes.</p>
-                </div>
-                <button
-                    onClick={() => { setEditingAssignment(null); setIsModalOpen(true); }}
-                    className="flex items-center gap-2 px-8 py-4 bg-accent text-white rounded-lg font-extrabold font-heading uppercase tracking-widest text-[10px] hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-accent/20"
-                >
-                    <Plus size={18} />
-                    Create Assignment
+        <PageShell
+            title="Assignments Management"
+            subtitle="Create, manage, and track assignments across all your classes"
+            icon={<Layout size={22} />}
+            badge={assignments.length}
+            breadcrumbs={[{ label: 'Assignments' }]}
+            actions={
+                <button className="apc-primary-btn" onClick={() => { setEditingAssignment(null); setIsModalOpen(true); }}>
+                    <Plus size={16} />
+                    <span>Create Assignment</span>
                 </button>
-            </div>
-            
-            {/* Status Messages */}
+            }
+        >
             {(errorMessage || successMessage) && (
-                <div className={`mb-8 p-4 rounded-lg flex items-center gap-4 animate-in slide-in-from-top-4 duration-300 border ${errorMessage ? 'bg-status-red/10 text-red-700 border-red-100' : 'bg-status-green/10 text-emerald-700 border-emerald-100'}`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${errorMessage ? 'bg-red-100' : 'bg-emerald-100'}`}>
+                <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 border ${errorMessage ? 'bg-status-red/10 text-red-700 border-red-100' : 'bg-status-green/10 text-emerald-700 border-emerald-100'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${errorMessage ? 'bg-red-100' : 'bg-emerald-100'}`}>
                         {errorMessage ? <X size={18} /> : <CheckCircle size={18} />}
                     </div>
-                    <div>
-                        <p className="font-extrabold font-heading text-sm uppercase tracking-tight leading-none mb-1">{errorMessage ? 'Error' : 'Success'}</p>
+                    <div className="flex-1">
+                        <p className="font-extrabold font-heading text-sm uppercase tracking-tight">{errorMessage ? 'Error' : 'Success'}</p>
                         <p className="text-sm font-medium opacity-90">{errorMessage || successMessage}</p>
                     </div>
-                    <button 
-                        onClick={() => {setErrorMessage(''); setSuccessMessage('');}}
-                        className="ml-auto p-2 hover:bg-black/5 rounded-xl transition-colors"
+                    <button
+                        onClick={() => { setErrorMessage(''); setSuccessMessage(''); }}
+                        className="p-1 hover:bg-black/5 rounded-lg"
                     >
-                        <X size={18} />
+                        <X size={16} />
                     </button>
                 </div>
             )}
 
-
-            {/* Assignments Table */}
-            <div className="bg-white rounded-lg border border-black/5 shadow-card overflow-hidden whitespace-nowrap overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-surface-3/30 border-b border-black/5">
-                        <tr>
-                            <th className="px-10 py-6 text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest">Assignment Info</th>
-                            <th className="px-10 py-6 text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest">Classroom</th>
-                            <th className="px-10 py-6 text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest">Format</th>
-                            <th className="px-10 py-6 text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest">Deadline</th>
-                            <th className="px-10 py-6 text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan="5" className="p-20 text-center">
-                                    <div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
-                                    <p className="text-gray-400 font-bold font-body italic">Syncing assignments...</p>
-                                </td>
-                            </tr>
-                        ) : assignments.length > 0 ? (
-                            assignments.map(asgn => (
-                                <tr key={asgn.id} className="hover:bg-accent/10/30 transition-colors group">
-                                    <td className="px-10 py-5">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-accent/10 text-accent rounded-lg flex items-center justify-center font-extrabold font-heading shadow-inner">
-                                                <Layout size={20} />
-                                            </div>
-                                            <div>
-                                                <div className="font-extrabold text-ink group-hover:text-accent transition-colors uppercase tracking-tight text-sm">{asgn.title}</div>
-                                                <div className="text-xs text-gray-400 font-medium max-w-xs truncate">{asgn.description || 'No description provided.'}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-5">
-                                        <span className="px-4 py-2 bg-accent/10 text-accent rounded-xl text-[10px] font-extrabold font-heading uppercase tracking-widest border border-accent/10/50">
-                                            {classes.find(c => c.id === asgn.classId)?.name || 'Unknown'}
-                                        </span>
-                                    </td>
-                                    <td className="px-10 py-5">
-                                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold font-heading uppercase tracking-widest ${asgn.assignmentType === 'FILE' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+            {isLoading ? (
+                <div className="apc-grid">
+                    <div className="apc-card" style={{ justifyContent: 'center', padding: '60px 20px', textAlign: 'center' }}>
+                        <div style={{ margin: '0 auto 12px', width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                        <p style={{ color: '#64748b', margin: 0 }}>Syncing assignments...</p>
+                    </div>
+                </div>
+            ) : assignments.length > 0 ? (
+                <div className="apc-grid">
+                    {assignments.map(asgn => {
+                        const cls = classMap[asgn.classId];
+                        const deadlineStr = asgn.dueDate || asgn.deadline
+                            ? new Date(asgn.dueDate || asgn.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                            : 'No date';
+                        return (
+                            <div
+                                key={asgn.id}
+                                className="apc-card"
+                            >
+                                <div className="apc-card-body">
+                                    <div className="apc-card-top">
+                                        <span className={`apc-chip ${asgn.assignmentType === 'FILE' ? 'apc-chip-amber' : 'apc-chip-blue'}`}>
                                             {asgn.assignmentType || 'TEXT'}
                                         </span>
-                                    </td>
-                                    <td className="px-10 py-5">
-                                        <div className="flex items-center gap-3 text-xs text-gray-700 font-bold font-body tabular-nums">
-                                            <Calendar size={14} className="text-gray-300" />
-                                            {asgn.dueDate || asgn.deadline ? new Date(asgn.dueDate || asgn.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date'}
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-5 text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <button 
+                                        {cls && (
+                                            <span className="apc-class-tag">{cls.code || cls.name}</span>
+                                        )}
+                                    </div>
+
+                                    <h3 className="apc-card-title">{asgn.title}</h3>
+                                    {asgn.description && (
+                                        <p className="apc-card-desc">{asgn.description}</p>
+                                    )}
+
+                                    <div className="apc-card-footer">
+                                        <span className="apc-dl-chip apc-dl-normal">
+                                            <Clock size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                                            {deadlineStr}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <button
                                                 onClick={() => handleEditClick(asgn)}
-                                                className="p-2.5 text-gray-400 hover:bg-white hover:text-accent rounded-xl transition-all shadow-card border border-transparent hover:border-black/5"
+                                                className="p-2 text-gray-500 hover:text-accent hover:bg-accent/10 rounded-lg"
+                                                title="Edit"
                                             >
                                                 <Edit size={16} />
                                             </button>
                                             <button
                                                 onClick={() => setConfirmDelete({ isOpen: true, assignmentId: asgn.id })}
-                                                className="p-2.5 text-gray-400 hover:bg-white hover:text-status-red rounded-xl transition-all shadow-card border border-transparent hover:border-black/5"
+                                                className="p-2 text-gray-500 hover:text-status-red hover:bg-status-red/10 rounded-lg"
+                                                title="Delete"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="5" className="p-20 text-center">
-                                    <div className="w-16 h-16 bg-surface-3 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <BookOpen size={24} className="text-gray-300" />
                                     </div>
-                                    <p className="text-gray-400 font-bold font-body italic">No assignments found. Start by creating one!</p>
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                                </div>
 
-            <CreateAssignmentModal
-                isOpen={isModalOpen}
-                onClose={() => { setIsModalOpen(false); setEditingAssignment(null); }}
-                onSubmit={handleCreateOrUpdate}
-                isSubmitting={isLoading}
-                initialData={editingAssignment}
-            />
-
-            <ConfirmModal
-                isOpen={confirmDelete.isOpen}
-                onClose={() => setConfirmDelete({ isOpen: false, assignmentId: null })}
-                onConfirm={handleDelete}
-                title="Delete Assignment"
-                message="Are you sure you want to delete this assignment? This will permanently remove all student submissions and cannot be undone."
-                confirmText="Delete"
-            />
-        </div>
+                                <div className="apc-card-cta">
+                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: '#4f46e5', fontWeight: 700 }}>
+                                        View Details
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="apc-empty">
+                    <div className="apc-empty-icon">📄</div>
+                    <h3>No Assignments Found</h3>
+                    <p>Start by creating your first assignment.</p>
+                </div>
+            )}
+        </PageShell>
     );
 };
 
