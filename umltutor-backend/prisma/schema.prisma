@@ -11,24 +11,25 @@ datasource db {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique
-  password      String?
-  firebaseUid   String?   @unique
-  firstName     String?
-  lastName      String?
-  role          String    @default("student") // teacher | student
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  password    String?
+  firebaseUid String?  @unique
+  firstName   String?
+  lastName    String?
+  role        String   @default("student") // teacher | student
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  managedClasses  Class[]        @relation("TeacherClasses")
-  memberships     ClassStudent[]
-  submissions     Submission[]
-  evaluations     Evaluation[]   @relation("EvaluatedBy")
-  notifications   Notification[] @relation("UserNotifications")
-  announcements   Announcement[]
-  resources       Resource[]
+  managedClasses Class[]         @relation("TeacherClasses")
+  memberships    ClassStudent[]
+  submissions    Submission[]
+  evaluations    Evaluation[]    @relation("EvaluatedBy")
+  notifications  Notification[]  @relation("UserNotifications")
+  announcements  Announcement[]
+  resources      Resource[]
+  correctionLogs CorrectionLog[]
 }
 
 model Class {
@@ -38,20 +39,20 @@ model Class {
   code        String   @unique @default(cuid())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  teacherId   Int
-  teacher     User     @relation("TeacherClasses", fields: [teacherId], references: [id])
-  
-  maxStudents      Int?
-  archived         Boolean  @default(false)
-  isEnrollmentOpen Boolean  @default(true)
+
+  teacherId Int
+  teacher   User @relation("TeacherClasses", fields: [teacherId], references: [id])
+
+  maxStudents         Int?
+  archived            Boolean @default(false)
+  isEnrollmentOpen    Boolean @default(true)
   allowStudentUploads Boolean @default(false)
 
   // Relations
-  students     ClassStudent[]
-  assignments  Assignment[]
+  students      ClassStudent[]
+  assignments   Assignment[]
   announcements Announcement[]
-  resources    Resource[]
+  resources     Resource[]
 
   @@index([teacherId])
 }
@@ -62,15 +63,15 @@ model ClassStudent {
   studentId Int
   joinedAt  DateTime @default(now())
 
-  class     Class @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student   User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classId, studentId])
   @@index([studentId])
 }
 
 model Assignment {
-  id                 Int      @id @default(autoincrement())
+  id                 Int       @id @default(autoincrement())
   title              String
   dueDate            DateTime
   releaseDate        DateTime? @default(now())
@@ -80,14 +81,14 @@ model Assignment {
   assignmentFileName String?
   assignmentFileType String?
   maxScore           Int?
-  type               String?   // TEXT | FILE | etc.
+  type               String? // TEXT | FILE | etc.
   classId            Int
-  createdBy          Int      // Linked to User.id (teacher)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdBy          Int // Linked to User.id (teacher)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  class              Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  submissions        Submission[]
+  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  submissions Submission[]
 
   @@index([classId])
   @@index([createdBy])
@@ -96,13 +97,13 @@ model Assignment {
 }
 
 model Submission {
-  id            Int       @id @default(autoincrement())
-  assignmentId  Int
-  studentId     Int
-  status        String    @default("draft") // draft | submitted
-  submittedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           Int       @id @default(autoincrement())
+  assignmentId Int
+  studentId    Int
+  status       String    @default("draft") // draft | submitted
+  submittedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   tutorialRequested       Boolean   @default(false)
   tutorialApproved        Boolean   @default(false)
@@ -111,9 +112,9 @@ model Submission {
   tutorialReviewedAt      DateTime?
   tutorialRejectionReason String?
 
-  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student       User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
   useCaseDiagram      UseCaseDiagram?
   useCaseDescriptions UseCaseDescription[]
   ssdDiagrams         SSDDiagram[]
@@ -133,19 +134,19 @@ model Submission {
 }
 
 model SubmissionExport {
-  id           Int       @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   submissionId Int
   studentId    Int
   assignmentId Int
-  format       String    // pdf | png | jpeg | svg | json | txt | combined
-  section      String?   // usecase | description | ssd | class-diagram | sequence-diagram | null for combined
-  durationMs   Int       @default(0)
+  format       String // pdf | png | jpeg | svg | json | txt | combined
+  section      String? // usecase | description | ssd | class-diagram | sequence-diagram | null for combined
+  durationMs   Int      @default(0)
   fileUrl      String?
   fileName     String?
   fileSize     Int?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@index([submissionId])
   @@index([studentId])
@@ -160,18 +161,18 @@ model UseCaseDiagram {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 }
 
 model UseCaseDescription {
   id           Int      @id @default(autoincrement())
   submissionId Int
-  relatedId    String   // ID of the use case symbol in the diagram
+  relatedId    String // ID of the use case symbol in the diagram
   data         String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@unique([submissionId, relatedId])
 }
@@ -179,12 +180,12 @@ model UseCaseDescription {
 model SSDDiagram {
   id           Int      @id @default(autoincrement())
   submissionId Int
-  relatedId    String   // ID of the use case symbol in the diagram
+  relatedId    String // ID of the use case symbol in the diagram
   data         String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@unique([submissionId, relatedId])
 }
@@ -196,47 +197,46 @@ model ClassDiagram {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 }
 
 model SequenceDiagram {
   id           Int      @id @default(autoincrement())
   submissionId Int
-  relatedId    String   // Linked to Use Case ID
+  relatedId    String // Linked to Use Case ID
   data         String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@unique([submissionId, relatedId])
 }
 
-
 model Evaluation {
-  id                 Int       @id @default(autoincrement())
-  submissionId       Int       @unique
-  totalScore         Int?
-  remarks            String?
-  validationReport   String?
-  evaluatedBy        Int
-  evaluatedAt        DateTime? @default(now())
+  id               Int       @id @default(autoincrement())
+  submissionId     Int       @unique
+  totalScore       Int?
+  remarks          String?
+  validationReport String?
+  evaluatedBy      Int
+  evaluatedAt      DateTime? @default(now())
 
-  submission         Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  evaluator          User       @relation("EvaluatedBy", fields: [evaluatedBy], references: [id])
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  evaluator  User       @relation("EvaluatedBy", fields: [evaluatedBy], references: [id])
 }
 
 model Notification {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  user        User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  message     String
-  type        String   // CLASS_ENROLLMENT, ASSIGNMENT, etc.
-  relatedId   String?  // ID of related entity
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String // CLASS_ENROLLMENT, ASSIGNMENT, etc.
+  relatedId String? // ID of related entity
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, isRead])
@@ -250,13 +250,13 @@ model Announcement {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  parentId  Int?
-  parent    Announcement?  @relation("AnnouncementReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Announcement[] @relation("AnnouncementReplies")
 
-  class     Class @relation(fields: [classId], references: [id], onDelete: Cascade)
-  author    User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentId Int?
+  parent   Announcement?  @relation("AnnouncementReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Announcement[] @relation("AnnouncementReplies")
+
+  class  Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([classId])
   @@index([authorId])
@@ -264,18 +264,18 @@ model Announcement {
 }
 
 model Resource {
-  id          Int      @id @default(autoincrement())
-  classId     Int
-  name        String
-  url         String
-  type        String?
-  folder      String?
-  size        Int?
-  uploadedBy  Int
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  classId    Int
+  name       String
+  url        String
+  type       String?
+  folder     String?
+  size       Int?
+  uploadedBy Int
+  createdAt  DateTime @default(now())
 
-  class       Class @relation(fields: [classId], references: [id], onDelete: Cascade)
-  uploader    User  @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  class    Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  uploader User  @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
 
   @@index([classId])
   @@index([uploadedBy])
@@ -285,17 +285,16 @@ model CorrectionLog {
   id           Int      @id @default(autoincrement())
   original     String
   corrected    String
-  type         String   // ACTOR_RENAME, USE_CASE_RENAME, MESSAGE_FIX, etc.
+  type         String // ACTOR_RENAME, USE_CASE_RENAME, MESSAGE_FIX, etc.
   teacherId    Int
   submissionId Int?
-  context      String?  // JSON string for additional context
+  context      String? // JSON string for additional context
   createdAt    DateTime @default(now())
 
-  teacher      User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@index([type])
   @@index([teacherId])
   @@index([submissionId])
   @@index([createdAt])
 }
-
