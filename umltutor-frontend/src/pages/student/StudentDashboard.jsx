@@ -7,7 +7,7 @@ import { selectAllAssignments, fetchAllAssignments } from '../../features/assign
 import { selectSubmissions, fetchMySubmissions } from '../../features/submissions';
 import {
     X, BookOpen, Clock, CheckCircle2, Users, ArrowRight,
-    Plus, Star, Layers, Activity, Target, TrendingUp
+    Plus, Star, TrendingUp
 } from 'lucide-react';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import HeroBanner from '../../components/dashboard/HeroBanner';
@@ -27,14 +27,7 @@ function getDeadlineStatus(deadline) {
     return 'normal';
 }
 
-/* ─── UML Phase progress mini-map ─── */
-const UML_PHASES = [
-    { key: 'usecase',     label: 'Use Case',    short: 'UC',  color: '#5046E5' },
-    { key: 'description', label: 'Description', short: 'Desc', color: '#3B82F6' },
-    { key: 'ssd',         label: 'SSD',          short: 'SSD', color: '#8B5CF6' },
-    { key: 'class',       label: 'Class',        short: 'CD',  color: '#10B981' },
-    { key: 'sequence',    label: 'Sequence',     short: 'SD',  color: '#F59E0B' },
-];
+
 
 /* ─── Deadline chip component ─── */
 function DeadlineChip({ deadline }) {
@@ -145,10 +138,10 @@ const StudentDashboard = () => {
             dateStr={dateStr}
             subText={
                 pendingAssignments.length === 0
-                    ? '🎉 All caught up — great work!'
+                    ? 'All caught up, great work!'
                     : overdueCount > 0
-                        ? `⚠️ You have ${overdueCount} overdue assignment${overdueCount !== 1 ? 's' : ''} — act now!`
-                        : `You have ${pendingAssignments.length} pending assignment${pendingAssignments.length !== 1 ? 's' : ''} — let's get to it!`
+                        ? `You have ${overdueCount} overdue assignment${overdueCount !== 1 ? 's' : ''}, act now!`
+                        : `You have ${pendingAssignments.length} pending assignment${pendingAssignments.length !== 1 ? 's' : ''}, let's get to it!`
             }
             primaryAction={{ icon: <Plus size={16} />, label: 'Join a Class', onClick: () => setIsJoining(true) }}
             secondaryAction={
@@ -160,50 +153,9 @@ const StudentDashboard = () => {
         />
     );
 
-const statCards = stats.map(stat => <StatisticsCard key={stat.label} {...stat} />);
+    const statCards = stats.map(stat => <StatisticsCard key={stat.label} {...stat} />);
 
-    /* ── Sidebar: Quick links + UML phases ── */
-    const sidebar = useMemo(() => (
-        <>
-            {/* Quick Actions */}
-            <div className="sdb-panel-card">
-                <div className="sdb-panel-header">
-                    <h3 className="sdb-panel-title"><Target size={15} /> Quick Actions</h3>
-                </div>
-                <div className="sdb-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {[
-                        { label: 'My Classes', icon: <BookOpen size={15} />, path: '/student/classes' },
-                        { label: 'Upcoming Work', icon: <Clock size={15} />, path: '/student/upcoming' },
-                        { label: 'Submitted Work', icon: <CheckCircle2 size={15} />, path: '/student/submitted' },
-                        { label: 'Practice Mode', icon: <Layers size={15} />, path: '/student/practice' },
-                    ].map(({ label, icon, path }) => (
-                        <button key={path} className="sdb-quick-btn" onClick={() => navigate(path)}>
-                            {icon} <span>{label}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* UML Phase map */}
-            <div className="sdb-panel-card">
-                <div className="sdb-panel-header">
-                    <h3 className="sdb-panel-title"><Activity size={15} /> UML Phases</h3>
-                </div>
-                <div className="sdb-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {UML_PHASES.map(phase => (
-                        <div key={phase.key} className="sdb-phase-row">
-                            <span className="sdb-phase-dot" style={{ background: phase.color }} />
-                            <span className="sdb-phase-label">{phase.label}</span>
-                            <span className="sdb-phase-chip">{phase.short}</span>
-                        </div>
-                    ))}
-                    <p style={{ fontSize: '11px', color: 'var(--ink-3)', marginTop: '4px', lineHeight: 1.5 }}>
-                        Each assignment may span multiple UML phases. Check your submission to see phase-by-phase feedback.
-                    </p>
-                </div>
-            </div>
-        </>
-    ), [navigate]);
+    const sidebar = null;
 
     return (
         <>
@@ -213,7 +165,7 @@ const statCards = stats.map(stat => <StatisticsCard key={stat.label} {...stat} /
                     {/* ─── Upcoming Assignments ─── */}
                     <DashboardCard
                         title="Upcoming Assignments"
-                        subtitle="Sorted by deadline — act on overdue items first"
+                        subtitle="Sorted by deadline, act on overdue items first"
                         icon={<Clock size={16} />}
                         badge={upcoming.length > 0 ? String(upcoming.length) : null}
                         actionLabel="View All"
@@ -234,7 +186,7 @@ const statCards = stats.map(stat => <StatisticsCard key={stat.label} {...stat} /
                                         >
                                             <div className="sdb-asgn-icon-wrap">
                                                 {dlStatus === 'overdue'
-                                                    ? <span style={{ fontSize: '22px' }}>⚠️</span>
+                                                    ? <span></span>
                                                     : <BookOpen size={22} />
                                                 }
                                             </div>
@@ -263,7 +215,7 @@ const statCards = stats.map(stat => <StatisticsCard key={stat.label} {...stat} /
                         ) : (
                             <div className="sdb-empty">
                                 <CheckCircle2 size={36} className="sdb-empty-icon" style={{ color: 'var(--green)' }} />
-                                <p>All assignments complete! 🎉</p>
+                                <p>All assignments complete!</p>
                             </div>
                         )}
                     </DashboardCard>

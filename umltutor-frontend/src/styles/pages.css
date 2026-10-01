@@ -234,6 +234,7 @@
 .apc-summary-amber svg { color: var(--amber); }
 .apc-summary-blue  svg { color: var(--blue); }
 .apc-summary-green svg { color: var(--green); }
+.apc-summary-red   svg { color: var(--red); }
 
 .apc-summary-val {
     font-family: var(--font-d);
@@ -245,6 +246,7 @@
 .apc-summary-amber .apc-summary-val { color: var(--amber); }
 .apc-summary-blue  .apc-summary-val { color: var(--blue); }
 .apc-summary-green .apc-summary-val { color: var(--green); }
+.apc-summary-red   .apc-summary-val { color: var(--red); }
 
 .apc-summary-label {
     font-size: 12px;

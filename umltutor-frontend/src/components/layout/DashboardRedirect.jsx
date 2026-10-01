@@ -15,8 +15,8 @@ const DashboardRedirect = () => {
   } else if (authState.user.role === 'STUDENT') {
     return <Navigate to="/student/dashboard" replace />;
   } else {
-    // Fallback to assignments if role is unknown
-    return <Navigate to="/teacher/assignments" replace />;
+    // Fallback to dashboard if role is unknown
+    return <Navigate to="/teacher/dashboard" replace />;
   }
 };
 

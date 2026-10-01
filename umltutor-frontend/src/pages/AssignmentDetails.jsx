@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { resolveResourceUrl } from '../utils/urlHelper';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import {
     selectClasses,
@@ -11,7 +11,8 @@ import {
     selectAllAssignments,
     fetchAssignmentById,
     fetchAllAssignments,
-    updateAssignment
+    updateAssignment,
+    deleteAssignment
 } from '../features/assignments';
 import {
     selectSubmissions,
@@ -36,7 +37,8 @@ import {
     Sparkles,
     AlertCircle,
     ArrowUpRight,
-    ExternalLink
+    ExternalLink,
+    Trash2
 } from 'lucide-react';
 import { SubmitAssignment } from '../features/classroom';
 import { CreateAssignmentModal } from '../features/teacher';
@@ -48,6 +50,8 @@ const AssignmentDetails = () => {
     const titleSlug = window.location.pathname
         .split('/')
         .find((segment, i, arr) => arr[i - 1] === 'assignments' && segment !== 'submitted' && segment !== 'pending' && segment !== 'reviewed' && segment.length > 0);
+    const [searchParams] = useSearchParams();
+    const classIdFromQuery = searchParams.get('classId');
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const user = useAppSelector(selectUser);
@@ -60,6 +64,7 @@ const AssignmentDetails = () => {
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [previewFile, setPreviewFile] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false });
 
     const assignments = useAppSelector(selectAllAssignments);
     const submissionsArr = useAppSelector(selectSubmissions);
@@ -155,12 +160,33 @@ const AssignmentDetails = () => {
         }
     };
 
+    const handleDeleteAssignment = async () => {
+        if (!assignment?.id) return;
+        try {
+            await dispatch(deleteAssignment(assignment.id)).unwrap();
+            setSuccessMessage('Assignment deleted successfully.');
+            setTimeout(() => {
+                setSuccessMessage('');
+                // Navigate back to class detail if classId is available, otherwise to classes list
+                const classId = classIdFromQuery || assignment?.classId;
+                if (classId) {
+                    navigate(`/teacher/classes/${classes?.find(c => c.id === parseInt(classId))?.name?.toLowerCase().replace(/\s+/g, '-')}`);
+                } else {
+                    navigate('/teacher/classes');
+                }
+            }, 2000);
+        } catch (error) {
+            setErrorMessage(error?.message || 'Failed to delete assignment');
+        }
+        setConfirmDelete({ isOpen: false });
+    };
+
     if (!assignment) {
         return (
             <PageShell
                 title="Assignment"
-                backPath={role === 'TEACHER' ? '/teacher/assignments' : '/student/assignments'}
-                breadcrumbs={[{ label: 'Assignments', path: role === 'TEACHER' ? '/teacher/assignments' : '/student/assignments' }]}
+                backPath={role === 'TEACHER' ? '/teacher/classes' : '/student/assignments'}
+                breadcrumbs={[{ label: 'Assignments', path: role === 'TEACHER' ? '/teacher/classes' : '/student/assignments' }]}
             >
                 <div className="apc-loading-state">
                     <div className="apc-spinner" />
@@ -217,23 +243,41 @@ const AssignmentDetails = () => {
 
     const teacherSubmissionsCount = assignmentSubmissions.filter(s => s.status && s.status.toLowerCase() !== 'pending').length;
 
-    const backPath = role === 'TEACHER' ? '/teacher/assignments' : '/student/assignments';
+    // Use classId from query params if available, otherwise fall back to assignment's class
+    const effectiveClassId = classIdFromQuery || assignment?.classId;
+    const effectiveClass = effectiveClassId ? classes?.find(c => c.id === parseInt(effectiveClassId)) : targetClass;
+    const classSlug = effectiveClass?.name?.toLowerCase().replace(/\s+/g, '-');
+    
+    const backPath = effectiveClassId 
+        ? (role === 'TEACHER' ? `/teacher/classes/${classSlug}` : `/student/classes/${classSlug}`)
+        : (role === 'TEACHER' ? '/teacher/assignments' : '/student/assignments');
+    
     const breadcrumbs = [
         { label: 'Assignments', path: backPath },
-        ...(targetClass ? [{ label: targetClass.name, path: role === 'TEACHER' ? `/teacher/classes/${targetClass.id}` : `/student/classes/${targetClass.name?.toLowerCase().replace(/\s+/g, '-')}` }] : []),
+        ...(effectiveClass ? [{ label: effectiveClass.name, path: role === 'TEACHER' ? `/teacher/classes/${classSlug}` : `/student/classes/${classSlug}` }] : []),
         { label: assignment.title }
     ];
 
     const actions = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {role === 'TEACHER' && (
-                <button
-                    onClick={handleEditAssignment}
-                    className="asg-action-btn"
-                    title="Edit Assignment"
-                >
-                    <Edit size={14} /> Edit Assignment
-                </button>
+                <>
+                    <button
+                        onClick={handleEditAssignment}
+                        className="asg-action-btn"
+                        title="Edit Assignment"
+                    >
+                        <Edit size={14} /> Edit Assignment
+                    </button>
+                    <button
+                        onClick={() => setConfirmDelete({ isOpen: true })}
+                        className="asg-action-btn"
+                        style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                        title="Delete Assignment"
+                    >
+                        <Trash2 size={14} /> Delete
+                    </button>
+                </>
             )}
             {role === 'STUDENT' && (
                 <button
@@ -657,103 +701,37 @@ const AssignmentDetails = () => {
                 </div>
             </div>
 
-            {/* Edit Assignment Modal */}
-            {role === 'TEACHER' && (
-                <CreateAssignmentModal
-                    isOpen={isEditModalOpen}
-                    onClose={handleCloseEditModal}
-                    onSubmit={handleUpdateAssignment}
-                    isSubmitting={isSubmitting}
-                    initialData={assignment}
-                />
-            )}
-
-            {/* Resource Preview Modal */}
-            {previewFile && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 999,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    backdropFilter: 'blur(6px)',
-                    padding: '20px'
-                }}>
-                    <div style={{
-                        background: 'var(--surface)',
-                        borderRadius: '20px',
-                        width: '100%',
-                        maxWidth: '960px',
-                        maxHeight: '90vh',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                        boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-                        border: '1px solid var(--border)'
-                    }}>
-                        <div style={{
-                            padding: '18px 24px',
-                            borderBottom: '1px solid var(--border)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            background: 'var(--surface)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div className="asg-card-icon"><FileText size={18} /></div>
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--ink)' }}>{previewFile.name}</h3>
-                                    <span style={{ fontSize: '11px', color: 'var(--ink-3)' }}>File Attachment Preview</span>
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <a
-                                    href={resolveResourceUrl(previewFile.url)}
-                                    download={previewFile.name}
-                                    className="asg-action-btn"
-                                >
-                                    <Download size={13} /> Download
-                                </a>
+            {/* Delete Confirmation Modal */}
+            {confirmDelete.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-lg shadow-hover w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between bg-red-50">
+                            <h3 className="text-lg font-extrabold font-heading text-red-700">Delete Assignment</h3>
+                            <button
+                                onClick={() => setConfirmDelete({ isOpen: false })}
+                                className="p-2 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-gray-700 mb-6">
+                                Are you sure you want to delete "<strong>{assignment.title}</strong>"? This will permanently remove the assignment and all student submissions. This action cannot be undone.
+                            </p>
+                            <div className="flex justify-end gap-3">
                                 <button
-                                    onClick={() => setPreviewFile(null)}
-                                    className="asg-action-btn"
-                                    style={{ padding: '6px', borderRadius: '50%' }}
+                                    onClick={() => setConfirmDelete({ isOpen: false })}
+                                    className="px-6 py-2.5 text-muted font-bold font-body hover:bg-gray-200 rounded-xl transition-all"
                                 >
-                                    <X size={18} />
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteAssignment}
+                                    className="px-8 py-2.5 text-white font-extrabold font-heading rounded-xl shadow-hover transition-all bg-red-600 hover:bg-red-700 hover:shadow-xl hover:-translate-y-0.5"
+                                >
+                                    Delete Assignment
                                 </button>
                             </div>
-                        </div>
-
-                        <div style={{ flex: 1, overflow: 'auto', padding: '24px', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {previewFile.url && (previewFile.type?.startsWith('image/') ||
-                                ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.url.toLowerCase().endsWith('.' + ext)) ||
-                                ['png', 'jpg', 'jpeg', 'gif', 'webp'].some(ext => previewFile.name.toLowerCase().endsWith('.' + ext))) ? (
-                                <img
-                                    src={resolveResourceUrl(previewFile.url)}
-                                    alt={previewFile.name}
-                                    style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '12px', border: '1px solid var(--border)' }}
-                                />
-                            ) : (previewFile.type === 'application/pdf' || previewFile.url.toLowerCase().endsWith('.pdf') || previewFile.name.toLowerCase().endsWith('.pdf')) ? (
-                                <iframe
-                                    src={resolveResourceUrl(previewFile.url)}
-                                    style={{ width: '100%', height: '70vh', borderRadius: '12px', border: '1px solid var(--border)' }}
-                                    title="PDF Preview"
-                                />
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '40px' }}>
-                                    <FileText size={40} style={{ color: 'var(--ink-3)', margin: '0 auto 12px' }} />
-                                    <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink-2)', margin: 0 }}>No interactive preview for this file type.</p>
-                                    <button
-                                        onClick={() => window.open(resolveResourceUrl(previewFile.url), '_blank')}
-                                        className="asg-action-btn asg-action-btn-primary"
-                                        style={{ marginTop: '16px' }}
-                                    >
-                                        Open in New Tab
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

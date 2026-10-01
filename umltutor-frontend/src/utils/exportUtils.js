@@ -6,6 +6,12 @@
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Pre-load heavy dependencies once at module level (lazy singleton)
+let _jsPDFPromise = null;
+let _htImagePromise = null;
+const getJsPDF = () => { if (!_jsPDFPromise) _jsPDFPromise = import('jspdf').then(m => m.jsPDF); return _jsPDFPromise; };
+const getToCanvas = () => { if (!_htImagePromise) _htImagePromise = import('html-to-image').then(m => m.toCanvas); return _htImagePromise; };
+
 // CSS classes / data attributes that identify toolbar/sidebar elements to EXCLUDE
 const TOOLBAR_CLASSES = [
     'react-flow__controls',
@@ -73,7 +79,7 @@ const captureReactFlowCanvas = async (containerEl, scale = 1.5) => {
     }
 
     // Fallback: html-to-image on rfRoot with strict toolbar filter
-    const { toCanvas } = await import('html-to-image');
+    const toCanvas = await getToCanvas();
     return toCanvas(rfRoot, {
         backgroundColor: '#ffffff',
         pixelRatio: scale,
@@ -94,7 +100,7 @@ const captureElementFast = async (element, scale = 1.5) => {
 
     // Plain HTML elements (descriptions, tables)
     try {
-        const { toCanvas } = await import('html-to-image');
+        const toCanvas = await getToCanvas();
         return toCanvas(element, {
             backgroundColor: '#ffffff',
             pixelRatio: scale,
@@ -104,7 +110,7 @@ const captureElementFast = async (element, scale = 1.5) => {
         });
     } catch (error) {
         console.error('[ExportFast] Capture failed:', error);
-        const { toCanvas } = await import('html-to-image');
+        const toCanvas = await getToCanvas();
         return toCanvas(element, { backgroundColor: '#ffffff', pixelRatio: 1, cacheBust: false, skipFonts: true });
     }
 };
@@ -210,7 +216,8 @@ export const exportStepWithReport = async (section, format, activeModel, report,
 export const exportCombinedModel = async (activeModel, mode, report, userInfo = {}) => {
     const startedAt = performance.now();
     try {
-        const { jsPDF } = await import('jspdf');
+        // Pre-warm both heavy deps in parallel before any work starts
+        const [jsPDF] = await Promise.all([getJsPDF(), getToCanvas()]);
 
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pageWidth = pdf.internal.pageSize.getWidth();   // 210mm
@@ -242,67 +249,85 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
             pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
         };
 
+        // Helper: Section title map
+        const sectionTitles = {
+            'usecase': 'Use Case Diagram',
+            'descriptions': 'Use Case Descriptions',
+            'ssds': 'System Sequence Diagrams',
+            'class-diagram': 'Class Diagram',
+            'sequence-diagrams': 'Sequence Diagrams',
+        };
+
         // Helper: Extract Issues for a section from the evaluation report
         const getIssuesForSection = (secKey) => {
             if (!report) return [];
             const issues = Array.isArray(report.issues) ? report.issues : [];
-            const secMap = {
-                'usecase': ['diagram', 'usecasediagram'],
-                'descriptions': ['description', 'usecasedescription'],
-                'ssds': ['ssd', 'systemsequence'],
-                'class-diagram': ['class-diagram', 'classdiagram'],
-                'sequence-diagrams': ['sequence-diagram', 'sequencediagram'],
-            };
-            const targets = secMap[secKey] || [secKey];
             return issues.filter(i => {
-                const loc = (i.location || '').toLowerCase();
-                return targets.some(t => loc.includes(t));
+                const loc = (i.location || '').toLowerCase().trim();
+                if (secKey === 'usecase') {
+                    // Match use case diagram, but strictly exclude class-diagram, sequence-diagram, and ssd
+                    if (loc.includes('class') || loc.includes('sequence') || loc.includes('ssd')) return false;
+                    return loc === 'diagram' || loc === 'usecase' || loc === 'usecasediagram' || loc === 'usecase-diagram' || loc.includes('usecase');
+                }
+                if (secKey === 'descriptions') {
+                    return loc === 'description' || loc === 'descriptions' || loc === 'usecasedescription' || loc.includes('description');
+                }
+                if (secKey === 'ssds') {
+                    return loc === 'ssd' || loc === 'ssds' || loc === 'systemsequence' || loc.includes('ssd');
+                }
+                if (secKey === 'class-diagram') {
+                    if (loc.includes('sequence')) return false;
+                    return loc === 'class-diagram' || loc === 'classdiagram' || loc.includes('class');
+                }
+                if (secKey === 'sequence-diagrams') {
+                    if (loc.includes('system') || loc.includes('ssd')) return false;
+                    return loc === 'sequence-diagram' || loc === 'sequencediagram' || loc.includes('sequence');
+                }
+                return loc.includes(secKey);
             });
         };
 
-        // Helper: Render Evaluation Feedback Table in vector PDF text.
-        // All issues are rendered (not truncated), and long lists flow across pages.
-        const renderEvaluationTable = (secKey, startY) => {
-            const secIssues = getIssuesForSection(secKey);
+        // Helper: Render Evaluation Feedback Table for a specific item (e.g. Description 2.1, SSD 3.1)
+        const renderSpecificEvaluationTable = (tableTitle, issuesList, startY) => {
             let y = startY;
 
             const ensureSpace = (needed) => {
                 if (y + needed > pageHeight - 15) {
                     pdf.addPage();
-                    renderSectionHeader(`${secKey} Evaluation Report`);
+                    renderSectionHeader(tableTitle);
                     y = 30;
                 }
             };
 
-            ensureSpace(35);
+            ensureSpace(28);
 
             pdf.setFillColor(...BG_LIGHT);
             pdf.setDrawColor(...BORDER_COLOR);
-            pdf.roundedRect(15, y, pageWidth - 30, 26, 2, 2, 'FD');
+            pdf.roundedRect(15, y, pageWidth - 30, 20, 2, 2, 'FD');
 
             pdf.setTextColor(...PRIMARY);
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(10);
-            pdf.text('AUTOMATED EVALUATION & CHECKING DIAGNOSTICS', 20, y + 8);
+            pdf.setFontSize(9.5);
+            pdf.text(tableTitle.toUpperCase(), 20, y + 7);
             pdf.setTextColor(...TEXT_DARK);
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`Total items inspected for this section: ${secIssues.length}`, 20, y + 17);
+            pdf.text(`Diagnostic checks for this item: ${issuesList.length} finding(s)`, 20, y + 14);
 
-            y += 32;
+            y += 24;
 
-            if (secIssues.length === 0) {
+            if (issuesList.length === 0) {
                 ensureSpace(12);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setTextColor(...GREEN_COLOR);
-                pdf.text('[PASS] Validation Passed: All requirements & syntax rules satisfied for this section.', 20, y);
-                y += 14;
+                pdf.text('[PASS] All syntax & requirement checks satisfied for this item.', 20, y);
+                y += 12;
             } else {
-                secIssues.forEach((issue) => {
+                issuesList.forEach((issue) => {
                     const msgLines = pdf.splitTextToSize(issue.message || 'Diagnostic rule check', pageWidth - 70);
-                    const blockHeight = 8 + 7 * msgLines.length;
+                    const blockHeight = 8 + 6 * msgLines.length;
 
-                    ensureSpace(blockHeight + 4);
+                    ensureSpace(blockHeight + 3);
 
                     pdf.setFont('helvetica', 'bold');
                     pdf.setTextColor(issue.severity === 'error' ? 239 : 245, issue.severity === 'error' ? 68 : 158, 11);
@@ -311,239 +336,25 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                     pdf.setFont('helvetica', 'normal');
                     pdf.setTextColor(...TEXT_DARK);
                     pdf.text(msgLines, 42, y);
-                    y += 7 * msgLines.length + 4;
+                    y += 6 * msgLines.length + 4;
                 });
-                y += 6;
+                y += 4;
             }
 
             return y;
         };
 
-        // ═════════════════════════════════════════════════════════════════════
-        // PAGE 1: COVER & EXECUTIVE EVALUATION SUMMARY
-        // ═════════════════════════════════════════════════════════════════════
-        pdf.setFillColor(...PRIMARY);
-        pdf.rect(0, 0, pageWidth, 42, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(22);
-        pdf.text('UML DESIGN & EVALUATION REPORT', 20, 26);
+        // Helper: Render Evaluation Feedback Table for an entire section
+        const renderEvaluationTable = (secKey, startY) => {
+            const secIssues = getIssuesForSection(secKey);
+            const cleanTitle = sectionTitles[secKey] || secKey;
+            return renderSpecificEvaluationTable(`${cleanTitle} - Diagnostics`, secIssues, startY);
+        };
 
-        // Metadata Card
-        pdf.setFillColor(...BG_LIGHT);
-        pdf.setDrawColor(...BORDER_COLOR);
-        pdf.roundedRect(20, 52, pageWidth - 40, 48, 3, 3, 'FD');
-
-        pdf.setTextColor(...TEXT_DARK);
-        pdf.setFontSize(11);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('STUDENT INFORMATION', 28, 64);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(10);
-        pdf.text(`Student Name: ${userInfo.studentName || 'Student Workspace'}`, 28, 73);
-        pdf.text(`Assignment: ${userInfo.assignmentTitle || 'UML Software Design'}`, 28, 81);
-        pdf.text(`Course / Class: ${userInfo.className || 'Software Engineering'}`, 28, 89);
-
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('REPORT DETAILS', 120, 64);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`Mode: ${mode === 'tutorial' ? 'Guided Tutorial Mode' : 'Development Mode'}`, 120, 73);
-        if (userInfo.teacherName) pdf.text(`Instructor: ${userInfo.teacherName}`, 120, 81);
-
-        // Executive Evaluation Summary Card
-        let totalScore = report?.score ?? report?.totalScore ?? report?.summary?.totalScore ?? null;
-        let remarks = report?.remarks ?? report?.summary?.remarks ?? null;
-        let allIssues = Array.isArray(report?.issues) ? report.issues : [];
-
-        pdf.setFillColor(238, 242, 255);
-        pdf.setDrawColor(...PRIMARY);
-        pdf.roundedRect(20, 110, pageWidth - 40, 55, 3, 3, 'FD');
-
-        pdf.setTextColor(...PRIMARY);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(13);
-        pdf.text('EXECUTIVE EVALUATION SUMMARY', 28, 124);
-
-        pdf.setTextColor(...TEXT_DARK);
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        if (totalScore !== null) {
-            pdf.text(`Overall Score: ${totalScore} / 100`, 28, 134);
-        } else {
-            pdf.text('Evaluation Status: Automated Quality Check Completed', 28, 134);
-        }
-
-        pdf.setFont('helvetica', 'normal');
-        if (remarks) {
-            const splitRemarks = pdf.splitTextToSize(`Instructor / Checker Feedback: ${remarks}`, pageWidth - 65);
-            pdf.text(splitRemarks, 28, 143);
-        } else {
-            pdf.text('Automated evaluation executed across all 5 UML design steps.', 28, 143);
-        }
-
-        pdf.text(`Total Diagnostic Rules Inspected: ${allIssues.length} items logged`, 28, 155);
-
-        // ═════════════════════════════════════════════════════════════════════
-        // CAPTURE DIAGRAMS & DESCRIPTIONS
-        // ═════════════════════════════════════════════════════════════════════
-        const renderer = await waitForElementFast('#full-model-export-renderer', 2500);
-        if (renderer) {
-            await sleep(600);
-        }
-
-        const sections = [
-            ['usecase', '1. Use Case Diagram'],
-            ['descriptions', '2. Use Case Descriptions'],
-            ['ssds', '3. System Sequence Diagrams'],
-            ['class-diagram', '4. Class Diagram'],
-            ['sequence-diagrams', '5. Sequence Diagrams'],
-        ];
-
-        for (const [sectionKey, title] of sections) {
-            pdf.addPage();
-            renderSectionHeader(title);
-
-            if (sectionKey === 'descriptions') {
-                // Vector text rendering for Use Case Descriptions — crisp & readable
-                let y = 30;
-                const descs = activeModel?.descriptions || {};
-                const descEntries = Object.entries(descs);
-
-                if (descEntries.length === 0) {
-                    pdf.setFont('helvetica', 'italic');
-                    pdf.setTextColor(...TEXT_MUTED);
-                    pdf.text('No use case descriptions defined yet.', 20, y);
-                    y += 15;
-                } else {
-                    descEntries.forEach(([id, desc], dIdx) => {
-                        // Pre-compute wrapped lines so the box height is accurate
-                        const titleLine = `Use Case 2.${dIdx + 1}: ${desc.useCaseName || 'Untitled'}`;
-                        const bodyWidth = pageWidth - 60;
-                        const actorLine = `Primary Actor: ${desc.primaryActor || 'Not specified'}`;
-                        const preLines = pdf.splitTextToSize(`Preconditions: ${desc.preconditions || 'None'}`, bodyWidth);
-                        const postLines = pdf.splitTextToSize(`Postconditions: ${desc.postconditions || 'None'}`, bodyWidth);
-
-                        // Numbered main-flow lines
-                        const flowLines = [];
-                        if (Array.isArray(desc.mainFlow) && desc.mainFlow.length > 0) {
-                            desc.mainFlow.forEach((s, i) => {
-                                const line = `${i + 1}. ${(typeof s === 'string' ? s : s.action) || ''}`;
-                                flowLines.push(...pdf.splitTextToSize(line, bodyWidth));
-                            });
-                        } else {
-                            flowLines.push('(no main flow defined)');
-                        }
-
-                        const boxHeight = 56 + preLines.length * 5 + postLines.length * 5 + flowLines.length * 5;
-
-                        if (y + boxHeight > pageHeight - 20) {
-                            pdf.addPage();
-                            renderSectionHeader(`${title} (Continued)`);
-                            y = 30;
-                        }
-
-                        pdf.setFillColor(...BG_LIGHT);
-                        pdf.setDrawColor(...BORDER_COLOR);
-                        pdf.roundedRect(15, y, pageWidth - 30, boxHeight, 2, 2, 'FD');
-
-                        pdf.setTextColor(...PRIMARY);
-                        pdf.setFont('helvetica', 'bold');
-                        pdf.setFontSize(11);
-                        pdf.text(titleLine, 20, y + 8);
-
-                        pdf.setTextColor(...TEXT_DARK);
-                        pdf.setFontSize(9);
-                        pdf.text(actorLine, 20, y + 16);
-                        pdf.text(preLines, 20, y + 24);
-
-                        let iy = y + 24 + preLines.length * 5;
-                        pdf.text(postLines, 20, iy);
-                        iy += postLines.length * 5 + 4;
-                        pdf.setFont('helvetica', 'bold');
-                        pdf.text('Main Success Scenario:', 20, iy);
-                        iy += 6;
-                        pdf.setFont('helvetica', 'normal');
-                        pdf.text(flowLines, 20, iy);
-
-                        y += boxHeight + 10;
-                    });
-                }
-
-                renderEvaluationTable(sectionKey, y);
-                continue;
-            }
-
-            // Diagrams: usecase, ssds, class-diagram, sequence-diagrams
-            let sectionEl = renderer ? renderer.querySelector(`[data-export-section="${sectionKey}"]`) : null;
-            if (!sectionEl) {
-                const secSelector = sectionKey === 'usecase'
-                    ? '[data-editor-section="usecase"] .react-flow'
-                    : sectionKey === 'ssds'
-                        ? '[data-editor-section="ssd"] .react-flow'
-                        : sectionKey === 'class-diagram'
-                            ? '[data-editor-section="class-diagram"] .react-flow'
-                            : '[data-editor-section="sequence-diagram"] .react-flow';
-                sectionEl = document.querySelector(secSelector);
-            }
-
-            let canvas = null;
-            if (sectionEl) {
-                try {
-                    const diagramContainer = sectionEl.querySelector('.react-flow')
-                        ? sectionEl.querySelector('[style*="height"]') || sectionEl
-                        : sectionEl;
-
-                    canvas = diagramContainer.querySelector('.react-flow')
-                        ? await captureReactFlowCanvas(diagramContainer, 1.5)
-                        : await captureElementFast(diagramContainer, 1.5);
-                } catch (err) {
-                    console.warn(`[ExportCombined] Capture for ${title} failed:`, err.message);
-                }
-            }
-
-            let yAfterDiagram = 30;
-
-            if (canvas && canvas.width > 0 && canvas.height > 0) {
-                const imgData = canvas.toDataURL('image/jpeg', 0.88);
-
-                // Calculate width and height to fit nicely in 170mm x 125mm max box
-                const maxW = pageWidth - 40;  // 170mm
-                const maxH = 125;            // 125mm max height
-
-                let imgW = maxW;
-                let imgH = (canvas.height * imgW) / canvas.width;
-                if (imgH > maxH) {
-                    imgH = maxH;
-                    imgW = (canvas.width * imgH) / canvas.height;
-                }
-
-                const posX = (pageWidth - imgW) / 2; // Center horizontally
-
-                // Background container box for diagram
-                pdf.setFillColor(255, 255, 255);
-                pdf.setDrawColor(...BORDER_COLOR);
-                pdf.roundedRect(posX - 2, 28, imgW + 4, imgH + 4, 2, 2, 'FD');
-
-                pdf.addImage(imgData, 'JPEG', posX, 30, imgW, imgH);
-                yAfterDiagram = 30 + imgH + 12;
-            } else {
-                pdf.setFont('helvetica', 'italic');
-                pdf.setTextColor(...TEXT_MUTED);
-                pdf.setFontSize(10);
-                pdf.text('Diagram workspace is currently empty for this section.', 20, 35);
-                yAfterDiagram = 50;
-            }
-
-            renderEvaluationTable(sectionKey, yAfterDiagram);
-        }
-
-        // ═════════════════════════════════════════════════════════════════════
-        // CASE-STUDY CONSISTENCY REPORT (mirrors the checking panel block)
-        // ═════════════════════════════════════════════════════════════════════
-        const csReport = report?.caseStudyReport || report?.checkResult?.caseStudyReport;
-        if (csReport) {
-            pdf.addPage();
-            renderSectionHeader('6. Case-Study Consistency');
+        // Helper: Render Case-Study Consistency Check (embedded within Phase 1: Use Case Diagram checking)
+        const renderCaseStudyReport = (startY) => {
+            const csReport = report?.caseStudyReport || report?.checkResult?.caseStudyReport;
+            if (!csReport) return startY;
 
             const cs = csReport;
             const findings = cs.findings || [];
@@ -553,15 +364,30 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 || (findings.some(f => f.severity === 'error') ? 'errors'
                     : (findings.some(f => f.severity === 'warning') ? 'warnings' : 'consistent'));
 
-            let ycs = 32;
+            let ycs = startY + 6;
 
             const csEnsureSpace = (needed) => {
                 if (ycs + needed > pageHeight - 15) {
                     pdf.addPage();
-                    renderSectionHeader('6. Case-Study Consistency (Continued)');
+                    renderSectionHeader('1. Use Case Diagram - Case-Study Consistency Check');
                     ycs = 30;
                 }
             };
+
+            csEnsureSpace(22);
+            pdf.setFillColor(...BG_LIGHT);
+            pdf.setDrawColor(...BORDER_COLOR);
+            pdf.roundedRect(15, ycs, pageWidth - 30, 16, 2, 2, 'FD');
+
+            pdf.setTextColor(...PRIMARY);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(10);
+            pdf.text('CASE-STUDY CONSISTENCY CHECK (PHASE 1 DIAGNOSTIC)', 20, ycs + 7);
+            pdf.setTextColor(...TEXT_MUTED);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8);
+            pdf.text('Verifies Use Case Diagram actors, use cases, and boundary against the assignment specification.', 20, ycs + 12);
+            ycs += 20;
 
             // Insufficient context view (mirror of unreliable branch)
             if (validation.reliable === false) {
@@ -615,7 +441,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 pdf.text('No expected actors or use cases are asserted for an assignment this thin.', 20, ycs);
                 ycs += 12;
             } else {
-                // 1. Verdict Banner Card (matching web app CheckingModePanel banner)
+                // 1. Verdict Banner Card
                 let bannerBg = [254, 243, 199];
                 let bannerBorder = [253, 230, 138];
                 let bannerTextColor = [146, 64, 14];
@@ -678,24 +504,21 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 }
 
                 pdf.setTextColor(...sysColor);
-                pdf.text(sysBadge, 56, ycs + 8);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(sysBadge, 62, ycs + 8);
 
-                pdf.setFont('helvetica', sysStatus === 'found' ? 'bold' : 'normal');
+                let sysDetail = 'matches assignment';
+                if (sysStatus === 'missing') {
+                    sysDetail = `no name${sys.expected ? ` - try "${sys.expected}"` : ''}`;
+                } else if (sysStatus === 'mismatch') {
+                    sysDetail = `"${sys.submitted || 'unnamed'}" (assignment suggests "${sys.expected || ''}")`;
+                } else if (sysStatus === 'found') {
+                    sysDetail = `"${sys.submitted}"`;
+                }
+
+                pdf.setFont('helvetica', 'normal');
                 pdf.setTextColor(...TEXT_DARK);
-                const sysNameText = sys.submitted || 'no name';
-                pdf.text(sysNameText, 56 + pdf.getTextWidth(sysBadge) + 3, ycs + 8);
-
-                let sysHint = '';
-                if (sys.status === 'missing' && sys.expected) {
-                    sysHint = ` - try "${sys.expected}"`;
-                } else if (sys.status === 'mismatch' && sys.expected) {
-                    sysHint = ` - assignment suggests "${sys.expected}"`;
-                }
-                if (sysHint) {
-                    pdf.setFont('helvetica', 'italic');
-                    pdf.setTextColor(...TEXT_MUTED);
-                    pdf.text(sysHint, 56 + pdf.getTextWidth(sysBadge) + pdf.getTextWidth(sysNameText) + 5, ycs + 8);
-                }
+                pdf.text(sysDetail, 72, ycs + 8);
                 ycs += 18;
 
                 // 3. Actors vs Assignment
@@ -710,9 +533,13 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                     cs.actorStatus.forEach((a) => {
                         let badge = '[MATCH]';
                         let badgeColor = GREEN_COLOR;
-                        let line = a.actor;
+                        let line = `${a.actor}`;
 
-                        if (a.status === 'typo') {
+                        if (a.status === 'found') {
+                            badge = '[MATCH]';
+                            badgeColor = GREEN_COLOR;
+                            line = `${a.actor}`;
+                        } else if (a.status === 'typo') {
                             badge = '[!]';
                             badgeColor = [217, 119, 6];
                             line = `${a.actor} - use exact role "${a.actor}"`;
@@ -807,7 +634,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                     ycs += 5;
                 }
 
-                // 5. Expected Assignment Requirements Card (Actors, Use Cases, System Names)
+                // 5. Expected Assignment Requirements Card
                 const hasExpected = (expected.actors && expected.actors.length > 0) ||
                                     (expected.useCases && expected.useCases.length > 0) ||
                                     (expected.systemCandidates && expected.systemCandidates.length > 0);
@@ -865,7 +692,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                     ycs += cardHeight + 8;
                 }
 
-                // 6. Findings Grouped by Severity (Errors, Warnings, Info)
+                // 6. Findings Grouped by Severity
                 const renderFindings = (sev, label, badge, color) => {
                     const list = findings.filter((f) => f.severity === sev);
                     if (list.length === 0) return;
@@ -914,6 +741,295 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                     pdf.setTextColor(...TEXT_MUTED);
                     pdf.text(`${cs.counts.total} case-study finding(s) - ${cs.counts.error || 0} error(s), ${cs.counts.warning || 0} warning(s), ${cs.counts.info || 0} info`, 20, ycs + 6);
                     ycs += 14;
+                }
+            }
+
+            return ycs;
+        };
+
+        // ═════════════════════════════════════════════════════════════════════
+        // PAGE 1: COVER & EXECUTIVE EVALUATION SUMMARY
+        // ═════════════════════════════════════════════════════════════════════
+        pdf.setFillColor(...PRIMARY);
+        pdf.rect(0, 0, pageWidth, 42, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(22);
+        pdf.text('UML DESIGN & EVALUATION REPORT', 20, 26);
+
+        // Metadata Card
+        pdf.setFillColor(...BG_LIGHT);
+        pdf.setDrawColor(...BORDER_COLOR);
+        pdf.roundedRect(20, 52, pageWidth - 40, 48, 3, 3, 'FD');
+
+        pdf.setTextColor(...TEXT_DARK);
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('STUDENT INFORMATION', 28, 64);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
+        pdf.text(`Student Name: ${userInfo.studentName || 'Student Workspace'}`, 28, 73);
+        pdf.text(`Assignment: ${userInfo.assignmentTitle || 'UML Software Design'}`, 28, 81);
+        pdf.text(`Course / Class: ${userInfo.className || 'Software Engineering'}`, 28, 89);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('REPORT DETAILS', 120, 64);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Mode: ${mode === 'tutorial' ? 'Guided Tutorial Mode' : 'Development Mode'}`, 120, 73);
+        if (userInfo.teacherName) pdf.text(`Instructor: ${userInfo.teacherName}`, 120, 81);
+
+        // Executive Evaluation Summary Card
+        let totalScore = report?.score ?? report?.totalScore ?? report?.summary?.totalScore ?? null;
+        let remarks = report?.remarks ?? report?.summary?.remarks ?? null;
+        let allIssues = Array.isArray(report?.issues) ? report.issues : [];
+
+        pdf.setFillColor(238, 242, 255);
+        pdf.setDrawColor(...PRIMARY);
+        pdf.roundedRect(20, 110, pageWidth - 40, 55, 3, 3, 'FD');
+
+        pdf.setTextColor(...PRIMARY);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(13);
+        pdf.text('EXECUTIVE EVALUATION SUMMARY', 28, 124);
+
+        pdf.setTextColor(...TEXT_DARK);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        if (totalScore !== null) {
+            pdf.text(`Overall Score: ${totalScore} / 100`, 28, 134);
+        } else {
+            pdf.text('Evaluation Status: Automated Quality Check Completed', 28, 134);
+        }
+
+        pdf.setFont('helvetica', 'normal');
+        if (remarks) {
+            const splitRemarks = pdf.splitTextToSize(`Instructor / Checker Feedback: ${remarks}`, pageWidth - 65);
+            pdf.text(splitRemarks, 28, 143);
+        } else {
+            pdf.text('Automated evaluation executed across all 5 UML design steps.', 28, 143);
+        }
+
+        pdf.text(`Total Diagnostic Rules Inspected: ${allIssues.length} items logged`, 28, 155);
+
+        // ═════════════════════════════════════════════════════════════════════
+        // CAPTURE DIAGRAMS & DESCRIPTIONS
+        // ═════════════════════════════════════════════════════════════════════
+        // Fast DOM probe — only wait if the hidden export renderer is expected
+        const renderer = document.querySelector('#full-model-export-renderer') ||
+                         await waitForElementFast('#full-model-export-renderer', 800);
+        if (renderer) await sleep(200); // minimal settle time
+
+        const sections = [
+            ['usecase', '1. Use Case Diagram'],
+            ['descriptions', '2. Use Case Descriptions'],
+            ['ssds', '3. System Sequence Diagrams'],
+            ['class-diagram', '4. Class Diagram'],
+            ['sequence-diagrams', '5. Sequence Diagrams'],
+        ];
+
+        // ── Pre-resolve all diagram DOM elements in one pass (no per-section query loops) ──
+        const sectionSelectors = {
+            'usecase':           '[data-editor-section="usecase"] .react-flow',
+            'ssds':              '[data-editor-section="ssd"] .react-flow',
+            'class-diagram':     '[data-editor-section="class-diagram"] .react-flow',
+            'sequence-diagrams': '[data-editor-section="sequence-diagram"] .react-flow',
+        };
+        const resolvedEls = {};
+        for (const [key, sel] of Object.entries(sectionSelectors)) {
+            resolvedEls[key] = (renderer && renderer.querySelector(`[data-export-section="${key}"]`)) ||
+                               document.querySelector(sel) || null;
+        }
+
+        // ── Capture all diagram canvases in parallel (non-blocking) ──
+        const captureResults = {};
+        await Promise.all(
+            Object.entries(resolvedEls).map(async ([key, el]) => {
+                if (!el) { captureResults[key] = null; return; }
+                try {
+                    const container = el.querySelector('.react-flow')
+                        ? (el.querySelector('[style*="height"]') || el)
+                        : el;
+                    captureResults[key] = container.querySelector('.react-flow')
+                        ? await captureReactFlowCanvas(container, 1.4)
+                        : await captureElementFast(container, 1.4);
+                } catch {
+                    captureResults[key] = null;
+                }
+            })
+        );
+
+        for (const [sectionKey, title] of sections) {
+            pdf.addPage();
+            renderSectionHeader(title);
+
+            if (sectionKey === 'descriptions') {
+                // Vector text rendering for Use Case Descriptions — crisp & readable
+                let y = 30;
+                const descs = activeModel?.descriptions || {};
+                const descEntries = Object.entries(descs);
+                const allDescIssues = getIssuesForSection('descriptions');
+
+                if (descEntries.length === 0) {
+                    pdf.setFont('helvetica', 'italic');
+                    pdf.setTextColor(...TEXT_MUTED);
+                    pdf.text('No use case descriptions defined yet.', 20, y);
+                    y += 15;
+                    renderSpecificEvaluationTable('Use Case Descriptions - Diagnostics', allDescIssues, y);
+                } else {
+                    const mappedIssueIndices = new Set();
+
+                    descEntries.forEach(([id, desc], dIdx) => {
+                        const descNum = `2.${dIdx + 1}`;
+                        const descName = (desc.useCaseName || '').toLowerCase().trim();
+
+                        // Pre-compute wrapped lines so the box height is accurate
+                        const titleLine = `Use Case ${descNum}: ${desc.useCaseName || 'Untitled'}`;
+                        const bodyWidth = pageWidth - 60;
+                        const actorLine = `Primary Actor: ${desc.primaryActor || 'Not specified'}`;
+                        const preLines = pdf.splitTextToSize(`Preconditions: ${desc.preconditions || 'None'}`, bodyWidth);
+                        const postLines = pdf.splitTextToSize(`Postconditions: ${desc.postconditions || 'None'}`, bodyWidth);
+
+                        // Numbered main-flow lines
+                        const flowLines = [];
+                        if (Array.isArray(desc.mainFlow) && desc.mainFlow.length > 0) {
+                            desc.mainFlow.forEach((s, i) => {
+                                const line = `${i + 1}. ${(typeof s === 'string' ? s : s.action) || ''}`;
+                                flowLines.push(...pdf.splitTextToSize(line, bodyWidth));
+                            });
+                        } else {
+                            flowLines.push('(no main flow defined)');
+                        }
+
+                        const boxHeight = 56 + preLines.length * 5 + postLines.length * 5 + flowLines.length * 5;
+
+                        if (y + boxHeight > pageHeight - 35) {
+                            pdf.addPage();
+                            renderSectionHeader(`${title} (Continued)`);
+                            y = 30;
+                        }
+
+                        pdf.setFillColor(...BG_LIGHT);
+                        pdf.setDrawColor(...BORDER_COLOR);
+                        pdf.roundedRect(15, y, pageWidth - 30, boxHeight, 2, 2, 'FD');
+
+                        pdf.setTextColor(...PRIMARY);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(11);
+                        pdf.text(titleLine, 20, y + 8);
+
+                        pdf.setTextColor(...TEXT_DARK);
+                        pdf.setFontSize(9);
+                        pdf.text(actorLine, 20, y + 16);
+                        pdf.text(preLines, 20, y + 24);
+
+                        let iy = y + 24 + preLines.length * 5;
+                        pdf.text(postLines, 20, iy);
+                        iy += postLines.length * 5 + 4;
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Main Success Scenario:', 20, iy);
+                        iy += 6;
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.text(flowLines, 20, iy);
+
+                        y += boxHeight + 6;
+
+                        // Match issues belonging to this description
+                        const specificIssues = allDescIssues.filter((issue, idx) => {
+                            const msg = (issue.message || '').toLowerCase();
+                            const matches = (descName && msg.includes(descName)) ||
+                                            msg.includes(descNum.toLowerCase()) ||
+                                            msg.includes(`description ${descNum}`);
+                            if (matches) mappedIssueIndices.add(idx);
+                            return matches;
+                        });
+
+                        y = renderSpecificEvaluationTable(`Use Case ${descNum} (${desc.useCaseName || 'Untitled'}) - Diagnostics`, specificIssues, y);
+                        y += 10;
+                    });
+
+                    // Render any unmapped description issues
+                    const remainingIssues = allDescIssues.filter((_, idx) => !mappedIssueIndices.has(idx));
+                    if (remainingIssues.length > 0) {
+                        renderSpecificEvaluationTable('General Descriptions - Diagnostics', remainingIssues, y);
+                    }
+                }
+
+                continue;
+            }
+
+            // Use pre-captured canvas from parallel batch
+            const canvas = captureResults[sectionKey] ?? null;
+
+            let yAfterDiagram = 30;
+
+            if (canvas && canvas.width > 0 && canvas.height > 0) {
+                const imgData = canvas.toDataURL('image/jpeg', 0.78); // 0.78 is imperceptible vs 0.88 in PDF at ~70dpi
+
+                // Calculate width and height to fit nicely in 170mm x 125mm max box
+                const maxW = pageWidth - 40;  // 170mm
+                const maxH = 125;            // 125mm max height
+
+                let imgW = maxW;
+                let imgH = (canvas.height * imgW) / canvas.width;
+                if (imgH > maxH) {
+                    imgH = maxH;
+                    imgW = (canvas.width * imgH) / canvas.height;
+                }
+
+                const posX = (pageWidth - imgW) / 2; // Center horizontally
+
+                // Background container box for diagram
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(...BORDER_COLOR);
+                pdf.roundedRect(posX - 2, 28, imgW + 4, imgH + 4, 2, 2, 'FD');
+
+                pdf.addImage(imgData, 'JPEG', posX, 30, imgW, imgH);
+                yAfterDiagram = 30 + imgH + 12;
+            } else {
+                pdf.setFont('helvetica', 'italic');
+                pdf.setTextColor(...TEXT_MUTED);
+                pdf.setFontSize(10);
+                pdf.text('Diagram workspace is currently empty for this section.', 20, 35);
+                yAfterDiagram = 50;
+            }
+
+            if (sectionKey === 'ssds') {
+                const allSsdIssues = getIssuesForSection('ssds');
+                const descs = activeModel?.descriptions || {};
+                const descEntries = Object.entries(descs);
+
+                if (descEntries.length > 0) {
+                    const mappedSsdIndices = new Set();
+                    let ySsd = yAfterDiagram;
+
+                    descEntries.forEach(([id, desc], dIdx) => {
+                        const ssdNum = `3.${dIdx + 1}`;
+                        const descName = (desc.useCaseName || '').toLowerCase().trim();
+
+                        const specificSsdIssues = allSsdIssues.filter((issue, idx) => {
+                            const msg = (issue.message || '').toLowerCase();
+                            const matches = msg.includes(`ssd ${ssdNum}`) ||
+                                            msg.includes(`ssd 3.${dIdx + 1}`) ||
+                                            (descName && msg.includes(descName));
+                            if (matches) mappedSsdIndices.add(idx);
+                            return matches;
+                        });
+
+                        ySsd = renderSpecificEvaluationTable(`SSD ${ssdNum} (${desc.useCaseName || 'Untitled'}) - Diagnostics`, specificSsdIssues, ySsd);
+                        ySsd += 8;
+                    });
+
+                    const remainingSsdIssues = allSsdIssues.filter((_, idx) => !mappedSsdIndices.has(idx));
+                    if (remainingSsdIssues.length > 0) {
+                        renderSpecificEvaluationTable('General SSD - Diagnostics', remainingSsdIssues, ySsd);
+                    }
+                } else {
+                    renderEvaluationTable(sectionKey, yAfterDiagram);
+                }
+            } else {
+                const yAfterEval = renderEvaluationTable(sectionKey, yAfterDiagram);
+                if (sectionKey === 'usecase') {
+                    renderCaseStudyReport(yAfterEval);
                 }
             }
         }
@@ -1061,7 +1177,7 @@ const buildReportText = (report) => {
 
     const cs = report.caseStudyReport || report.checkResult?.caseStudyReport;
     if (cs) {
-        pushSection('CASE-STUDY CONSISTENCY');
+        pushSection('PHASE 1: USE CASE DIAGRAM - CASE-STUDY CONSISTENCY CHECK');
         const validation = cs.validation || {};
         const overall = cs.overall
             || (cs.findings?.some(f => f.severity === 'error') ? 'errors'

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Download, FileJson, Image as ImageIcon } from 'lucide-react';
+import { Download, FileJson, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import {
     setModel,
@@ -11,10 +11,8 @@ import { UseCaseDescriptionEditor } from '../../features/description';
 import { SSDDiagramEditor } from '../../features/ssd';
 import { ClassDiagramEditor } from '../../features/class-diagram';
 import { SequenceDiagramEditor } from '../../features/sequence-diagram';
-import { exportPracticeModelJson, exportPracticeSectionJpg } from './practiceExportUtils';
+import { exportPracticeModelJson, exportPracticeSection, EXPORT_FORMATS, QUALITY_PRESETS } from './practiceExportUtils';
 import './PracticeWorkbench.css';
-
-const PRACTICE_STORAGE_KEY = 'uml-practice-workbench';
 
 const PRACTICE_STEPS = [
     { id: 'usecase', label: 'Use Case Diagram' },
@@ -24,18 +22,6 @@ const PRACTICE_STEPS = [
     { id: 'sequence-diagram', label: 'Sequence Diagram' },
 ];
 
-const loadPracticeModel = () => {
-    try {
-        const saved = localStorage.getItem(PRACTICE_STORAGE_KEY);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed && typeof parsed === 'object') return parsed;
-        }
-    } catch {
-    }
-    return createEmptyModel('practice', 'Practice Workbench');
-};
-
 const PracticeWorkbench = ({ activeSection, onSectionChange }) => {
     const dispatch = useAppDispatch();
     const practiceModel = useAppSelector(selectDevelopmentModel);
@@ -43,6 +29,10 @@ const PracticeWorkbench = ({ activeSection, onSectionChange }) => {
     const [internalSection, setInternalSection] = useState('usecase');
     const [exportError, setExportError] = useState('');
     const [isExporting, setIsExporting] = useState(false);
+    const [exportProgress, setExportProgress] = useState(0);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const [exportFormat, setExportFormat] = useState('png');
+    const [exportQuality, setExportQuality] = useState('standard');
 
     const section = activeSection ?? internalSection;
 
@@ -52,16 +42,8 @@ const PracticeWorkbench = ({ activeSection, onSectionChange }) => {
     };
 
     useEffect(() => {
-        dispatch(setModel({ mode: 'development', model: loadPracticeModel() }));
+        dispatch(setModel({ mode: 'development', model: createEmptyModel('practice', 'Practice Workbench') }));
     }, [dispatch]);
-
-    useEffect(() => {
-        if (!practiceModel || practiceModel.id !== 'practice') return;
-        const timer = setTimeout(() => {
-            localStorage.setItem(PRACTICE_STORAGE_KEY, JSON.stringify(practiceModel));
-        }, 600);
-        return () => clearTimeout(timer);
-    }, [practiceModel]);
 
     const handleExportJson = () => {
         setExportError('');
@@ -69,11 +51,24 @@ const PracticeWorkbench = ({ activeSection, onSectionChange }) => {
         exportPracticeModelJson(practiceModel);
     };
 
-    const handleExportJpg = async () => {
+    const handleExport = async () => {
         setExportError('');
         setIsExporting(true);
-        try { await exportPracticeSectionJpg(section, editorRef); } catch (err) { setExportError(err.message || 'Failed to export image.'); }
-        finally { setIsExporting(false); }
+        setExportProgress(0);
+        setShowExportMenu(false);
+        try {
+            await exportPracticeSection(section, editorRef, {
+                format: exportFormat,
+                quality: exportQuality,
+                includeBackground: true,
+                onProgress: setExportProgress,
+            });
+        } catch (err) {
+            setExportError(err.message || 'Failed to export image.');
+        } finally {
+            setIsExporting(false);
+            setExportProgress(0);
+        }
     };
 
     const activeStep = PRACTICE_STEPS.find((s) => s.id === section);
@@ -98,20 +93,83 @@ const PracticeWorkbench = ({ activeSection, onSectionChange }) => {
         }
     };
 
+    const formatLabel = EXPORT_FORMATS[exportFormat]?.ext?.toUpperCase() || exportFormat.toUpperCase();
+    const qualityLabel = QUALITY_PRESETS[exportQuality]?.suffix?.toUpperCase() || exportQuality;
+
     return (
         <section className="practice-workbench">
             <div className="practice-workbench-head">
                 <div>
                     <h3 className="practice-workbench-name">{activeStep?.label}</h3>
-                    <p className="practice-workbench-mode">Practice Mode — saved locally</p>
+                    <p className="practice-workbench-mode">Practice Mode</p>
                 </div>
                 <div className="practice-toolbar">
                     <button type="button" className="practice-toolbar-btn" onClick={handleExportJson} title="Export JSON">
                         <FileJson size={15} /> JSON
                     </button>
-                    <button type="button" className="practice-toolbar-btn" onClick={handleExportJpg} disabled={isExporting} title="Export JPG">
-                        <ImageIcon size={15} /> {isExporting ? '…' : 'JPG'}
-                    </button>
+
+                    {/* Export Dropdown */}
+                    <div className="practice-export-dropdown">
+                        <button
+                            type="button"
+                            className="practice-toolbar-btn practice-export-trigger"
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            disabled={isExporting}
+                            title="Export Diagram"
+                        >
+                            <ImageIcon size={15} />
+                            <span>{formatLabel}</span>
+                            <ChevronDown size={12} />
+                        </button>
+                        {showExportMenu && (
+                            <div className="practice-export-menu">
+                                <div className="practice-export-section">
+                                    <p className="practice-export-label">Format</p>
+                                    <div className="practice-export-options">
+                                        {Object.entries(EXPORT_FORMATS).map(([key, val]) => (
+                                            <button
+                                                key={key}
+                                                className={`practice-export-option ${exportFormat === key ? 'active' : ''}`}
+                                                onClick={() => setExportFormat(key)}
+                                                type="button"
+                                            >
+                                                {key.toUpperCase()} ({val.ext})
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="practice-export-section">
+                                    <p className="practice-export-label">Quality</p>
+                                    <div className="practice-export-options">
+                                        {Object.entries(QUALITY_PRESETS).map(([key, val]) => (
+                                            <button
+                                                key={key}
+                                                className={`practice-export-option ${exportQuality === key ? 'active' : ''}`}
+                                                onClick={() => setExportQuality(key)}
+                                                type="button"
+                                            >
+                                                {val.suffix === 'std' ? 'Standard' : val.suffix === 'hd' ? 'High' : val.suffix.charAt(0).toUpperCase() + val.suffix.slice(1)} ({val.pixelRatio}x)
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <button
+                                    className="practice-export-confirm"
+                                    onClick={handleExport}
+                                    disabled={isExporting}
+                                >
+                                    {isExporting ? (
+                                        <>
+                                            <span className="practice-export-spinner" />
+                                            Exporting... {Math.round(exportProgress * 100)}%
+                                        </>
+                                    ) : (
+                                        `Export as ${formatLabel.toUpperCase()}`
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
             {exportError && <p className="practice-export-error">{exportError}</p>}

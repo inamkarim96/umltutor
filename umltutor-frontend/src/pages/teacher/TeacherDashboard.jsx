@@ -8,10 +8,6 @@ import {
     selectClassroomLoading
 } from '../../features/classroom';
 import {
-    selectAllAssignments,
-    fetchAllAssignments
-} from '../../features/assignments';
-import {
     fetchAllSubmissionsForTeacher,
     fetchTutorialRequests,
     selectSubmissions,
@@ -24,7 +20,6 @@ import {
     RefreshCw,
     CheckCircle2,
     BookOpen,
-    Clock,
     Star,
     Plus,
     Users,
@@ -35,7 +30,6 @@ import StatisticsCard from '../../components/dashboard/StatisticsCard';
 import DashboardCard from '../../components/dashboard/DashboardCard';
 import { auth } from '../../config/firebase';
 import { sendEmailVerification, reload } from 'firebase/auth';
-
 
 
 const TeacherDashboard = () => {
@@ -88,28 +82,15 @@ const TeacherDashboard = () => {
 
     const user = useAppSelector(selectUser);
     const classes = useAppSelector(selectClasses) || [];
-    const assignments = useAppSelector(selectAllAssignments) || [];
     const submissions = useAppSelector(selectSubmissions) || [];
     const tutorialRequests = useAppSelector(selectTutorialRequests) || [];
     const isLoading = useAppSelector(selectClassroomLoading);
 
     useEffect(() => {
         dispatch(fetchClasses('TEACHER'));
-        dispatch(fetchAllAssignments('TEACHER'));
         dispatch(fetchAllSubmissionsForTeacher());
         dispatch(fetchTutorialRequests({ status: 'pending', page: 1, limit: 5 }));
     }, [dispatch]);
-
-    const assignmentsMap = assignments.reduce((acc, curr) => {
-        acc[curr.id] = curr;
-        return acc;
-    }, {});
-
-    const now = Date.now();
-    const activeAssignments = assignments.filter(a => {
-        if (!a.deadline) return true;
-        return new Date(a.deadline) >= now;
-    });
 
     const pendingReview = submissions.filter(s => {
         const status = s?.status?.toLowerCase();
@@ -135,7 +116,6 @@ const TeacherDashboard = () => {
     const greeting = today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening';
 
 
-
     const firstName = user?.firstName || user?.name?.split(' ')[0] || 'Teacher';
     const greetEmoji = today.getHours() < 12 ? '☀️' : today.getHours() < 17 ? '🌤️' : '🌙';
 
@@ -147,14 +127,6 @@ const TeacherDashboard = () => {
             icon: <BookOpen size={20} />,
             color: 'blue',
             path: '/teacher/classes',
-        },
-        {
-            label: 'Active Assignments',
-            value: activeAssignments.length,
-            note: 'Across all classes',
-            icon: <Clock size={20} />,
-            color: 'amber',
-            path: '/teacher/assignments',
         },
         {
             label: 'Total Submissions',
@@ -187,8 +159,8 @@ const TeacherDashboard = () => {
             }
             primaryAction={{
                 icon: <Plus size={16} />,
-                label: 'New Assignment',
-                onClick: () => navigate('/teacher/assignments')
+                label: 'New Class',
+                onClick: () => navigate('/teacher/classes')
             }}
         />
     );
@@ -255,11 +227,11 @@ const TeacherDashboard = () => {
                                             <div className="sdb-class-meta">
                                                 <span>
                                                     <svg viewBox="0 0 24 24" width="11" height="11"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
-                                                    {c.studentCount || 0} students
+                                                        {c.studentCount || 0} students
                                                 </span>
                                                 <span>
                                                     <svg viewBox="0 0 24 24" width="11" height="11"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" /><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" /></svg>
-                                                    {c.totalAssignments || 0} assignments
+                                                        {c.totalAssignments || 0} assignments
                                                 </span>
                                             </div>
                                         </div>
@@ -289,7 +261,7 @@ const TeacherDashboard = () => {
                                         const submissionId = sub?.submissionId ?? sub?.id;
                                         const numericId = Number(submissionId);
                                         if (Number.isFinite(numericId) && numericId > 0) {
-                                            const assignmentName = assignmentsMap[sub.assignmentId]?.title || sub.assignmentTitle || 'assignment';
+                                            const assignmentName = sub.assignmentTitle || 'assignment';
                                             const studentName = sub.studentName || 'student';
                                             const aSlug = assignmentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
                                             const sSlug = studentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -299,40 +271,13 @@ const TeacherDashboard = () => {
                                         <div className="sdb-class-avatar">{sub.studentName?.charAt(0) || 'S'}</div>
                                         <div className="sdb-class-info">
                                             <div className="sdb-class-name">{sub.studentName || 'Student'}</div>
-                                            <div className="sdb-class-meta">{assignmentsMap[sub.assignmentId]?.title || sub.assignmentTitle || 'Assignment'}</div>
+                                            <div className="sdb-class-meta">{sub.assignmentTitle || 'Assignment'}</div>
                                         </div>
                                         <div className="sdb-class-meta">{new Date(sub.submittedAt).toLocaleDateString()}</div>
                                     </div>
                                 ))
                             ) : (
                                 <div className="sdb-empty">No recent activity</div>
-                            )}
-                        </div>
-                    </DashboardCard>
-
-                    {/* Active Assignments */}
-                    <DashboardCard
-                        title="Active Assignments"
-                        subtitle="Assignments across your classes"
-                        icon={<Clock size={16} />}
-                        actionLabel="View All"
-                        onActionClick={() => navigate('/teacher/assignments')}
-                    >
-                        <div className="sdb-class-list">
-                            {activeAssignments.slice(0, 4).map(asgn => (
-                                <div key={asgn.id} className="sdb-class-row" onClick={() => navigate(`/teacher/assignments/${asgn.title?.toLowerCase().replace(/\s+/g, '-')}`)}>
-                                    <div className="sdb-class-avatar" style={{ background: 'var(--surface-3)', color: 'var(--accent)' }}>{asgn.title?.charAt(0)}</div>
-                                    <div className="sdb-class-info">
-                                        <div className="sdb-class-name">{asgn.title}</div>
-                                        <div className="sdb-class-meta">{classes.find(c => c.id === asgn.classId)?.name || 'Class'}</div>
-                                    </div>
-                                    <div className="sdb-class-meta">
-                                        {asgn.deadline ? new Date(asgn.deadline).toLocaleDateString() : 'No deadline'}
-                                    </div>
-                                </div>
-                            ))}
-                            {assignments.length === 0 && (
-                                <div className="sdb-empty">No assignments yet</div>
                             )}
                         </div>
                     </DashboardCard>

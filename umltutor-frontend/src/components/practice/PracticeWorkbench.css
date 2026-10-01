@@ -105,3 +105,128 @@
   color: var(--ink-muted);
   font-weight: 600;
 }
+
+/* Export Dropdown Styles */
+.practice-export-dropdown {
+  position: relative;
+}
+
+.practice-export-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.practice-export-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+  z-index: 100;
+  animation: practice-export-menu-in 0.15s ease-out;
+}
+
+@keyframes practice-export-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.practice-export-section {
+  margin-bottom: 12px;
+}
+
+.practice-export-section:last-of-type {
+  margin-bottom: 12px;
+}
+
+.practice-export-label {
+  margin: 0 0 8px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+}
+
+.practice-export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.practice-export-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.practice-export-option:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.practice-export-option.active {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.practice-export-confirm {
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.practice-export-confirm:hover:not(:disabled) {
+  background: var(--accent-light);
+}
+
+.practice-export-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.practice-export-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

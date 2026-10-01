@@ -329,7 +329,7 @@ const ClassDetail = () => {
                                     <Plus size={16} /> New
                                 </button>
                             </div>
-                            <AssignmentList assignments={classAssignments} onEdit={handleEditAssignment} />
+                            <AssignmentList assignments={classAssignments} onEdit={handleEditAssignment} classId={classId} />
                         </div>
                     )}
 
