@@ -2,7 +2,7 @@ import apiClient from './apiClient';
 import { inflightGet, clearInflight } from '../utils/inflightRequest';
 
 /**
- * Unified Classroom Service — GETs deduplicated for fast dashboard loads.
+ * Unified Classroom Service   GETs deduplicated for fast dashboard loads.
  * Optimized with pagination support and cache invalidation.
  */
 class ClassroomService {

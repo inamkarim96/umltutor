@@ -172,7 +172,7 @@ function classifyRequirementSentence({ sentence, actor, verb, isSystemStep }) {
     return REQUIREMENT_TYPES.CONSTRAINT;
   }
 
-  // 4. Business rules (must / only / required) — but only when the sentence is
+  // 4. Business rules (must / only / required)   but only when the sentence is
   //    not itself a clean functional capability (e.g. "The system must validate
   //    the credentials" is a SYSTEM_STEP, not a rule).
   if (BUSINESS_RULE_PATTERNS.some((re) => re.test(lower)) && !hasFunctional) {
@@ -213,7 +213,7 @@ function classifyRequirementSentence({ sentence, actor, verb, isSystemStep }) {
     return REQUIREMENT_TYPES.DOMAIN_ENTITY;
   }
 
-  // T2-2: Negation handling — negated functional = CONSTRAINT
+  // T2-2: Negation handling   negated functional = CONSTRAINT
   if (actor && hasFunctional && NEGATION_PATTERNS.some((re) => re.test(lower))) {
     return REQUIREMENT_TYPES.CONSTRAINT;
   }

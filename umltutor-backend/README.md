@@ -6,7 +6,7 @@ In the overall system it is the **source of truth**: the diagrams, grades,
 reports and suggestions shown in the app all come from here.
 
 The checks are deterministic and offline. There are no calls to external AI
-services, and no hardcoded assignment model — whenever an assignment's text
+services, and no hardcoded assignment model   whenever an assignment's text
 needs to be checked, it is read and understood at that moment.
 
 The back end is built with Node.js, Express and Prisma, written in plain
@@ -22,15 +22,15 @@ npm run prisma:push         # sync the schema to the database
 npm run dev                 # start the server in development mode
 ```
 
-Run the test suites with `npx jest` — they are pure unit tests and do not need a
+Run the test suites with `npx jest`   they are pure unit tests and do not need a
 database.
 
 Optional integrations the app can use when configured:
 
-- **Firebase** — for user authentication.
-- **Redis** — for the two-level cache. Without it, the application falls back
+- **Firebase**   for user authentication.
+- **Redis**   for the two-level cache. Without it, the application falls back
   to an in-memory cache alone.
-- **Cloudinary** — for hosting uploaded files. Without it, files are kept on
+- **Cloudinary**   for hosting uploaded files. Without it, files are kept on
   disk.
 
 ## What Each Area of the Code Does
@@ -53,33 +53,33 @@ src/
 
 Each area has a clear job:
 
-- **app and entry files** — set up the web application, its middleware, routes
+- **app and entry files**   set up the web application, its middleware, routes
   and documentation.
-- **controllers** — the thin layer between incoming web requests and the
+- **controllers**   the thin layer between incoming web requests and the
   business logic. They receive a request, ask a service to do the work, and
   send back the response.
-- **routes** — the definitions of the web endpoints (authentication, classes,
+- **routes**   the definitions of the web endpoints (authentication, classes,
   assignments, submissions, notifications, students, resources).
-- **repositories** — the data-access layer. They keep database calls separate
+- **repositories**   the data-access layer. They keep database calls separate
   from business logic.
-- **services** — where the real work happens. This is where validation,
+- **services**   where the real work happens. This is where validation,
   submissions, grading, requirements and notifications are handled.
-- **rules** — the collection of validation rules and the logic that runs them.
-- **nlp** — the offline text-analysis helpers: comparing words, parsing
+- **rules**   the collection of validation rules and the logic that runs them.
+- **nlp**   the offline text-analysis helpers: comparing words, parsing
   sentences, and understanding assignment requirement text.
-- **middleware** — general handling for user authentication, rate limiting,
+- **middleware**   general handling for user authentication, rate limiting,
   request checking and errors.
-- **utils** — shared helpers: caching, file uploads, logging and more.
-- **fixtures** — example shapes used by the tests. Never served to production.
-- **tests** — the Jest test suites.
+- **utils**   shared helpers: caching, file uploads, logging and more.
+- **fixtures**   example shapes used by the tests. Never served to production.
+- **tests**   the Jest test suites.
 
 ## The Main Parts
 
 ### Validation
 
 The core of the back end. A single validation call runs dozens of checks across
-all five artifacts a student produces — the use case diagram, use case
-descriptions, system sequence diagrams, class diagram and sequence diagrams —
+all five artifacts a student produces   the use case diagram, use case
+descriptions, system sequence diagrams, class diagram and sequence diagrams  
 plus checks that all of them agree with one another. The checks run in six
 phases so a serious early mistake stops later, pointless checks.
 
@@ -114,9 +114,9 @@ case-study check uses.
 
 ## The Assignment Lifecycle
 
-The full journey — teacher creates an assignment, students draw and submit,
+The full journey   teacher creates an assignment, students draw and submit,
 the teacher runs the automated check, grades, and the student reads the report
-— is documented step by step in
+  is documented step by step in
 [`docs/ASSIGNMENT_LIFECYCLE.md`](docs/ASSIGNMENT_LIFECYCLE.md). It names the
 endpoints, services and front-end pages behind each stage and shows which role
 performs each task.

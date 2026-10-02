@@ -19,7 +19,7 @@ import {
 import { ClipboardCheck, AlertTriangle, CheckCircle2, Info, ArrowLeft, BookOpen, Download, Eye, FileText, Database, X } from 'lucide-react';
 
 const AssignmentReview = () => {
-    // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
+    // Custom router   useParams() returns {} without <Route> wrappers. Parse from URL.
     const titleSlug = window.location.pathname
         .split('/')
         .find((segment, i, arr) => arr[i - 1] === 'assignments' && segment !== 'submitted' && segment !== 'pending' && segment !== 'reviewed' && segment.length > 0);

@@ -2,7 +2,7 @@ import { STOP_WORDS, VERB_DICTIONARY } from './grammarRules';
 import { normalizeName } from '../../nlp/similarity';
 
 /**
- * Consistency Checking Engine — Keyword-based matching between
+ * Consistency Checking Engine   Keyword-based matching between
  * Use Case Description (Main Success Scenario) and System Sequence Diagram.
  *
  * FALLBACK-ONLY - NOT authoritative.
@@ -24,7 +24,7 @@ export const parseScenarioStep = (stepText, availableActors = []) => {
     let actor = '';
     let actorIndex = -1;
 
-    // 1. Actor Detection — first word is checked against known actors and verbs
+    // 1. Actor Detection   first word is checked against known actors and verbs
     const lowerVerbs = VERB_DICTIONARY.map(v => v.toLowerCase());
     for (let i = 0; i < Math.min(words.length, 2); i++) {
         const wordLower = words[i].toLowerCase();
@@ -279,7 +279,7 @@ export const checkConsistency = (scenarioSteps, ssdMessages, actors = [], primar
                 type: 'warning',
                 severity: 'warning',
                 category: 'CONSISTENCY_NAME_GUIDANCE',
-                message: 'Partial Match — Message Name Guidance',
+                message: 'Partial Match   Message Name Guidance',
                 stepNumber: stepNo,
                 problem: `Step ${stepNo} ("${raw.substring(0, 60)}") partially matches message "${msg.raw}" but the name does not closely match the scenario action.`,
                 suggestion: `Consider renaming to "${parsed.messageName}" for better consistency.`,

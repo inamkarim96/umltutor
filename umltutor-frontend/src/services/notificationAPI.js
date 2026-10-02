@@ -2,7 +2,7 @@ import apiClient from './apiClient';
 import { inflightGet, clearInflight } from '../utils/inflightRequest';
 
 /**
- * Notification API — parallel GETs deduplicated (StrictMode-safe).
+ * Notification API   parallel GETs deduplicated (StrictMode-safe).
  * Optimized with intelligent polling, WebSocket support, and cache invalidation.
  */
 
@@ -19,7 +19,7 @@ let wsReconnectTimer = null;
 function startPolling(callback, fast = false) {
   if (isPolling) return;
   isPolling = true;
-  
+
   const interval = fast ? FAST_POLL_INTERVAL : POLL_INTERVAL;
   pollTimer = setInterval(() => {
     callback().catch(err => console.error('Polling error:', err));
@@ -36,11 +36,11 @@ function stopPolling() {
 
 function connectWebSocket(onMessage) {
   if (wsConnection) return wsConnection;
-  
+
   try {
     const wsUrl = process.env.REACT_APP_WS_URL || window.location.origin.replace('http', 'ws');
     wsConnection = new WebSocket(`${wsUrl}/ws/notifications`);
-    
+
     wsConnection.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -51,17 +51,17 @@ function connectWebSocket(onMessage) {
         console.error('WebSocket message error:', err);
       }
     };
-    
+
     wsConnection.onclose = () => {
       wsConnection = null;
       // Attempt reconnection after 5 seconds
       wsReconnectTimer = setTimeout(() => connectWebSocket(onMessage), 5000);
     };
-    
+
     wsConnection.onerror = (err) => {
       console.error('WebSocket error:', err);
     };
-    
+
     return wsConnection;
   } catch (err) {
     console.error('WebSocket connection failed:', err);
@@ -128,7 +128,7 @@ export const notificationAPI = {
   // Polling control
   startPolling,
   stopPolling,
-  
+
   // WebSocket control
   connectWebSocket,
   disconnectWebSocket,

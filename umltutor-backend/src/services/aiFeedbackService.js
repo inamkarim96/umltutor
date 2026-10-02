@@ -161,7 +161,7 @@ class AIFeedbackService {
   }
 
   /**
-   * Local High-Quality Pedagogical Synthesizer — Phase-Aware
+   * Local High-Quality Pedagogical Synthesizer   Phase-Aware
    * Produces contextual guidance based on which UML phases have findings.
    */
   static synthesizeLocalFeedback(data) {
@@ -204,7 +204,7 @@ class AIFeedbackService {
         remediations.push(`Fix ${data.descErrorCount} error(s) in Use Case Descriptions: ensure each has a name, primary actor, pre/postconditions, and a fully populated main flow.`);
       }
       if (data.descWarningCount > 0) {
-        remediations.push(`Review ${data.descWarningCount} warning(s) in descriptions — check step sentence quality and scenario completeness.`);
+        remediations.push(`Review ${data.descWarningCount} warning(s) in descriptions   check step sentence quality and scenario completeness.`);
       }
     }
 

@@ -37,13 +37,13 @@ export const useUMLModel = (assignmentId) => {
 
         // Prevent parallel calls or retrying a recently failed ID (unless forced)
         if (loadingRef.current === assignmentId || (!force && lastFailedIdRef.current === assignmentId)) return;
-        
+
         try {
             loadingRef.current = assignmentId;
             lastFailedIdRef.current = null;
             setIsLoading(true);
             setError(null);
-            
+
             const adaptedModel = await fetchModelLogic({ assignmentId });
 
             dispatch(setModel({ mode, model: adaptedModel }));
@@ -104,7 +104,7 @@ export const useUMLModel = (assignmentId) => {
     // IMPORTANT: `isLoading` (React state) is intentionally NOT in the dependency array.
     // Including it caused an infinite loop: loadModel() sets isLoading=true (re-triggers
     // effect) → loadModel() sets isLoading=false (re-triggers effect again) → repeat.
-    // Instead we use `loadingRef.current` (a ref, not state) as the guard — it is already
+    // Instead we use `loadingRef.current` (a ref, not state) as the guard   it is already
     // maintained inside loadModel() and does not cause re-renders when it changes.
     useEffect(() => {
         const currentModelId = model?.id?.toString();

@@ -191,7 +191,7 @@ function parseMethodSignature(raw) {
     body = str.slice(visMatch[0].length).trim();
   }
 
-  // Return type: "name(params): Type" — find the top-level colon (depth 0).
+  // Return type: "name(params): Type"   find the top-level colon (depth 0).
   let returnType = null;
   let namePart = body;
   {

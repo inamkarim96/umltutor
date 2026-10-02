@@ -26,13 +26,13 @@ const L1_TTL_MS = Number(process.env.CACHE_L1_TTL_MS) || 120_000;
 
 let redis = null;
 let redisReady = false;
-/** When true, skip Redis until this timestamp (ms) — avoids stacked command timeouts. */
+/** When true, skip Redis until this timestamp (ms)   avoids stacked command timeouts. */
 let redisDegradedUntil = 0;
 
 function markRedisDegraded(reason) {
   redisDegradedUntil = Date.now() + (Number(process.env.REDIS_DEGRADE_MS) || 300_000);
   if (reason) {
-    console.warn(`[Cache] Redis degraded for 5m (${reason}) — using in-memory cache only`);
+    console.warn(`[Cache] Redis degraded for 5m (${reason})   using in-memory cache only`);
   }
 }
 
@@ -77,7 +77,7 @@ try {
       redisReady = false;
     });
   } else {
-    console.log('[Cache] CACHE_MEMORY_ONLY=true — Redis disabled');
+    console.log('[Cache] CACHE_MEMORY_ONLY=true   Redis disabled');
   }
 } catch (error) {
   console.error('Failed to initialize Redis:', error.message);
@@ -104,7 +104,7 @@ function l1DelPrefix(prefix) {
 }
 
 function fireAndForget(fn) {
-  Promise.resolve().then(fn).catch(() => {});
+  Promise.resolve().then(fn).catch(() => { });
 }
 
 const cacheService = {

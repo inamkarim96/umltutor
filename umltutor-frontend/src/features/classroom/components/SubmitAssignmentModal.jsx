@@ -60,17 +60,16 @@ const SubmitAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, assign
 
                 {/* Deadline warning */}
                 {deadline && (
-                    <div className={`px-8 py-3 flex items-center gap-3 border-b text-xs font-bold ${
-                        isPastDeadline ? 'bg-red-50 text-status-red border-red-100' :
-                        isNearDeadline ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                        'bg-emerald-50 text-emerald-700 border-emerald-100'
-                    }`}>
+                    <div className={`px-8 py-3 flex items-center gap-3 border-b text-xs font-bold ${isPastDeadline ? 'bg-red-50 text-status-red border-red-100' :
+                            isNearDeadline ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                'bg-emerald-50 text-emerald-700 border-emerald-100'
+                        }`}>
                         <Clock size={14} />
                         {isPastDeadline
                             ? 'Deadline has passed'
                             : isNearDeadline
-                            ? `Due in ${hoursLeft}h — submit soon!`
-                            : `Due: ${deadline.toLocaleString()}`
+                                ? `Due in ${hoursLeft}h   submit soon!`
+                                : `Due: ${deadline.toLocaleString()}`
                         }
                     </div>
                 )}
@@ -156,11 +155,10 @@ const SubmitAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, assign
                         type="submit"
                         form="submit-assignment-form"
                         disabled={isSubmitting || !agreed || !description.trim()}
-                        className={`px-8 py-2.5 text-white font-extrabold font-heading rounded-lg shadow-xl transition-all flex items-center gap-2 uppercase tracking-widest text-xs ${
-                            isSubmitting || !agreed || !description.trim()
+                        className={`px-8 py-2.5 text-white font-extrabold font-heading rounded-lg shadow-xl transition-all flex items-center gap-2 uppercase tracking-widest text-xs ${isSubmitting || !agreed || !description.trim()
                                 ? 'bg-indigo-300 cursor-not-allowed'
                                 : 'bg-accent hover:bg-indigo-700 hover:shadow-indigo-200 hover:-translate-y-0.5 active:scale-95'
-                        }`}
+                            }`}
                     >
                         {isSubmitting ? (
                             <>

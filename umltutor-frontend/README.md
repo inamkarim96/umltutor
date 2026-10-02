@@ -43,29 +43,29 @@ src/
 
 Each area has a clear job:
 
-- **entry and app** — mounts the application, wires up the router, the global
+- **entry and app**   mounts the application, wires up the router, the global
   state store and the shared providers.
-- **app** — the global Redux store, split into slices that each hold one part
+- **app**   the global Redux store, split into slices that each hold one part
   of the app's state (the current mode, the models being edited, checking
   results, submissions, and so on).
-- **services** — one shared API client that attaches the login token to every
+- **services**   one shared API client that attaches the login token to every
   request and centralises error handling, plus small modules for talking to
   each part of the back end.
-- **contexts** — app-wide providers, including the piece that keeps the login
+- **contexts**   app-wide providers, including the piece that keeps the login
   state in sync with the back end.
-- **features** — one self-contained module per capability: the five UML
+- **features**   one self-contained module per capability: the five UML
   editors, the checking panel, auth, assignments, classroom, submissions,
   notifications, the teacher area and the tutorial flow.
-- **components** — reusable building blocks: shared UI elements, the workspace
+- **components**   reusable building blocks: shared UI elements, the workspace
   shell, and the layout that wraps every page.
-- **pages** — the top-level screens for students and teachers.
-- **hooks** — reusable logic, most importantly the hook that loads and
+- **pages**   the top-level screens for students and teachers.
+- **hooks**   reusable logic, most importantly the hook that loads and
   normalises a student's UML model from the back end.
-- **utils** — helpers for exporting files, guarding against stale data, and
+- **utils**   helpers for exporting files, guarding against stale data, and
   other shared tasks.
-- **nlp** — a small copy of the back end's text helpers, used only by the
+- **nlp**   a small copy of the back end's text helpers, used only by the
   in-browser fallback checker.
-- **styles** — the global styling.
+- **styles**   the global styling.
 
 ## The Main Parts
 
@@ -88,7 +88,7 @@ explains why the check could not run.
 
 ### Modes, Tutorial and Practice
 
-The app has two modes of working — development and tutorial — and guides
+The app has two modes of working   development and tutorial   and guides
 students through the five modelling steps in order. A self-contained practice
 area lets students experiment with all five editors on their own, keeping their
 work locally.
@@ -100,9 +100,9 @@ classes, review submissions, and handle tutorial requests. Students see their
 classes and assignments, work on them in the workspace, submit them, and view
 their reports.
 
-The complete user journey — teacher creates a class and an assignment, the
+The complete user journey   teacher creates a class and an assignment, the
 student draws and submits, the teacher runs the automated check, grades, and
-the student reads the report — is described with file references in the back
+the student reads the report   is described with file references in the back
 end's lifecycle document:
 [`umltutor-backend/docs/ASSIGNMENT_LIFECYCLE.md`](../umltutor-backend/docs/ASSIGNMENT_LIFECYCLE.md).
 It lists the front-end pages used at each stage alongside their back-end

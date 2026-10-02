@@ -6,14 +6,14 @@ const assignmentService = _interopRequireDefault(require('../services/assignment
 const fileUpload = require('../utils/fileUpload');
 
 /**
- * Module-level helper — adds submissionCount from pre-computed _count.
+ * Module-level helper   adds submissionCount from pre-computed _count.
  * Avoids duplicate inline spread pattern across 3 handlers.
  */
 const addSubmissionCount = (a) => ({ ...a, submissionCount: a._count?.submissions || 0 });
 
 const createAssignmentDefinition = async (req, res, next) => {
     try {
-        // Destructure only the fields the service actually uses — avoids spreading the
+        // Destructure only the fields the service actually uses   avoids spreading the
         // entire req.body which may carry large diagram data sent by the frontend.
         const {
             title,

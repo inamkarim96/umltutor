@@ -9,7 +9,7 @@ const submissionRepository = _interopRequireDefault(require('../repositories/sub
 const notificationService = _interopRequireDefault(require('./notificationService')).default;
 const serviceCache = require('../utils/serviceCache');
 const { findSubmissionWithArtifacts } = require('../utils/submissionQueryUtils');
-// Hoist prisma to module scope — avoids repeated dynamic require on every cache-miss
+// Hoist prisma to module scope   avoids repeated dynamic require on every cache-miss
 const prisma = require('../config/prisma');
 
 
@@ -371,7 +371,7 @@ class AssignmentService {
         });
 
         if (assignment) {
-          // Direct PK lookup for class membership check — 1ms vs multi-second EXISTS subquery
+          // Direct PK lookup for class membership check   1ms vs multi-second EXISTS subquery
           const membership = await prisma.classStudent.findUnique({
             where: {
               classId_studentId: { classId: assignment.classId, studentId: studentIdNum },
@@ -426,7 +426,7 @@ class AssignmentService {
         }
       } else {
         console.error(
-          `[AssignmentService] GET assignment=${assignmentIdNum} student=${studentIdNum} — submission load failed:`,
+          `[AssignmentService] GET assignment=${assignmentIdNum} student=${studentIdNum}   submission load failed:`,
           submissionResult.reason?.message,
           submissionResult.reason?.code || '',
         );
@@ -434,7 +434,7 @@ class AssignmentService {
           'Saved work could not be loaded. You can continue with a blank workspace or retry later.';
       }
 
-      // Process student info result (non-critical — just log a warning on failure)
+      // Process student info result (non-critical   just log a warning on failure)
       if (studentResult.status === 'fulfilled') {
         studentInfo = studentResult.value;
       } else {
@@ -451,7 +451,7 @@ class AssignmentService {
 
       // FIX: Previously the cache was fully invalidated when a student had no saved work yet,
       // meaning every workspace load for new students bypassed the cache and hit the DB cold.
-      // Now we cache with a short 30-second TTL for the empty-workspace case — enough to avoid
+      // Now we cache with a short 30-second TTL for the empty-workspace case   enough to avoid
       // repeated hammering while still being fresh enough to reflect a first save quickly.
       if (submissionLoadWarning && !this._submissionHasArtifactData(submission)) {
         serviceCache.memSet(cacheKey, payload, 30_000); // 30s short-lived cache for empty workspace

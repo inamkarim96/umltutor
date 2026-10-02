@@ -5,7 +5,7 @@ const cacheService = require('./redis');
 const memory = new Map();
 const DEFAULT_MEM_TTL_MS = Number(process.env.CACHE_L1_TTL_MS) || 120_000;
 
-/** In-flight loaders — parallel requests share one DB call. */
+/** In-flight loaders   parallel requests share one DB call. */
 const inflight = new Map();
 
 /**

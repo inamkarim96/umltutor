@@ -1,14 +1,14 @@
 # UML Tutor Project
 
 A web platform where students practise drawing UML diagrams. A student creates
-five kinds of work — a use case diagram, use case descriptions, a system
+five kinds of work   a use case diagram, use case descriptions, a system
 sequence diagram, a class diagram and a sequence diagram. The platform checks
 each one, checks that they all agree with each other, and can also compare the
 use case diagram against the assignment's own written requirements.
 
 The project has two parts that work together:
 
-- a **back end** that stores all the data and runs every automated check — it
+- a **back end** that stores all the data and runs every automated check   it
   is the source of truth; and
 - a **front end** that students and teachers use to draw the diagrams and read
   the reports.
@@ -38,7 +38,7 @@ Key things it does:
 - keeps its rules in a readable catalogue of more than 140 definitions;
 - traces knock-on errors back to their root cause, so reports show the real
   problem instead of a wall of errors;
-- understands assignment requirement text entirely offline — no external AI
+- understands assignment requirement text entirely offline   no external AI
   and no hardcoded assignment model;
 - checks a student's use case diagram against the assignment's own text,
   tolerating typos and refusing to guess when the text is too thin;
@@ -89,9 +89,9 @@ Full setup instructions for each part are in their own README files.
 
 - Back end: `umltutor-backend/README.md`, plus the detail documents in
   `umltutor-backend/docs/`:
-  - `FEATURES.md` — what the back-end modules do;
-  - `VALIDATION_FLOW.md` — how a model is checked;
-  - `ASSIGNMENT_LIFECYCLE.md` — the full journey from assignment creation to
+  - `FEATURES.md`   what the back-end modules do;
+  - `VALIDATION_FLOW.md`   how a model is checked;
+  - `ASSIGNMENT_LIFECYCLE.md`   the full journey from assignment creation to
     report and grade (teacher and student tasks).
 - Frontend: `umltutor-frontend/README.md`.
 

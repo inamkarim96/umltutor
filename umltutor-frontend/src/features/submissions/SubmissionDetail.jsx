@@ -28,7 +28,7 @@ import { useSuccessToast } from '../../components/ui/Toast';
 
 const SubmissionDetail = () => {
   const successToast = useSuccessToast();
-  // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
+  // Custom router   useParams() returns {} without <Route> wrappers. Parse from URL.
   // URL is /teacher/submissions/:submissionId or /teacher/submissions/:name/:user/:submissionId
   // In both cases the submissionId is the last path segment.
   const pathSegments = window.location.pathname.split('/').filter(Boolean);
@@ -305,7 +305,7 @@ const SubmissionDetail = () => {
                 <h1 className="text-3xl font-extrabold font-heading text-ink tracking-tight">{studentName}</h1>
                 <div className="mt-2 flex items-center gap-2 text-sm text-muted font-bold font-body">
                   <Mail size={16} className="text-gray-300" />
-                  {submission.student?.email || '—'}
+                  {submission.student?.email || ' '}
                 </div>
               </div>
             </div>
@@ -317,7 +317,7 @@ const SubmissionDetail = () => {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted font-bold font-body">
                 <Clock size={16} className="text-gray-300" />
-                Submitted: <span className="text-ink">{submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '—'}</span>
+                Submitted: <span className="text-ink">{submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : ' '}</span>
               </div>
             </div>
 
@@ -329,7 +329,7 @@ const SubmissionDetail = () => {
                 <p className="text-[10px] font-extrabold font-heading text-indigo-400 uppercase tracking-widest mb-1 text-center">Total Marks</p>
                 <div className="flex items-baseline gap-1 justify-center">
                   <span className="text-3xl font-extrabold font-heading text-accent">
-                    {submission.assignment?.maxScore ?? '—'}
+                    {submission.assignment?.maxScore ?? ' '}
                   </span>
                 </div>
               </div>
@@ -468,7 +468,7 @@ const SubmissionDetail = () => {
                         <Plus size={16} strokeWidth={3} />
                       </button>
                     </div>
-                    <span className="font-extrabold font-heading text-gray-300 text-lg">/ {submission.assignment?.maxScore ?? '—'}</span>
+                    <span className="font-extrabold font-heading text-gray-300 text-lg">/ {submission.assignment?.maxScore ?? ' '}</span>
                   </div>
                 </div>
 

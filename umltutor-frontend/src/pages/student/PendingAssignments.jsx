@@ -29,8 +29,8 @@ const PendingAssignments = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const allAssignments = useAppSelector(selectAllAssignments) || [];
-    const mySubmissions  = useAppSelector(selectSubmissions) || [];
-    const allClasses     = useAppSelector(selectClasses) || [];
+    const mySubmissions = useAppSelector(selectSubmissions) || [];
+    const allClasses = useAppSelector(selectClasses) || [];
 
     useEffect(() => {
         dispatch(fetchAllAssignments('STUDENT'));
@@ -54,12 +54,12 @@ const PendingAssignments = () => {
     });
 
     const overdueCount = pending.filter(a => getDeadlineStatus(a.deadline) === 'overdue').length;
-    const soonCount    = pending.filter(a => getDeadlineStatus(a.deadline) === 'soon').length;
+    const soonCount = pending.filter(a => getDeadlineStatus(a.deadline) === 'soon').length;
 
     return (
         <PageShell
             title="Pending Assignments"
-            subtitle="Tasks waiting for your work — sorted by urgency"
+            subtitle="Tasks waiting for your work   sorted by urgency"
             icon={<Clock size={22} />}
             badge={pending.length}
             breadcrumbs={[{ label: 'Pending Assignments' }]}
@@ -69,8 +69,8 @@ const PendingAssignments = () => {
                 <div className={`apc-urgency-bar ${overdueCount > 0 ? 'apc-ub-red' : 'apc-ub-amber'}`}>
                     <AlertTriangle size={16} />
                     {overdueCount > 0
-                        ? `${overdueCount} overdue assignment${overdueCount !== 1 ? 's' : ''} — submit as soon as possible!`
-                        : `${soonCount} assignment${soonCount !== 1 ? 's' : ''} due within 2 days — act now!`
+                        ? `${overdueCount} overdue assignment${overdueCount !== 1 ? 's' : ''}   submit as soon as possible!`
+                        : `${soonCount} assignment${soonCount !== 1 ? 's' : ''} due within 2 days   act now!`
                     }
                 </div>
             )}
@@ -79,11 +79,11 @@ const PendingAssignments = () => {
                 <div className="apc-list">
                     {pending.map(assignment => {
                         const sub = mySubmissions.find(s => s.assignmentId === assignment.id);
-                        const isLocked   = assignment.assignmentStatus === 'locked';
+                        const isLocked = assignment.assignmentStatus === 'locked';
                         const isUpcoming = assignment.assignmentStatus === 'upcoming';
-                        const dlStatus   = getDeadlineStatus(assignment.deadline);
-                        const countdown  = daysLeft(assignment.deadline);
-                        const className  = allClasses.find(c => c.id === assignment.classId);
+                        const dlStatus = getDeadlineStatus(assignment.deadline);
+                        const countdown = daysLeft(assignment.deadline);
+                        const className = allClasses.find(c => c.id === assignment.classId);
 
                         return (
                             <div
@@ -103,12 +103,11 @@ const PendingAssignments = () => {
                                 <div className="apc-list-info">
                                     <div className="apc-list-title-row">
                                         <span className="apc-list-title">{assignment.title}</span>
-                                        <span className={`apc-chip ${
-                                            isLocked ? 'apc-chip-gray' :
-                                            isUpcoming ? 'apc-chip-blue' :
-                                            dlStatus === 'overdue' ? 'apc-chip-red' :
-                                            dlStatus === 'soon' ? 'apc-chip-amber' : 'apc-chip-amber'
-                                        }`}>
+                                        <span className={`apc-chip ${isLocked ? 'apc-chip-gray' :
+                                                isUpcoming ? 'apc-chip-blue' :
+                                                    dlStatus === 'overdue' ? 'apc-chip-red' :
+                                                        dlStatus === 'soon' ? 'apc-chip-amber' : 'apc-chip-amber'
+                                            }`}>
                                             {isLocked ? 'Locked' : isUpcoming ? 'Upcoming' : dlStatus === 'overdue' ? 'Overdue' : 'Pending'}
                                         </span>
                                         {className && (
@@ -117,8 +116,8 @@ const PendingAssignments = () => {
                                     </div>
                                     <p className="apc-list-desc">
                                         {isLocked ? 'This assignment is locked for submissions.' :
-                                         isUpcoming ? 'This assignment will be available on the release date.' :
-                                         assignment.description || 'Click to open the workspace and begin modeling.'}
+                                            isUpcoming ? 'This assignment will be available on the release date.' :
+                                                assignment.description || 'Click to open the workspace and begin modeling.'}
                                     </p>
                                     <div className="apc-list-meta">
                                         {assignment.deadline && (

@@ -4,7 +4,7 @@ import { setMode, setCheckingModeActive, selectCurrentMode, selectIsCheckingActi
 
 /**
  * AppContext provides mode and checking state to all consumers.
- * Internally backed by Redux modeSlice — this is a thin bridge
+ * Internally backed by Redux modeSlice   this is a thin bridge
  * so existing consumers don't need to be rewritten.
  */
 const AppContext = createContext(undefined);

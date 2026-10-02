@@ -99,7 +99,7 @@ function artifactsOnlySelect() {
 async function findSubmissionWithArtifacts(submissionRepository, where) {
   // Prisma's findUnique requires a unique selector (`id` or the compound
   // `assignmentId_studentId`). Callers often pass the flat
-  // `{ assignmentId, studentId }` shape, which Prisma rejects — normalize it
+  // `{ assignmentId, studentId }` shape, which Prisma rejects   normalize it
   // to the compound key so the student's saved work actually loads.
   let uniqueWhere = where;
   if (where && where.assignmentId !== undefined && where.studentId !== undefined) {

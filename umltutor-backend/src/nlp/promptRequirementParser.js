@@ -21,7 +21,7 @@ function adaptiveHighConfidence(requirementModel) {
   const actorCount = (requirementModel.actors || []).length;
   // Longer, richer text → stricter threshold (fewer false positives)
   if (sentenceCount >= 10 && actorCount >= 3) return 0.80;
-  if (sentenceCount >= 5)  return 0.75;   // current default
+  if (sentenceCount >= 5) return 0.75;   // current default
   return 0.65;  // short text → more lenient
 }
 
@@ -146,7 +146,7 @@ function detectActorFromSentence(cleanedSentence, availableActors = []) {
   if (MODALS.has(firstLower) || LEADING_NOISE.has(firstLower) || STOP_WORDS.has(firstLower)) {
     return null;
   }
-  // Role nouns (singular or plural — the lemma strips the trailing "s"):
+  // Role nouns (singular or plural   the lemma strips the trailing "s"):
   // "Students" → "Student", "Customers" → "Customer", "Administrators" → "Administrator".
   const roleKey = lemmatizeToken(firstLower);
   if (/^[A-Z][a-zA-Z]+$/.test(first) && ROLE_NOUNS.has(roleKey)) {
@@ -629,7 +629,7 @@ function parseRequirementText(text) {
           if (/\b(staff member|staff members)\b/i.test(lower)) canonicalRole = 'Staff Member';
           else if (/\b(system admin|admin)\b/i.test(lower)) canonicalRole = 'Administrator';
           else if (/\b(salesperson|sales manager)\b/i.test(lower)) canonicalRole = 'Sales Manager';
-          
+
           if (!functionalActors.has(canonicalRole)) {
             functionalActors.add(canonicalRole);
             if (!actorNames.includes(canonicalRole)) actorNames.push(canonicalRole);
@@ -813,29 +813,29 @@ function buildRequirementSemantics(requirementModel) {
  */
 function clusterActorsSync(actors) {
   if (!actors || actors.length <= 1) return actors;
-  
+
   const clusters = [];
   const used = new Set();
-  
+
   for (let i = 0; i < actors.length; i++) {
     if (used.has(i)) continue;
-    
+
     const cluster = [actors[i]];
     used.add(i);
-    
+
     for (let j = i + 1; j < actors.length; j++) {
       if (used.has(j)) continue;
-      
+
       const sim = actorRoleSimilarity(actors[i], actors[j]);
       if (sim >= 0.85) {
         cluster.push(actors[j]);
         used.add(j);
       }
     }
-    
+
     clusters.push(cluster);
   }
-  
+
   // Return representative actor for each cluster (first one)
   return clusters.map(c => c[0]);
 }
@@ -846,19 +846,19 @@ function clusterActorsSync(actors) {
  */
 function deduplicateUseCasesSync(useCases) {
   if (!useCases || useCases.length <= 1) return useCases;
-  
+
   const unique = [];
   const used = new Set();
-  
+
   for (let i = 0; i < useCases.length; i++) {
     if (used.has(i)) continue;
-    
+
     unique.push(useCases[i]);
     used.add(i);
-    
+
     for (let j = i + 1; j < useCases.length; j++) {
       if (used.has(j)) continue;
-      
+
       const match = classifyUseCaseMatch(useCases[i].name, useCases[j].name);
       if (match.score >= 0.88) {
         // Merge: keep the one with higher confidence
@@ -869,7 +869,7 @@ function deduplicateUseCasesSync(useCases) {
       }
     }
   }
-  
+
   return unique;
 }
 
@@ -879,31 +879,31 @@ function deduplicateUseCasesSync(useCases) {
  */
 async function clusterActors(actors) {
   if (!actors || actors.length <= 1) return actors;
-  
+
   try {
     const embeddings = await getEmbeddings(actors);
     const clusters = [];
     const used = new Set();
-    
+
     for (let i = 0; i < actors.length; i++) {
       if (used.has(i)) continue;
-      
+
       const cluster = [actors[i]];
       used.add(i);
-      
+
       for (let j = i + 1; j < actors.length; j++) {
         if (used.has(j)) continue;
-        
+
         const sim = cosineSimilarity(embeddings[i], embeddings[j]);
         if (sim >= 0.85) {
           cluster.push(actors[j]);
           used.add(j);
         }
       }
-      
+
       clusters.push(cluster);
     }
-    
+
     return clusters.map(c => c[0]);
   } catch (err) {
     console.warn('[clusterActors] Failed, returning original:', err.message);
@@ -917,22 +917,22 @@ async function clusterActors(actors) {
  */
 async function deduplicateUseCases(useCases) {
   if (!useCases || useCases.length <= 1) return useCases;
-  
+
   const names = useCases.map(uc => uc.name);
   try {
     const embeddings = await getEmbeddings(names);
     const unique = [];
     const used = new Set();
-    
+
     for (let i = 0; i < useCases.length; i++) {
       if (used.has(i)) continue;
-      
+
       unique.push(useCases[i]);
       used.add(i);
-      
+
       for (let j = i + 1; j < useCases.length; j++) {
         if (used.has(j)) continue;
-        
+
         const sim = cosineSimilarity(embeddings[i], embeddings[j]);
         if (sim >= 0.88) {
           // Merge: keep the one with higher confidence
@@ -943,7 +943,7 @@ async function deduplicateUseCases(useCases) {
         }
       }
     }
-    
+
     return unique;
   } catch (err) {
     console.warn('[deduplicateUseCases] Failed, returning original:', err.message);
@@ -957,28 +957,28 @@ async function deduplicateUseCases(useCases) {
  */
 async function computeEmbeddingCoherence(useCases) {
   if (!useCases || useCases.length === 0) return 0;
-  
+
   let totalScore = 0;
   let count = 0;
-  
+
   for (const uc of useCases) {
     if (!uc.steps || uc.steps.length < 2) continue;
-    
+
     const stepTexts = uc.steps.map(s => s.action).filter(Boolean);
     if (stepTexts.length < 2) continue;
-    
+
     try {
       const embeddings = await getEmbeddings(stepTexts);
       let pairScore = 0;
       let pairs = 0;
-      
+
       for (let i = 0; i < embeddings.length; i++) {
         for (let j = i + 1; j < embeddings.length; j++) {
           pairScore += cosineSimilarity(embeddings[i], embeddings[j]);
           pairs++;
         }
       }
-      
+
       if (pairs > 0) {
         totalScore += pairScore / pairs;
         count++;
@@ -987,20 +987,20 @@ async function computeEmbeddingCoherence(useCases) {
       // Ignore
     }
   }
-  
+
   return count > 0 ? totalScore / count : 0;
 }
 
 function cosineSimilarity(a, b) {
   if (!a || !b || a.length !== b.length) return 0;
-  
+
   let dot = 0, normA = 0, normB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     normA += a[i] * a[i];
     normB += b[i] * b[i];
   }
-  
+
   if (normA === 0 || normB === 0) return 0;
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }

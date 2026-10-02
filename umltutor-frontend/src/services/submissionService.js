@@ -2,7 +2,7 @@ import apiClient from './apiClient';
 import { inflightGet, clearInflight } from '../utils/inflightRequest';
 
 /**
- * Unified Submission Service — GETs deduplicated; writes use lean draft saves.
+ * Unified Submission Service   GETs deduplicated; writes use lean draft saves.
  * Optimized with optimistic updates, artifact compression, and cache invalidation.
  */
 
@@ -105,12 +105,12 @@ class SubmissionService {
 
   async submitAssignmentData(assignmentId, data, { lean = true, optimistic = false } = {}) {
     const params = lean ? { lean: 'true' } : {};
-    
+
     if (optimistic) {
       const cacheKey = `submissions:me:${assignmentId}`;
       setOptimisticCache(cacheKey, { ...data, status: 'submitting' });
     }
-    
+
     try {
       const result = await apiClient.post(`/api/submissions/${assignmentId}`, data, { params });
       // Invalidate relevant caches
@@ -129,7 +129,7 @@ class SubmissionService {
       const cacheKey = `submissions:me:${assignmentId}`;
       setOptimisticCache(cacheKey, { ...data, status: 'draft' });
     }
-    
+
     try {
       const result = await apiClient.post(`/api/submissions/${assignmentId}`, { ...data, status: 'draft' }, { params: { lean: 'true' } });
       // Invalidate relevant caches
@@ -148,7 +148,7 @@ class SubmissionService {
     // Check optimistic cache first
     const optimistic = getOptimisticCache(key);
     if (optimistic) return optimistic;
-    
+
     return inflightGet(key, () => apiClient.get(`/api/submissions/${assignmentId}/me`));
   }
 

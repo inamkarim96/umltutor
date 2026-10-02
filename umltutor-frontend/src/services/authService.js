@@ -2,7 +2,7 @@ import apiClient, { clearAuthTokenCache } from './apiClient';
 import { inflightGet, clearInflight } from '../utils/inflightRequest';
 
 /**
- * Auth Service — optimized with improved caching, request batching, and token refresh.
+ * Auth Service   optimized with improved caching, request batching, and token refresh.
  */
 
 const PROFILE_TTL_MS = 120_000; // Increased from 60s to 120s for better performance

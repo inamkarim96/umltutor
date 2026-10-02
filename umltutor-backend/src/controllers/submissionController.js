@@ -310,7 +310,7 @@ const recordExport = async (req, res, next) => {
           fileUrl,
         });
       } catch (dbErr) {
-        console.error("[recordExport:bg] DB write failed — assignmentId=", assignmentId, "student=", studentId, dbErr.message);
+        console.error("[recordExport:bg] DB write failed   assignmentId=", assignmentId, "student=", studentId, dbErr.message);
       }
     });
   } catch (error) {

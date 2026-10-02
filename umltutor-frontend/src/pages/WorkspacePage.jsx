@@ -18,7 +18,7 @@ import {
 } from '../features/submissions';
 
 /**
- * Unified assignment workspace — tutorial and development modes.
+ * Unified assignment workspace   tutorial and development modes.
  */
 const WorkspacePage = ({ mode }) => {
     const dispatch = useAppDispatch();
@@ -26,7 +26,7 @@ const WorkspacePage = ({ mode }) => {
     const currentMode = useAppSelector(selectCurrentMode);
     // NOTE: The app uses a custom router (manual pushState + matchPath) with no <Route>
     // components, so React Router's useParams() always returns {} here.
-    // We parse the slug directly from the URL — the same pattern used in ModeAwareEditor.jsx.
+    // We parse the slug directly from the URL   the same pattern used in ModeAwareEditor.jsx.
     const titleSlug = window.location.pathname
         .split('/')
         .find((segment, i, arr) => arr[i - 1] === 'assignments' && segment !== 'submitted' && segment !== 'pending' && segment !== 'reviewed');
@@ -56,13 +56,13 @@ const WorkspacePage = ({ mode }) => {
                 dispatch(fetchAssignmentById({ id: assignmentId, role: 'STUDENT' }));
             }
             // Submission status + artifacts are populated by useUMLModel from
-            // GET /api/student/assignments/:id — no separate status fetch needed.
+            // GET /api/student/assignments/:id   no separate status fetch needed.
         }
     }, [dispatch, titleSlug, assignments.length, isAssignmentLoading, assignmentId]);
 
     const submissions = useAppSelector(selectSubmissions) || [];
     const currentSubmission = useAppSelector(selectCurrentSubmission);
-    // Note: currentSubmission is populated by useUMLModel's setCurrentSubmission dispatch —
+    // Note: currentSubmission is populated by useUMLModel's setCurrentSubmission dispatch  
     // no need for a separate fetchSubmissionStatus call here.
 
     const initialSwitchRef = useRef(false);
@@ -119,7 +119,7 @@ const WorkspacePage = ({ mode }) => {
 
     // Only block on model loading and assignment loading.
     // Submission status is populated by useUMLModel as part of the workspace load,
-    // so we must NOT include isSubmissionLoading here — it would block rendering
+    // so we must NOT include isSubmissionLoading here   it would block rendering
     // when the redundant status fetch fires and currentSubmission is briefly null.
     const isPageLoading = isModelLoading || isAssignmentLoading;
 
@@ -149,7 +149,7 @@ const WorkspacePage = ({ mode }) => {
                         {currentMode === 'tutorial'
                             ? 'Guided Tutorial Mode'
                             : isReadOnly
-                                ? 'Submitted Assignment — View Only'
+                                ? 'Submitted Assignment   View Only'
                                 : 'Development Workspace'}
                     </span>
                     {currentMode === 'tutorial' && (
@@ -160,7 +160,7 @@ const WorkspacePage = ({ mode }) => {
                 </div>
             </div>
 
-            {/* Hide non-critical warnings on student side — students don't need "no saved work" noise */}
+            {/* Hide non-critical warnings on student side   students don't need "no saved work" noise */}
             {error && !window.location.pathname.includes('/student/') && (
                 <div
                     className="bg-amber-600 text-white text-xs py-3 px-4 text-center font-bold font-body shadow-sm z-40 relative flex flex-wrap items-center justify-center gap-3"

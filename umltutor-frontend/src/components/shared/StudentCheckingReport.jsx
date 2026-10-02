@@ -93,13 +93,12 @@ const StudentCheckingReport = ({ report, className = '' }) => {
           {issues.slice(0, 25).map((issue, idx) => (
             <li key={issue.id || idx} className="px-6 py-3 text-sm bg-white/60">
               <span
-                className={`inline-block text-[9px] font-extrabold uppercase tracking-widest mb-1 ${
-                  issue.severity === 'error'
+                className={`inline-block text-[9px] font-extrabold uppercase tracking-widest mb-1 ${issue.severity === 'error'
                     ? 'text-red-600'
                     : issue.severity === 'warning'
                       ? 'text-amber-600'
                       : 'text-indigo-500'
-                }`}
+                  }`}
               >
                 {issue.severity || issue.type || 'note'}
               </span>
@@ -108,7 +107,7 @@ const StudentCheckingReport = ({ report, className = '' }) => {
           ))}
           {issues.length > 25 && (
             <li className="px-6 py-2 text-xs text-muted italic">
-              + {issues.length - 25} more items — open the workspace and use Checking Mode for the full report.
+              + {issues.length - 25} more items   open the workspace and use Checking Mode for the full report.
             </li>
           )}
         </ul>

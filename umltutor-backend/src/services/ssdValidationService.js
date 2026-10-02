@@ -79,7 +79,7 @@ const validateSSDSemantics = (semanticData) => {
       continue;
     }
 
-    // Self-loops (sender === receiver or message.type === 'self') are allowed — they represent valid internal system operations
+    // Self-loops (sender === receiver or message.type === 'self') are allowed   they represent valid internal system operations
     const isSelfLoop = message.type === 'self' || sender.id === receiver.id;
 
     const isSystemSender = sender.type === 'system' || sender.type === 'object';
@@ -110,7 +110,7 @@ const validateSSDSemantics = (semanticData) => {
     }
   }
 
-  // Note: Activation bar validation removed — activation bars are visual aids, not validated semantically
+  // Note: Activation bar validation removed   activation bars are visual aids, not validated semantically
 
   return {
     isValid: structuredErrors.length === 0,

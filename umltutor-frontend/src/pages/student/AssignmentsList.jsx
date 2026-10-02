@@ -22,12 +22,12 @@ function getDeadlineStatus(deadline) {
 
 function StatusChip({ status }) {
     const map = {
-        graded:    { label: 'Reviewed',    cls: 'apc-chip-green'  },
-        submitted: { label: 'Submitted',   cls: 'apc-chip-blue'   },
-        overdue:   { label: 'Overdue',     cls: 'apc-chip-red'    },
-        locked:    { label: 'Locked',      cls: 'apc-chip-gray'   },
-        upcoming:  { label: 'Upcoming',    cls: 'apc-chip-blue'   },
-        pending:   { label: 'Pending',     cls: 'apc-chip-amber'  },
+        graded: { label: 'Reviewed', cls: 'apc-chip-green' },
+        submitted: { label: 'Submitted', cls: 'apc-chip-blue' },
+        overdue: { label: 'Overdue', cls: 'apc-chip-red' },
+        locked: { label: 'Locked', cls: 'apc-chip-gray' },
+        upcoming: { label: 'Upcoming', cls: 'apc-chip-blue' },
+        pending: { label: 'Pending', cls: 'apc-chip-amber' },
     };
     const { label, cls } = map[status] || map.pending;
     return <span className={`apc-chip ${cls}`}>{label}</span>;
@@ -78,9 +78,9 @@ const StudentAssignmentsList = () => {
     const activeClass = filterClassId ? myClasses.find(c => c.id === filterClassId) : null;
 
     // Counts
-    const pending   = filteredAssignments.filter(a => { const sub = mySubmissions.find(s => s.assignmentId === a.id); const st = (sub?.status || '').toLowerCase(); return st !== 'submitted' && st !== 'graded'; }).length;
+    const pending = filteredAssignments.filter(a => { const sub = mySubmissions.find(s => s.assignmentId === a.id); const st = (sub?.status || '').toLowerCase(); return st !== 'submitted' && st !== 'graded'; }).length;
     const submitted = filteredAssignments.filter(a => { const sub = mySubmissions.find(s => s.assignmentId === a.id); return sub?.status?.toLowerCase() === 'submitted'; }).length;
-    const graded    = filteredAssignments.filter(a => { const sub = mySubmissions.find(s => s.assignmentId === a.id); return ['graded','completed'].includes(sub?.status?.toLowerCase()); }).length;
+    const graded = filteredAssignments.filter(a => { const sub = mySubmissions.find(s => s.assignmentId === a.id); return ['graded', 'completed'].includes(sub?.status?.toLowerCase()); }).length;
 
     return (
         <PageShell
@@ -133,7 +133,7 @@ const StudentAssignmentsList = () => {
                         const dlStatus = getDeadlineStatus(asgn.deadline);
                         const displayStatus = subStatus === 'graded' ? 'graded' :
                             isSubmitted ? 'submitted' :
-                            isOverdue ? 'overdue' : 'pending';
+                                isOverdue ? 'overdue' : 'pending';
                         const className = myClasses.find(c => c.id === asgn.classId);
 
                         return (
@@ -187,7 +187,7 @@ const StudentAssignmentsList = () => {
                 <div className="apc-empty">
                     <div className="apc-empty-icon">📄</div>
                     <h3>No assignments found</h3>
-                    <p>Take a break — no tasks are waiting for you here.</p>
+                    <p>Take a break   no tasks are waiting for you here.</p>
                 </div>
             )}
         </PageShell>

@@ -18,15 +18,15 @@ const GRADIENTS = [
 ];
 
 const StudentClasses = () => {
-    const navigate   = useNavigate();
-    const dispatch   = useAppDispatch();
-    const classes    = useAppSelector(selectClasses) || [];
+    const navigate = useNavigate();
+    const dispatch = useAppDispatch();
+    const classes = useAppSelector(selectClasses) || [];
     const assignments = useAppSelector(selectAllAssignments) || [];
     const submissions = useAppSelector(selectSubmissions) || [];
 
-    const [classCode, setClassCode]     = useState('');
-    const [isJoining, setIsJoining]     = useState(false);
-    const [joinError, setJoinError]     = useState('');
+    const [classCode, setClassCode] = useState('');
+    const [isJoining, setIsJoining] = useState(false);
+    const [joinError, setJoinError] = useState('');
     const [showJoinForm, setShowJoinForm] = useState(false);
 
     useEffect(() => {
@@ -55,7 +55,7 @@ const StudentClasses = () => {
         <>
             <PageShell
                 title="My Classes"
-                subtitle="Courses you're enrolled in — click to enter a classroom"
+                subtitle="Courses you're enrolled in   click to enter a classroom"
                 icon={<BookOpen size={22} />}
                 badge={classes.length}
                 breadcrumbs={[{ label: 'My Classes' }]}
@@ -72,7 +72,7 @@ const StudentClasses = () => {
                             const classAssignments = assignments.filter(a => a.classId === c.id);
                             const done = classAssignments.filter(a => {
                                 const sub = submissions.find(s => s.assignmentId === a.id);
-                                return ['submitted','graded','completed'].includes(sub?.status?.toLowerCase());
+                                return ['submitted', 'graded', 'completed'].includes(sub?.status?.toLowerCase());
                             }).length;
                             const progress = classAssignments.length > 0
                                 ? Math.round((done / classAssignments.length) * 100)

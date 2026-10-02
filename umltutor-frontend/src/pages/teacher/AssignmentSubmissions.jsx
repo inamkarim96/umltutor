@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 const AssignmentSubmissions = () => {
-    // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
+    // Custom router   useParams() returns {} without <Route> wrappers. Parse from URL.
     const titleSlug = window.location.pathname
         .split('/')
         .find((segment, i, arr) => arr[i - 1] === 'assignments' && segment !== 'submitted' && segment !== 'pending' && segment !== 'reviewed' && segment.length > 0);
@@ -238,10 +238,10 @@ const AssignmentSubmissions = () => {
                                             <td className="px-10 py-8">
                                                 <div className="flex">
                                                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-extrabold font-heading uppercase tracking-widest shadow-card border ${sub.status === 'GRADED' || sub.status === 'graded'
-                                                            ? 'bg-status-green/10 text-status-green border-emerald-100'
-                                                            : sub.status === 'pending' || sub.status === 'NOT_SUBMITTED'
-                                                                ? 'bg-status-red/10 text-status-red border-red-100'
-                                                                : 'bg-blue-50 text-blue-600 border-blue-100'
+                                                        ? 'bg-status-green/10 text-status-green border-emerald-100'
+                                                        : sub.status === 'pending' || sub.status === 'NOT_SUBMITTED'
+                                                            ? 'bg-status-red/10 text-status-red border-red-100'
+                                                            : 'bg-blue-50 text-blue-600 border-blue-100'
                                                         }`}>
                                                         {sub.status?.replace(/_/g, ' ') || 'NOT STARTED'}
                                                     </span>
@@ -272,7 +272,7 @@ const AssignmentSubmissions = () => {
                                                 {sub.status === 'graded' || sub.status === 'GRADED' ? (
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-2xl font-extrabold font-heading text-accent">{sub.score}</span>
-                                                        <span className="text-xs font-bold font-body text-gray-300">/{sub.maxScore ?? '—'}</span>
+                                                        <span className="text-xs font-bold font-body text-gray-300">/{sub.maxScore ?? ' '}</span>
                                                     </div>
                                                 ) : (
                                                     <span className="text-xs font-extrabold font-heading text-gray-300 uppercase tracking-widest">
@@ -294,8 +294,8 @@ const AssignmentSubmissions = () => {
                                                     disabled={!sub.submissionId}
                                                     onClick={() => handleNavigate(sub)}
                                                     className={`inline-flex items-center gap-3 px-8 py-3.5 border rounded-lg font-extrabold font-heading uppercase tracking-widest text-[10px] transition-all active:scale-95 group/btn ${!sub.submissionId
-                                                            ? 'bg-surface-3 text-gray-400 border-black/10 cursor-not-allowed'
-                                                            : 'bg-white border-black/10 text-ink hover:bg-accent hover:text-white hover:border-accent hover:shadow-xl hover:shadow-accent/20 hover:-translate-y-1'
+                                                        ? 'bg-surface-3 text-gray-400 border-black/10 cursor-not-allowed'
+                                                        : 'bg-white border-black/10 text-ink hover:bg-accent hover:text-white hover:border-accent hover:shadow-xl hover:shadow-accent/20 hover:-translate-y-1'
                                                         }`}
                                                 >
                                                     {!sub.submissionId ? 'No Submission' : 'Evaluation'}

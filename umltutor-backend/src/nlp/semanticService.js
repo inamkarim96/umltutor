@@ -300,7 +300,7 @@ class SemanticRepresentation {
     // NEW: Tier 0 - Embedding similarity as primary signal
     const thisText = [this.action, this.object, this.verb, this.subject, this.keywords?.join(' ')].filter(Boolean).join(' ');
     const otherText = [other.action, other.object, other.verb, other.subject, other.keywords?.join(' ')].filter(Boolean).join(' ');
-    
+
     let embScore = 0;
     if (thisText && otherText) {
       try {
@@ -627,7 +627,7 @@ class SemanticProcessor {
     const stepName = (stepSemantic.functionName || stepSemantic.messageName || '').toString();
     const msgName = (messageSemantic.functionName || messageSemantic.messageName || '').toString();
 
-    // ── Tier 0: embedding — semantic similarity via embeddings ───────────────
+    // ── Tier 0: embedding   semantic similarity via embeddings ───────────────
     if (stepName && msgName) {
       try {
         const embScore = await hybridSimilarity(stepName, msgName);
@@ -642,7 +642,7 @@ class SemanticProcessor {
       }
     }
 
-    // ── Tier 1: deterministic — exact identifier equality ──────────────────
+    // ── Tier 1: deterministic   exact identifier equality ──────────────────
     if (stepSemantic.semanticHash && stepSemantic.semanticHash === messageSemantic.semanticHash) {
       return {
         score: 1.0, confidence: 1.0, tier: 'deterministic', matchType: 'EXACT',
@@ -650,7 +650,7 @@ class SemanticProcessor {
       };
     }
 
-    // ── Tier 2: normalization — same function/message name after cleaning ──
+    // ── Tier 2: normalization   same function/message name after cleaning ──
     const stepNorm = normalizeToken(stepName);
     const msgNorm = normalizeToken(msgName);
     if (stepNorm && stepNorm === msgNorm) {
@@ -660,7 +660,7 @@ class SemanticProcessor {
       };
     }
 
-    // ── Tier 3: similarity — evaluateFunctionMatch (verb/object, synonyms) ──
+    // ── Tier 3: similarity   evaluateFunctionMatch (verb/object, synonyms) ──
     const fnMatch = await evaluateFunctionMatchAsync(stepName, msgName);
     if (fnMatch.matchType === 'EXACT' || fnMatch.matchType === 'STRONG') {
       return {
@@ -670,7 +670,7 @@ class SemanticProcessor {
       };
     }
 
-    // ── Tier 4: semantic — structured + keyword-overlap comparison ─────────
+    // ── Tier 4: semantic   structured + keyword-overlap comparison ─────────
     const structured = stepSemantic.compareSemantic(messageSemantic, options);
     const keywordScore = await stepSemantic.compareKeywordsAsync(messageSemantic, options);
     const combined = Math.max(structured.score, keywordScore);
@@ -683,7 +683,7 @@ class SemanticProcessor {
       };
     }
 
-    // No decisive match — report the best weak evidence so callers can grade severity.
+    // No decisive match   report the best weak evidence so callers can grade severity.
     return {
       score: combined, confidence: combined, tier: 'semantic',
       matchType: combined >= 0.1 ? structured.type : 'NONE',
@@ -698,7 +698,7 @@ class SemanticProcessor {
     const stepName = (stepSemantic.functionName || stepSemantic.messageName || '').toString();
     const msgName = (messageSemantic.functionName || messageSemantic.messageName || '').toString();
 
-    // ── Tier 1: deterministic — exact identifier equality ──────────────────
+    // ── Tier 1: deterministic   exact identifier equality ──────────────────
     if (stepSemantic.semanticHash && stepSemantic.semanticHash === messageSemantic.semanticHash) {
       return {
         score: 1.0, confidence: 1.0, tier: 'deterministic', matchType: 'EXACT',
@@ -706,7 +706,7 @@ class SemanticProcessor {
       };
     }
 
-    // ── Tier 2: normalization — same function/message name after cleaning ──
+    // ── Tier 2: normalization   same function/message name after cleaning ──
     const stepNorm = normalizeToken(stepName);
     const msgNorm = normalizeToken(msgName);
     if (stepNorm && stepNorm === msgNorm) {
@@ -716,7 +716,7 @@ class SemanticProcessor {
       };
     }
 
-    // ── Tier 3: similarity — evaluateFunctionMatch (verb/object, synonyms) ──
+    // ── Tier 3: similarity   evaluateFunctionMatch (verb/object, synonyms) ──
     const fnMatch = evaluateFunctionMatch(stepName, msgName);
     if (fnMatch.matchType === 'EXACT' || fnMatch.matchType === 'STRONG') {
       return {
@@ -726,7 +726,7 @@ class SemanticProcessor {
       };
     }
 
-    // ── Tier 4: semantic — structured + keyword-overlap comparison ─────────
+    // ── Tier 4: semantic   structured + keyword-overlap comparison ─────────
     const structured = stepSemantic.compareSemantic(messageSemantic, options);
     const keywordScore = stepSemantic.compareKeywords(messageSemantic, options);
     const combined = Math.max(structured.score, keywordScore);
@@ -739,7 +739,7 @@ class SemanticProcessor {
       };
     }
 
-    // No decisive match — report the best weak evidence so callers can grade severity.
+    // No decisive match   report the best weak evidence so callers can grade severity.
     return {
       score: combined, confidence: combined, tier: 'semantic',
       matchType: combined >= 0.1 ? structured.type : 'NONE',
@@ -875,7 +875,7 @@ class SemanticProcessor {
 
     const ssdNorm = normalizeToken(ssdName);
     const methodNorm = normalizeToken(methodName);
-    
+
     // Tier 0: Embedding similarity
     if (ssdName && methodName) {
       try {

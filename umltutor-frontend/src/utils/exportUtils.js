@@ -46,7 +46,7 @@ const captureReactFlowCanvas = async (containerEl, scale = 1.5) => {
     const h = rfRoot.clientHeight || 600;
 
     if (viewport) {
-        // Direct SVG serialization of the viewport — fastest path, ~20ms
+        // Direct SVG serialization of the viewport   fastest path, ~20ms
         try {
             const serializer = new XMLSerializer();
             // Build a wrapper SVG the size of the container, embedding the viewport transform
@@ -146,7 +146,7 @@ const triggerDownload = (dataUrlOrBlob, fileName) => {
 export const exportStepWithReport = async (section, format, activeModel, report, itemId = null) => {
     const startedAt = performance.now();
     try {
-        // Target the diagram canvas directly — never the parent that includes the toolbar
+        // Target the diagram canvas directly   never the parent that includes the toolbar
         let selector = '';
         if (section === 'usecase') {
             // The usecase canvas is the ReactFlow container inside the editor
@@ -636,8 +636,8 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
 
                 // 5. Expected Assignment Requirements Card
                 const hasExpected = (expected.actors && expected.actors.length > 0) ||
-                                    (expected.useCases && expected.useCases.length > 0) ||
-                                    (expected.systemCandidates && expected.systemCandidates.length > 0);
+                    (expected.useCases && expected.useCases.length > 0) ||
+                    (expected.systemCandidates && expected.systemCandidates.length > 0);
 
                 if (hasExpected) {
                     const expActorsStr = (expected.actors || []).length ? expected.actors.join(', ') : 'none parsed';
@@ -814,9 +814,9 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
         // ═════════════════════════════════════════════════════════════════════
         // CAPTURE DIAGRAMS & DESCRIPTIONS
         // ═════════════════════════════════════════════════════════════════════
-        // Fast DOM probe — only wait if the hidden export renderer is expected
+        // Fast DOM probe   only wait if the hidden export renderer is expected
         const renderer = document.querySelector('#full-model-export-renderer') ||
-                         await waitForElementFast('#full-model-export-renderer', 800);
+            await waitForElementFast('#full-model-export-renderer', 800);
         if (renderer) await sleep(200); // minimal settle time
 
         const sections = [
@@ -829,15 +829,15 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
 
         // ── Pre-resolve all diagram DOM elements in one pass (no per-section query loops) ──
         const sectionSelectors = {
-            'usecase':           '[data-editor-section="usecase"] .react-flow',
-            'ssds':              '[data-editor-section="ssd"] .react-flow',
-            'class-diagram':     '[data-editor-section="class-diagram"] .react-flow',
+            'usecase': '[data-editor-section="usecase"] .react-flow',
+            'ssds': '[data-editor-section="ssd"] .react-flow',
+            'class-diagram': '[data-editor-section="class-diagram"] .react-flow',
             'sequence-diagrams': '[data-editor-section="sequence-diagram"] .react-flow',
         };
         const resolvedEls = {};
         for (const [key, sel] of Object.entries(sectionSelectors)) {
             resolvedEls[key] = (renderer && renderer.querySelector(`[data-export-section="${key}"]`)) ||
-                               document.querySelector(sel) || null;
+                document.querySelector(sel) || null;
         }
 
         // ── Capture all diagram canvases in parallel (non-blocking) ──
@@ -863,7 +863,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
             renderSectionHeader(title);
 
             if (sectionKey === 'descriptions') {
-                // Vector text rendering for Use Case Descriptions — crisp & readable
+                // Vector text rendering for Use Case Descriptions   crisp & readable
                 let y = 30;
                 const descs = activeModel?.descriptions || {};
                 const descEntries = Object.entries(descs);
@@ -937,8 +937,8 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                         const specificIssues = allDescIssues.filter((issue, idx) => {
                             const msg = (issue.message || '').toLowerCase();
                             const matches = (descName && msg.includes(descName)) ||
-                                            msg.includes(descNum.toLowerCase()) ||
-                                            msg.includes(`description ${descNum}`);
+                                msg.includes(descNum.toLowerCase()) ||
+                                msg.includes(`description ${descNum}`);
                             if (matches) mappedIssueIndices.add(idx);
                             return matches;
                         });
@@ -1009,8 +1009,8 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                         const specificSsdIssues = allSsdIssues.filter((issue, idx) => {
                             const msg = (issue.message || '').toLowerCase();
                             const matches = msg.includes(`ssd ${ssdNum}`) ||
-                                            msg.includes(`ssd 3.${dIdx + 1}`) ||
-                                            (descName && msg.includes(descName));
+                                msg.includes(`ssd 3.${dIdx + 1}`) ||
+                                (descName && msg.includes(descName));
                             if (matches) mappedSsdIndices.add(idx);
                             return matches;
                         });
@@ -1095,7 +1095,7 @@ export const exportDescriptionAsText = async (activeModel, format) => {
 };
 
 export const exportDiagramAsImage = async (activeSection, format) => {
-    // Target the ReactFlow canvas container directly — never the wrapper that includes the toolbar
+    // Target the ReactFlow canvas container directly   never the wrapper that includes the toolbar
     const selector = activeSection === 'usecase'
         ? '[data-editor-section="usecase"] .react-flow'
         : activeSection === 'ssd'
@@ -1134,7 +1134,7 @@ export const exportDiagramAsImage = async (activeSection, format) => {
         }
     }
 
-    // PNG, JPG, PDF — use ReactFlow-aware capture to exclude toolbars
+    // PNG, JPG, PDF   use ReactFlow-aware capture to exclude toolbars
     const canvas = diagramElement.querySelector('.react-flow')
         ? await captureReactFlowCanvas(diagramElement, 1.5)
         : await captureElementFast(diagramElement, 1.5);
@@ -1184,7 +1184,7 @@ const buildReportText = (report) => {
                 : (cs.findings?.some(f => f.severity === 'warning') ? 'warnings' : 'consistent'));
 
         lines.push(`Overall verdict: ${overall.toUpperCase()}`);
-        lines.push(`Reliable check: ${validation.reliable === false ? 'No — assignment text too short' : 'Yes'}`);
+        lines.push(`Reliable check: ${validation.reliable === false ? 'No   assignment text too short' : 'Yes'}`);
         if (validation.reliable === false) {
             if (validation.reasoning) lines.push(`Why: ${validation.reasoning}`);
             const signalNames = {

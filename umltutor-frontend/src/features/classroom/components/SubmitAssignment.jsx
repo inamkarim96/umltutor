@@ -36,16 +36,16 @@ const SubmitAssignment = ({ assignment }) => {
             errorToast('Deadline has passed. You can no longer submit.');
             return;
         }
-        
+
         // Submit the student's actual workspace model (use case diagram,
         // descriptions, SSD, class diagram, sequence diagrams) as a submitted
-        // assignment — not a placeholder payload.
+        // assignment   not a placeholder payload.
         try {
             const resultAction = await dispatch(submitAssignmentData({
                 assignmentId: assignment.id,
                 data: buildSavePayload(developmentModel, { status: 'submitted', notes: description })
             })).unwrap();
-            
+
             successToast(hasSubmitted ? 'Assignment resubmitted successfully!' : 'Assignment submitted successfully!');
             dispatch(fetchSubmissionStatus(assignment.id));
         } catch (err) {
@@ -70,9 +70,8 @@ const SubmitAssignment = ({ assignment }) => {
                     </p>
                     <div className="flex flex-wrap gap-3 text-xs font-extrabold font-heading uppercase tracking-widest">
                         {dueDate && (
-                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border ${
-                                isPastDeadline ? 'bg-status-red/10 text-red-700 border-red-100' : 'bg-accent/10 text-indigo-700 border-accent/10'
-                            }`}>
+                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border ${isPastDeadline ? 'bg-status-red/10 text-red-700 border-red-100' : 'bg-accent/10 text-indigo-700 border-accent/10'
+                                }`}>
                                 <Clock size={14} />
                                 Due {dueDate.toLocaleString()}
                             </span>
@@ -92,7 +91,7 @@ const SubmitAssignment = ({ assignment }) => {
                     </div>
                     {isPastDeadline && (
                         <p className="text-status-red font-bold font-body text-sm mt-2">
-                            Deadline has passed — submission is locked.
+                            Deadline has passed   submission is locked.
                         </p>
                     )}
                 </div>
@@ -109,7 +108,7 @@ const SubmitAssignment = ({ assignment }) => {
 
                     <div>
                         <label className="block text-sm font-extrabold font-heading text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-widest">
-                            <Type size={16} className="text-indigo-500"/> Submission Notes
+                            <Type size={16} className="text-indigo-500" /> Submission Notes
                         </label>
                         <textarea
                             value={description}
@@ -134,11 +133,10 @@ const SubmitAssignment = ({ assignment }) => {
                     <button
                         type="submit"
                         disabled={isSubmitting || isPastDeadline}
-                        className={`w-full py-5 text-white font-extrabold font-heading rounded-3xl shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm relative overflow-hidden ${
-                            isSubmitting || isPastDeadline
+                        className={`w-full py-5 text-white font-extrabold font-heading rounded-3xl shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm relative overflow-hidden ${isSubmitting || isPastDeadline
                                 ? 'bg-indigo-400 cursor-not-allowed'
                                 : 'bg-accent hover:bg-indigo-700 hover:-translate-y-1 active:scale-95 shadow-accent/20'
-                        }`}
+                            }`}
                     >
                         {isSubmitting ? (
                             <>
@@ -152,9 +150,9 @@ const SubmitAssignment = ({ assignment }) => {
                             </>
                         )}
                     </button>
-                    
+
                     <p className="text-center text-[10px] font-extrabold font-heading text-gray-400 uppercase tracking-widest">
-                         By clicking submit, you confirm this is your own original work.
+                        By clicking submit, you confirm this is your own original work.
                     </p>
                 </form>
             </div>

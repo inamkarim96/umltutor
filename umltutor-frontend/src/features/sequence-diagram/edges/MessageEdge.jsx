@@ -142,7 +142,7 @@ const MessageEdge = ({
         labelX = x + loopW / 2;
         labelY = y + loopH / 2;
     } else {
-        // Straight horizontal line — the canonical UML sequence diagram message.
+        // Straight horizontal line   the canonical UML sequence diagram message.
         edgePath = `M ${srcCenterX} ${msgY} L ${tgtCenterX} ${msgY}`;
         labelX = (srcCenterX + tgtCenterX) / 2;
         labelY = msgY;
@@ -152,10 +152,10 @@ const MessageEdge = ({
     const type = data?.type || 'call';
     const isDashed = type === 'return';
     const marker =
-        isSelf            ? undefined :
-        type === 'call'   ? 'url(#sequence-sync-arrow)' :
-        type === 'delete' ? 'url(#sequence-delete-x)'   :
-                            'url(#sequence-open-arrow)';
+        isSelf ? undefined :
+            type === 'call' ? 'url(#sequence-sync-arrow)' :
+                type === 'delete' ? 'url(#sequence-delete-x)' :
+                    'url(#sequence-open-arrow)';
 
     const finalStyle = {
         ...style,

@@ -36,7 +36,7 @@ if (keepAliveTimer.unref) keepAliveTimer.unref();
  */
 const shutdown = async (signal) => {
   if (keepAliveTimer) clearInterval(keepAliveTimer);
-  console.log(`[Prisma] Received ${signal} — disconnecting...`);
+  console.log(`[Prisma] Received ${signal}   disconnecting...`);
   await prisma.$disconnect();
   process.exit(0);
 };

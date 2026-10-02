@@ -173,7 +173,7 @@ const CheckingModePanel = ({
                         }
                     });
                     localReportResult.issues = Array.from(existingIssues.values());
-                    
+
                     // Recalculate summary
                     const issues = localReportResult.issues;
                     const errorsCount = issues.filter(i => i.severity === 'error' || i.type === 'error').length;
@@ -251,7 +251,7 @@ const CheckingModePanel = ({
             } else {
                 passes.push('System boundary exists');
 
-                // Check system name — must be a meaningful name, not a placeholder or generic 'System'
+                // Check system name   must be a meaningful name, not a placeholder or generic 'System'
                 const sysLabel = (systemBoundary.data?.label || '').trim();
                 const sysLabelLower = sysLabel.toLowerCase();
                 const invalidSystemNames = [
@@ -273,7 +273,7 @@ const CheckingModePanel = ({
                     });
                     report.score -= 10;
                 } else if (sysLabel.split(/\s+/).length < 2) {
-                    // Single-word names are weak — warn
+                    // Single-word names are weak   warn
                     issues.push({
                         id: 'system-name-weak',
                         code: 'SYSTEM_NAME_INVALID',
@@ -649,7 +649,7 @@ const CheckingModePanel = ({
                     }
                 }
 
-                // Check preconditions — accept string or array
+                // Check preconditions   accept string or array
                 let preValue = description.preconditions;
                 if (Array.isArray(preValue)) preValue = preValue.join(' ');
                 const preStr = (typeof preValue === 'string' ? preValue : '').trim();
@@ -682,7 +682,7 @@ const CheckingModePanel = ({
                     }
                 }
 
-                // Check postconditions — accept string or array
+                // Check postconditions   accept string or array
                 let postValue = description.postconditions;
                 if (Array.isArray(postValue)) postValue = postValue.join(' ');
                 const postStr = (typeof postValue === 'string' ? postValue : '').trim();
@@ -873,7 +873,7 @@ const CheckingModePanel = ({
                         code: 'INCOMPLETE_SSD',
                         severity: 'error',
                         location: 'ssd',
-                        message: `SSD for "${ucName}" is incomplete — add both an Actor and a System lifeline.`,
+                        message: `SSD for "${ucName}" is incomplete   add both an Actor and a System lifeline.`,
                         context: { useCaseId }
                     });
                     report.score = 0;
@@ -1360,7 +1360,7 @@ const CheckingModePanel = ({
                                             </div>
                                         )}
                                         <div className="text-xs text-slate-400">
-                                            No expected actors or use cases are asserted for an assignment this thin — provide two or more sentences describing the system’s capabilities first.
+                                            No expected actors or use cases are asserted for an assignment this thin   provide two or more sentences describing the system’s capabilities first.
                                         </div>
                                     </>
                                 );
@@ -1369,7 +1369,7 @@ const CheckingModePanel = ({
                             const banner = overall === 'consistent'
                                 ? { glyph: '✓', cls: 'text-status-green', msg: 'Diagram matches the assignment requirements' }
                                 : overall === 'warnings'
-                                    ? { glyph: '!', cls: 'text-amber-600', msg: 'Diagram is mostly consistent — review the warnings below' }
+                                    ? { glyph: '!', cls: 'text-amber-600', msg: 'Diagram is mostly consistent   review the warnings below' }
                                     : { glyph: '✗', cls: 'text-status-red', msg: 'Diagram does not fully match the assignment requirements' };
 
                             const sys = cs.systemName || {};
@@ -1387,10 +1387,10 @@ const CheckingModePanel = ({
                                                 <>
                                                     <span className={`${sysGlyph.cls} font-bold font-body`}>{sysGlyph.glyph} {sys.submitted || 'no name'}</span>
                                                     {sys.status === 'missing' && sys.expected && (
-                                                        <span className="text-slate-400"> — try "{sys.expected}"</span>
+                                                        <span className="text-slate-400">   try "{sys.expected}"</span>
                                                     )}
                                                     {sys.status === 'mismatch' && (
-                                                        <span className="text-slate-400"> — assignment suggests "{sys.expected}"</span>
+                                                        <span className="text-slate-400">   assignment suggests "{sys.expected}"</span>
                                                     )}
                                                 </>
                                             )}
@@ -1405,8 +1405,8 @@ const CheckingModePanel = ({
                                         return (
                                             <div key={`as-${i}`} className={`${g.cls} text-xs font-body`}>
                                                 {g.glyph} {a.actor}
-                                                {a.status === 'typo' && a.actor ? ` — use exact role "${a.actor}"` : ''}
-                                                {a.status === 'missing' && a.submitted ? ` — diagram has "${a.submitted}"` : ''}
+                                                {a.status === 'typo' && a.actor ? `   use exact role "${a.actor}"` : ''}
+                                                {a.status === 'missing' && a.submitted ? `   diagram has "${a.submitted}"` : ''}
                                             </div>
                                         );
                                     })}
@@ -1425,11 +1425,11 @@ const CheckingModePanel = ({
                                                         → Actor: <strong className="text-indigo-700">{u.primaryActor}</strong>
                                                     </span>
                                                 )}
-                                                {u.status === 'missing' && u.submitted ? <span className="text-amber-700 text-[11px]"> — found "{u.submitted}"</span> : ''}
-                                                {u.status === 'found' && u.submitted ? <span className="text-emerald-700 text-[11px]"> — matched "{u.submitted}"</span> : ''}
-                                                {u.status === 'lowConfidence' ? <span className="text-slate-400 text-[11px]"> — hint only</span> : ''}
-                                                {u.status === 'invalid' ? <span className="text-amber-600 text-[11px]"> — not an action phrase</span> : ''}
-                                                {u.status === 'optional' ? <span className="text-slate-400 text-[11px]"> — precondition</span> : ''}
+                                                {u.status === 'missing' && u.submitted ? <span className="text-amber-700 text-[11px]">   found "{u.submitted}"</span> : ''}
+                                                {u.status === 'found' && u.submitted ? <span className="text-emerald-700 text-[11px]">   matched "{u.submitted}"</span> : ''}
+                                                {u.status === 'lowConfidence' ? <span className="text-slate-400 text-[11px]">   hint only</span> : ''}
+                                                {u.status === 'invalid' ? <span className="text-amber-600 text-[11px]">   not an action phrase</span> : ''}
+                                                {u.status === 'optional' ? <span className="text-slate-400 text-[11px]">   precondition</span> : ''}
                                             </div>
                                         );
                                     })}
@@ -1531,7 +1531,7 @@ const CheckingModePanel = ({
 
                                     {(cs.counts || {}).total > 0 && (
                                         <div className="text-xs text-slate-400 font-bold font-body">
-                                            {cs.counts.total} case-study finding(s) — {cs.counts.error || 0} error(s), {cs.counts.warning || 0} warning(s), {cs.counts.info || 0} info
+                                            {cs.counts.total} case-study finding(s)   {cs.counts.error || 0} error(s), {cs.counts.warning || 0} warning(s), {cs.counts.info || 0} info
                                         </div>
                                     )}
                                 </>
@@ -1634,7 +1634,7 @@ const CheckingModePanel = ({
                             const otherClassErrors = structuralErrors.filter(i => !attrErrors.includes(i) && !opErrors.includes(i) && !relErrors.includes(i));
                             const classWarnings = classIssues.filter(i => (i.severity === 'warning' || i.severity === 'suggestion') && i.code !== 'CLASS_ENTITY_SUGGESTION');
 
-                            // Verified (classes without errors) — look for explicit match codes
+                            // Verified (classes without errors)   look for explicit match codes
                             // Exclude CLASS_ENTITY_SUGGESTION as those are suggestions, not verified items
                             const verifiedClasses = classIssues.filter(i =>
                                 (i.severity === 'info' || i.code === 'CLASS_FOUND' || i.code === 'CLASS_MATCH_FOUND')

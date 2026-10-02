@@ -114,7 +114,7 @@ const ActivationOverlay = ({
     if (!viewportRef.current) return null;
 
     const vp = viewportRef.current;
-    // nodePositions is plain state — no .current needed
+    // nodePositions is plain state   no .current needed
 
     return (
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: 25 }}>
@@ -133,7 +133,7 @@ const ActivationOverlay = ({
 
                     // Center activation bar on lifeline (lifeline width is 110px, so center is 55px)
                     const lifelineCenterX = pos.x + 55;
-                    // All bars sit at the same X — no horizontal depth offset
+                    // All bars sit at the same X   no horizontal depth offset
                     screenX = (lifelineCenterX * zoom + vp.x) - (7 * zoom);
                     screenY = (pos.y * zoom + vp.y) + bar.startY * zoom;
                 }
@@ -147,11 +147,11 @@ const ActivationOverlay = ({
 
                 // Add visual indicator for selected activation
                 const isSelected = selectedBarId === bar.id;
-                const HANDLE_H = 12; // px — large enough to grab comfortably
+                const HANDLE_H = 12; // px   large enough to grab comfortably
 
                 return (
                     <g key={bar.id}>
-                        {/* Activation bar body — transparent fill so arrows show through */}
+                        {/* Activation bar body   transparent fill so arrows show through */}
                         <rect
                             x={screenX}
                             y={screenY}
@@ -171,7 +171,7 @@ const ActivationOverlay = ({
                             }}
                         />
 
-                        {/* Resize handle — large hit area at bottom with visible grip */}
+                        {/* Resize handle   large hit area at bottom with visible grip */}
                         {!isReadOnly && (
                             <g
                                 style={{ pointerEvents: 'all', cursor: 'ns-resize' }}
@@ -964,7 +964,7 @@ const SSDDiagramEditorInner = ({
         // NOTE: We do NOT listen to lifelineResize here.
         // Activation bars use absolute canvas Y coordinates (bar.startY).
         // When a lifeline grows taller, bars stay exactly where they are
-        // on the canvas — which is the correct UML behaviour.
+        // on the canvas   which is the correct UML behaviour.
         window.addEventListener('lifelineSelected', handleLifelineSelected);
 
         return () => {

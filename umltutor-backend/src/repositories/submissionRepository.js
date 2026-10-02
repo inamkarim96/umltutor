@@ -63,14 +63,14 @@ const submissionRepository = {
     async updateValidationReport(submissionId, reportDataJson) {
         return prisma.submission.update({
             where: { id: Number(submissionId) },
-            data: { 
+            data: {
                 validationReportData: reportDataJson
             }
         });
     },
 
     /**
-     * Transaction support — passes options (timeout, maxWait) through to Prisma
+     * Transaction support   passes options (timeout, maxWait) through to Prisma
      */
     async transaction(callback, options) {
         return prisma.$transaction(callback, options);

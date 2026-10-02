@@ -266,7 +266,7 @@ const SSDMessageEdge = ({
 
     // ─────────────────────────────────────────────────────────────────────────
     // NORMAL MESSAGE RENDERING
-    // Actor → System, System → Actor, return, async — completely unchanged.
+    // Actor → System, System → Actor, return, async   completely unchanged.
     // ─────────────────────────────────────────────────────────────────────────
 
     const midX = (sourceX + targetX) / 2;

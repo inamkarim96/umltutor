@@ -333,7 +333,7 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                                             <p className="text-sm font-bold font-body text-muted">
                                                 {isEditMode ? 'Click to replace existing file' : 'Click to upload a file'}
                                             </p>
-                                            <p className="text-xs text-gray-400">PDF, DOC, DOCX, PNG, JPG — max 10MB</p>
+                                            <p className="text-xs text-gray-400">PDF, DOC, DOCX, PNG, JPG   max 10MB</p>
                                         </label>
                                     )}
                                 </div>
@@ -390,8 +390,8 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSubmit, isSubmitting, initia
                         form="assignment-form"
                         disabled={isSubmitting}
                         className={`px-8 py-2.5 text-white font-extrabold font-heading rounded-xl shadow-hover transition-all ${isSubmitting
-                                ? 'bg-indigo-400 cursor-not-allowed'
-                                : 'bg-accent hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5'
+                            ? 'bg-indigo-400 cursor-not-allowed'
+                            : 'bg-accent hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5'
                             }`}
                     >
                         {isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Assignment')}

@@ -137,8 +137,8 @@ const TutorialRequestsPanel = React.memo(({ compact = false, showHeader = true }
                   type="button"
                   onClick={() => { setStatusFilter(f.id); setPage(1); }}
                   className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest transition-all border ${statusFilter === f.id
-                      ? 'bg-accent text-white border-accent'
-                      : 'bg-white text-muted border-black/10 hover:border-accent/30'
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-white text-muted border-black/10 hover:border-accent/30'
                     }`}
                 >
                   {f.label}
@@ -335,7 +335,7 @@ const TutorialRequestsPanel = React.memo(({ compact = false, showHeader = true }
             <div className="px-6 py-5 border-b border-black/5">
               <h3 className="text-lg font-extrabold font-heading text-ink">Reject Tutorial Request</h3>
               <p className="text-sm text-muted mt-1">
-                {rejectModal.studentName} — optional feedback for the student
+                {rejectModal.studentName}   optional feedback for the student
               </p>
             </div>
             <div className="p-6">

@@ -61,7 +61,7 @@ language.
 ## 5. The Case-Study Check
 
 This check compares the student's use case diagram with the assignment's own
-requirement text. It is fully dynamic — nothing about the case study is stored
+requirement text. It is fully dynamic   nothing about the case study is stored
 in the code.
 
 **Parsing.** The assignment text is read and turned into a structured summary:
@@ -114,7 +114,7 @@ run-check
 ## 7. Front-End Rendering
 
 The checking panel displays a summary for each artifact, a deduplicated list of
-suggestions, and — when the back end supplied a case-study report — the overall
+suggestions, and   when the back end supplied a case-study report   the overall
 verdict, the system boundary status, per-actor and per-use-case statuses, the
 expected elements, and the findings grouped by severity. If the assignment text
 was too thin, it instead shows the validation-only explanation.

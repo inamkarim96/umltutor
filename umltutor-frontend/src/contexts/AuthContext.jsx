@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
             if (firebaseUser?.uid === lastCheckedUid.current && authStateRef.current.user) {
                 return;
             }
-            // Block concurrent auth checks — if one is already in-flight, skip
+            // Block concurrent auth checks   if one is already in-flight, skip
             if (checkingInProgress.current) {
                 return;
             }
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
             try {
                 if (firebaseUser) {
                     lastCheckedUid.current = firebaseUser.uid;
-                    
+
                     const isEmailVerified = firebaseUser.emailVerified;
                     const token = await firebaseUser.getIdToken(false);
                     localStorage.setItem('token', token);

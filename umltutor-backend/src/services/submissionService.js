@@ -766,7 +766,7 @@ class SubmissionService {
     if (!submission) throw new Error('Submission not found');
     if (submission.studentId !== userId) throw new Error('Unauthorized');
 
-    // Build artifact map — reuse _upsertArtifactsParallel to run all upserts concurrently
+    // Build artifact map   reuse _upsertArtifactsParallel to run all upserts concurrently
     const incomingArtifacts = {};
     if (diagramData) incomingArtifacts.useCaseDiagram = typeof diagramData === 'object' ? JSON.stringify(diagramData) : diagramData;
     if (descriptions && typeof descriptions === 'object') incomingArtifacts.useCaseDescription = descriptions;
@@ -849,7 +849,7 @@ class SubmissionService {
     });
   }
 
-  // Teacher: Get assignment stats — uses DB-side aggregation instead of fetching all rows to JS
+  // Teacher: Get assignment stats   uses DB-side aggregation instead of fetching all rows to JS
   async getAssignmentStatsForTeacher(teacherId) {
     const tid = Number(teacherId);
     const prisma = require('../config/prisma');
@@ -888,7 +888,7 @@ class SubmissionService {
 
   // Student: Get submission receipt
   async getSubmissionReceipt(id, userId) {
-    // Slimmed select — only the fields needed for the receipt (saves a 3-level deep join)
+    // Slimmed select   only the fields needed for the receipt (saves a 3-level deep join)
     const submission = await submissionRepository.findFirst({
       where: { id: Number(id) },
       select: {

@@ -263,7 +263,7 @@ class ClassService {
     const cid = Number(classId);
     const uid = Number(userId);
 
-    // Single query — fetch class with the full student list in one round-trip
+    // Single query   fetch class with the full student list in one round-trip
     const classItem = await classRepository.findUnique({
       where: { id: cid },
       select: {
@@ -359,7 +359,7 @@ class ClassService {
     const totalSubmissions = Number(result.total_submissions) || 0;
     const gradedSubmissions = Number(result.graded_submissions) || 0;
     const averageGrade = Number(result.average_grade) || 0;
-    
+
     const submissionRate = (totalSubmissions / (totalStudents * totalAssignments)) * 100;
 
     return {
@@ -464,13 +464,13 @@ class ClassService {
 
     // Bulk insert in single transaction
     const result = await prisma.$transaction(
-      studentData.map(student => 
+      studentData.map(student =>
         prisma.classStudent.upsert({
-          where: { 
-            classId_studentId: { 
-              classId: Number(classId), 
-              studentId: Number(student.studentId) 
-            } 
+          where: {
+            classId_studentId: {
+              classId: Number(classId),
+              studentId: Number(student.studentId)
+            }
           },
           update: {},
           create: {
@@ -484,7 +484,7 @@ class ClassService {
     // Invalidate caches
     serviceCache.invalidate(`classes:detail:${classId}`);
     serviceCache.invalidate(`classes:${classId}:students*`);
-    
+
     return { added: result.length, total: studentData.length };
   }
 
@@ -511,7 +511,7 @@ class ClassService {
     // Invalidate caches
     serviceCache.invalidate(`classes:detail:${classId}`);
     serviceCache.invalidate(`classes:${classId}:students*`);
-    
+
     return { removed: result.count, total: studentIds.length };
   }
 }

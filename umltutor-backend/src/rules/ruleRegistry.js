@@ -1170,7 +1170,7 @@ const rules = [
     diagramType: DIAGRAM_TYPES.CLASS_DIAGRAM,
     severity: SEVERITIES.INFO,
     category: RULE_CATEGORIES.BEST_PRACTICE,
-    description: 'Deprecated — replaced by CD-011 CLASS_RESPONSIBILITY_MISMATCH (general, evidence-based responsibility detection for any domain)',
+    description: 'Deprecated   replaced by CD-011 CLASS_RESPONSIBILITY_MISMATCH (general, evidence-based responsibility detection for any domain)',
     messageTemplate: 'Operation "{op}" may be more appropriately associated with a Payment class/service.',
     dependencies: ['CD-002'],
     enabled: false,

@@ -226,7 +226,7 @@ const submissionSlice = createSlice({
             // First-time submission: surface it in the student's list right away
             state.submissions.unshift(merged);
           }
-          // Force the next list fetch to run — the 30s stale-guard would otherwise
+          // Force the next list fetch to run   the 30s stale-guard would otherwise
           // skip it and leave the Submitted Work page looking empty.
           state.lastFetchedAt = null;
         }
@@ -275,12 +275,12 @@ const submissionSlice = createSlice({
         }
         state.currentSubmission = payload
           ? {
-              ...(state.currentSubmission || {}),
-              ...payload,
-              fullReport,
-              assignmentId:
-                payload.assignmentId ?? action.meta?.arg?.assignmentId ?? state.currentSubmission?.assignmentId,
-            }
+            ...(state.currentSubmission || {}),
+            ...payload,
+            fullReport,
+            assignmentId:
+              payload.assignmentId ?? action.meta?.arg?.assignmentId ?? state.currentSubmission?.assignmentId,
+          }
           : payload;
       })
       .addCase(fetchSubmissionStatus.rejected, (state, action) => {

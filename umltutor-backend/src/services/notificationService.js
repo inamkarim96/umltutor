@@ -22,14 +22,14 @@ let queueFlushTimer = null;
 
 function flushQueue() {
   if (notificationQueue.length === 0) return;
-  
+
   const batch = notificationQueue.splice(0, QUEUE_BATCH_SIZE);
   notificationRepository.createMany(batch).catch(err => {
     console.error('Failed to process notification batch:', err);
     // Re-queue failed notifications
     notificationQueue.unshift(...batch);
   });
-  
+
   // If there are more items, schedule next flush
   if (notificationQueue.length > 0) {
     queueFlushTimer = setTimeout(flushQueue, QUEUE_FLUSH_INTERVAL);
@@ -105,7 +105,7 @@ class NotificationService {
   }
 
   /**
-   * Mark a notification as read — single conditional updateMany (no findFirst round-trip)
+   * Mark a notification as read   single conditional updateMany (no findFirst round-trip)
    */
   async markAsRead(notificationId, userId) {
     const nid = Number(notificationId);
@@ -118,14 +118,14 @@ class NotificationService {
     );
 
     if (result.count === 0) {
-      // Either not found or already read — verify existence to give correct error
+      // Either not found or already read   verify existence to give correct error
       const exists = await notificationRepository.findFirst({ id: nid, userId: uid });
       if (!exists) {
         const error = new Error('Notification not found');
         error.status = 404;
         throw error;
       }
-      // Already read — return it as-is
+      // Already read   return it as-is
       return exists;
     }
 
@@ -183,7 +183,7 @@ class NotificationService {
         });
       }
     }
-    
+
     // Process all notifications in batch
     if (allNotifications.length > 0) {
       if (allNotifications.length > QUEUE_BATCH_SIZE) {
@@ -195,7 +195,7 @@ class NotificationService {
       }
     }
   }
-  
+
   /**
    * Manually flush the notification queue (for testing or shutdown)
    */

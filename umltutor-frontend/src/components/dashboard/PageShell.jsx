@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 /**
- * PageShell — shared page wrapper used by all student sub-pages.
+ * PageShell   shared page wrapper used by all student sub-pages.
  * Provides a consistent header (breadcrumb + title), action bar, and body.
  */
 const PageShell = ({

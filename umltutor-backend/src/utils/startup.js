@@ -70,7 +70,7 @@ const initializeApplication = async () => {
         const cacheService = require('./redis');
         const ok = await cacheService.ping();
         if (!ok) {
-          console.warn('[Cache] Redis unavailable — API will use in-memory cache only');
+          console.warn('[Cache] Redis unavailable   API will use in-memory cache only');
         }
       } catch (error) {
         console.warn('[Cache] Redis ping skipped:', error.message);

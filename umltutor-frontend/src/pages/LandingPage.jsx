@@ -164,7 +164,7 @@ const LandingPage = () => {
                 <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" /></svg>
               </div>
               <div className="step-title">Semantic Validation</div>
-              <div className="step-desc">12+ validation phases check cross-diagram consistency — descriptions match diagrams, SSDs align with class operations, and sequence diagrams trace use cases.</div>
+              <div className="step-desc">12+ validation phases check cross-diagram consistency descriptions match diagrams, SSDs align with class operations, and sequence diagrams trace use cases.</div>
             </div>
             <div className="step-card">
               <div className="step-num">04</div>
@@ -184,7 +184,7 @@ const LandingPage = () => {
           <div className="reveal">
             <span className="section-label">Capabilities</span>
             <h2 className="section-title">Everything You Need</h2>
-            <p className="section-sub">Powerful tools built specifically for teaching and mastering UML modeling — now with an integrated AI engine.</p>
+            <p className="section-sub">Powerful tools built specifically for teaching and mastering UML modeling now with an integrated AI engine.</p>
           </div>
           <div className="features-grid">
 
@@ -362,7 +362,7 @@ const LandingPage = () => {
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
               </div>
               <div className="feature-title">Intelligent Issue Reporting</div>
-              <div className="feature-desc">Validation errors are categorized by severity (error / warning / info), linked to the exact diagram element, and accompanied by a fix suggestion — not just a generic error message.</div>
+              <div className="feature-desc">Validation errors are categorized by severity (error / warning / info), linked to the exact diagram element, and accompanied by a fix suggestion not just a generic error message.</div>
             </div>
 
           </div>
@@ -375,7 +375,7 @@ const LandingPage = () => {
           <div className="reveal">
             <span className="section-label">Key Modules</span>
             <h2 className="section-title">Core UML Modeling Tools</h2>
-            <p className="section-sub">Five sequential modeling phases — each builds on the last, and the AI engine validates alignment between all of them.</p>
+            <p className="section-sub">Five sequential modeling phases each builds on the last, and the AI engine validates alignment between all of them.</p>
           </div>
           <div className="modules-grid">
             <div className="module-card reveal reveal-delay-1">
@@ -471,7 +471,7 @@ const LandingPage = () => {
             <div>
               <span className="section-label">Student Journey</span>
               <h2 className="section-title">Your Path to UML Mastery</h2>
-              <p className="section-sub">From opening an assignment to submitting a complete, AI-validated UML model — the whole journey in one platform.</p>
+              <p className="section-sub">From opening an assignment to submitting a complete, AI-validated UML model the whole journey in one platform.</p>
               <div className="workflow-cta">
                 <Link to="/signup" className="btn-primary">
                   Start Your Journey

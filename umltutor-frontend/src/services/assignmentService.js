@@ -2,7 +2,7 @@ import apiClient from './apiClient';
 import { inflightGet } from '../utils/inflightRequest';
 
 /**
- * Unified Assignment Service — GETs deduplicated for fast dashboard loads.
+ * Unified Assignment Service   GETs deduplicated for fast dashboard loads.
  */
 class AssignmentService {
   // === TEACHER OPERATIONS ===

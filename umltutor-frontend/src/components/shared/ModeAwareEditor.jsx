@@ -249,11 +249,11 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                 section: currentSection,
                 ...(showTutorialUI
                   ? {
-                      tutorialProgress: {
-                        currentStep: currentSection,
-                        completedSteps: tutorialCompletedSteps,
-                      },
-                    }
+                    tutorialProgress: {
+                      currentStep: currentSection,
+                      completedSteps: tutorialCompletedSteps,
+                    },
+                  }
                   : {}),
               }),
               lean: true,
@@ -294,7 +294,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
   useEffect(() => {
     if (isSubmitted || effectivelyReadOnly || isSubmitting || isManualSaving || !model) return;
     const timer = setTimeout(() => {
-      persistDraft(true).catch(() => {});
+      persistDraft(true).catch(() => { });
     }, 15000);
     return () => clearTimeout(timer);
   }, [model, isSubmitted, effectivelyReadOnly, isSubmitting, isManualSaving, activeSection, persistDraft]);
@@ -745,9 +745,9 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
           <div className="flex items-center gap-2 mr-2">
             {isAutoSaving ? (
-              <span className="text-[10px] font-bold font-body text-gray-400 flex items-center gap-1 animate-pulse"><Database size={10}/> Saving...</span>
+              <span className="text-[10px] font-bold font-body text-gray-400 flex items-center gap-1 animate-pulse"><Database size={10} /> Saving...</span>
             ) : lastSaved ? (
-              <span className="text-[10px] font-bold font-body text-gray-400 flex items-center gap-1"><CheckCircle size={10}/> Saved {lastSaved.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              <span className="text-[10px] font-bold font-body text-gray-400 flex items-center gap-1"><CheckCircle size={10} /> Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             ) : null}
           </div>
 
@@ -769,7 +769,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
               Retry save
             </button>
           )}
-          
+
           <div className="relative" ref={exportDropdownRef}>
             <button
               onClick={() => setShowExportDropdown(!showExportDropdown)}
@@ -780,121 +780,121 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
               <ChevronDown size={12} className={`transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
             </button>
             {showExportDropdown && (
-                <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-black/10 rounded-xl shadow-hover p-2 z-50">
-                  <div className="grid grid-cols-2 gap-1 mb-2">
-                    {['png', 'jpeg', 'svg', 'pdf'].map(ext => (
-                      <button
-                        key={ext}
-                        onClick={() => {
-                          setExportModal({ isOpen: true, format: ext });
-                          setShowExportDropdown(false);
-                        }}
-                        className="text-center px-2 py-1.5 text-[10px] hover:bg-surface-3 rounded border border-black/5 bg-surface-3/50 font-bold font-body uppercase transition-colors"
-                      >
-                        {ext}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="border-t border-black/5 my-1"></div>
-                  <button
-                    onClick={async () => {
-                      setIsExporting(true);
-                      try {
-                        const exportReport = currentSubmission?.fullReport || checkingState.results;
-                        const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
-                        if (!hasCaseStudy && !currentSubmission?.fullReport) {
-                          warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included.');
-                        }
-                        await exportToFile('report-txt', exportReport, { studentName: model?.studentName || '', assignmentTitle: model?.title || '' });
-                        successToast('Report exported as TXT');
-                      } catch (err) {
-                        errorToast('Export failed: ' + err.message);
-                      } finally {
-                        setIsExporting(false);
+              <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-black/10 rounded-xl shadow-hover p-2 z-50">
+                <div className="grid grid-cols-2 gap-1 mb-2">
+                  {['png', 'jpeg', 'svg', 'pdf'].map(ext => (
+                    <button
+                      key={ext}
+                      onClick={() => {
+                        setExportModal({ isOpen: true, format: ext });
                         setShowExportDropdown(false);
-                      }
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-bold font-body text-ink transition-colors"
-                  >
-                    <div className="flex items-center gap-1.5 font-extrabold font-heading">
-                      <File size={12} />
-                      <span>Download Report (.txt)</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setIsExporting(true);
-                      try {
-                        const exportReport = currentSubmission?.fullReport || checkingState.results;
-                        const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
-                        if (!hasCaseStudy && !currentSubmission?.fullReport) {
-                          warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included.');
-                        }
-                        await exportToFile('report-json', exportReport, { studentName: model?.studentName || '', assignmentTitle: model?.title || '' });
-                        successToast('Report exported as JSON');
-                      } catch (err) {
-                        errorToast('Export failed: ' + err.message);
-                      } finally {
-                        setIsExporting(false);
-                        setShowExportDropdown(false);
-                      }
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-bold font-body text-ink transition-colors"
-                  >
-                    <div className="flex items-center gap-1.5 font-extrabold font-heading">
-                      <File size={12} />
-                      <span>Download Report (.json)</span>
-                    </div>
-                  </button>
-                  <div className="border-t border-black/5 my-1"></div>
-                  <button
-                    onClick={async () => {
-                      setIsExporting(true);
-                      setIsCombinedExporting(true);
-                      try {
-                        const exportReport = currentSubmission?.fullReport || checkingState.results;
-                        const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
-                        if (!hasCaseStudy && !currentSubmission?.fullReport) {
-                          warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included in this export.');
-                        }
-                        const studentName = model?.studentName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '') || (user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '') || user?.name || user?.fullName || currentSubmission?.studentName || '';
-                        const teacherName = model?.teacherName || assignmentDetails?.teacher_name || assignmentDetails?.teacherName || assignmentDetails?.teacher?.name || assignmentDetails?.createdBy?.name || '';
-                        const className = model?.className || assignmentDetails?.class_name || assignmentDetails?.className || assignmentDetails?.class?.name || assignmentDetails?.course || '';
-                        const result = await exportToFile('combined', exportReport, {
-                          studentName: studentName.trim() || user?.username || user?.email || '',
-                          teacherName: teacherName.trim(),
-                          className: className.trim(),
-                          assignmentTitle: model.title || assignmentDetails?.title || '',
-                          mode: currentMode,
-                          reviewerName: currentSubmission?.reviewedBy?.name || currentSubmission?.reviewedBy?.username || ''
-                        });
-                        successToast('Full model exported successfully!');
-                        try {
-                            await submissionService.recordExport(model.id, {
-                              format: 'pdf',
-                              section: 'all',
-                              durationMs: result?.durationMs,
-                            }, result?.blob || null);
-                        } catch (recordErr) {
-                            console.warn('[Export] Could not record export:', recordErr?.message);
-                        }
-                      } catch (err) {
-                        errorToast('Export failed: ' + err.message);
-                      } finally {
-                        setIsExporting(false);
-                        setIsCombinedExporting(false);
-                        setShowExportDropdown(false);
-                      }
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-extrabold font-heading text-accent flex flex-col gap-0.5 transition-colors"
-                  >
-                    <div className="flex items-center gap-1.5 font-extrabold font-heading">
-                      <File size={12} />
-                      <span>Export Complete Model</span>
-                    </div>
-                    <span className="text-[9px] opacity-70 font-medium">Include Diagrams & Reports</span>
-                  </button>
+                      }}
+                      className="text-center px-2 py-1.5 text-[10px] hover:bg-surface-3 rounded border border-black/5 bg-surface-3/50 font-bold font-body uppercase transition-colors"
+                    >
+                      {ext}
+                    </button>
+                  ))}
                 </div>
+                <div className="border-t border-black/5 my-1"></div>
+                <button
+                  onClick={async () => {
+                    setIsExporting(true);
+                    try {
+                      const exportReport = currentSubmission?.fullReport || checkingState.results;
+                      const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
+                      if (!hasCaseStudy && !currentSubmission?.fullReport) {
+                        warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included.');
+                      }
+                      await exportToFile('report-txt', exportReport, { studentName: model?.studentName || '', assignmentTitle: model?.title || '' });
+                      successToast('Report exported as TXT');
+                    } catch (err) {
+                      errorToast('Export failed: ' + err.message);
+                    } finally {
+                      setIsExporting(false);
+                      setShowExportDropdown(false);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-bold font-body text-ink transition-colors"
+                >
+                  <div className="flex items-center gap-1.5 font-extrabold font-heading">
+                    <File size={12} />
+                    <span>Download Report (.txt)</span>
+                  </div>
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsExporting(true);
+                    try {
+                      const exportReport = currentSubmission?.fullReport || checkingState.results;
+                      const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
+                      if (!hasCaseStudy && !currentSubmission?.fullReport) {
+                        warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included.');
+                      }
+                      await exportToFile('report-json', exportReport, { studentName: model?.studentName || '', assignmentTitle: model?.title || '' });
+                      successToast('Report exported as JSON');
+                    } catch (err) {
+                      errorToast('Export failed: ' + err.message);
+                    } finally {
+                      setIsExporting(false);
+                      setShowExportDropdown(false);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-bold font-body text-ink transition-colors"
+                >
+                  <div className="flex items-center gap-1.5 font-extrabold font-heading">
+                    <File size={12} />
+                    <span>Download Report (.json)</span>
+                  </div>
+                </button>
+                <div className="border-t border-black/5 my-1"></div>
+                <button
+                  onClick={async () => {
+                    setIsExporting(true);
+                    setIsCombinedExporting(true);
+                    try {
+                      const exportReport = currentSubmission?.fullReport || checkingState.results;
+                      const hasCaseStudy = exportReport?.caseStudyReport || exportReport?.checkResult?.caseStudyReport;
+                      if (!hasCaseStudy && !currentSubmission?.fullReport) {
+                        warningToast('Note: Case-study consistency section requires teacher-run check. Only basic validation included in this export.');
+                      }
+                      const studentName = model?.studentName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '') || (user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '') || user?.name || user?.fullName || currentSubmission?.studentName || '';
+                      const teacherName = model?.teacherName || assignmentDetails?.teacher_name || assignmentDetails?.teacherName || assignmentDetails?.teacher?.name || assignmentDetails?.createdBy?.name || '';
+                      const className = model?.className || assignmentDetails?.class_name || assignmentDetails?.className || assignmentDetails?.class?.name || assignmentDetails?.course || '';
+                      const result = await exportToFile('combined', exportReport, {
+                        studentName: studentName.trim() || user?.username || user?.email || '',
+                        teacherName: teacherName.trim(),
+                        className: className.trim(),
+                        assignmentTitle: model.title || assignmentDetails?.title || '',
+                        mode: currentMode,
+                        reviewerName: currentSubmission?.reviewedBy?.name || currentSubmission?.reviewedBy?.username || ''
+                      });
+                      successToast('Full model exported successfully!');
+                      try {
+                        await submissionService.recordExport(model.id, {
+                          format: 'pdf',
+                          section: 'all',
+                          durationMs: result?.durationMs,
+                        }, result?.blob || null);
+                      } catch (recordErr) {
+                        console.warn('[Export] Could not record export:', recordErr?.message);
+                      }
+                    } catch (err) {
+                      errorToast('Export failed: ' + err.message);
+                    } finally {
+                      setIsExporting(false);
+                      setIsCombinedExporting(false);
+                      setShowExportDropdown(false);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 rounded-lg font-extrabold font-heading text-accent flex flex-col gap-0.5 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5 font-extrabold font-heading">
+                    <File size={12} />
+                    <span>Export Complete Model</span>
+                  </div>
+                  <span className="text-[9px] opacity-70 font-medium">Include Diagrams & Reports</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -938,11 +938,10 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                 dispatch(setMode(newMode));
                 if (newMode === 'tutorial') dispatch(clearModeState('tutorial'));
               }}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-extrabold font-heading uppercase tracking-wider transition-all shadow-sm ${
-                currentMode === 'tutorial'
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-extrabold font-heading uppercase tracking-wider transition-all shadow-sm ${currentMode === 'tutorial'
                   ? 'bg-ink text-white hover:bg-ink/90'
                   : 'bg-status-green text-white hover:bg-green-700'
-              }`}
+                }`}
             >
               {currentMode === 'tutorial' ? <Eye size={14} /> : <BookOpen size={14} />}
               {currentMode === 'tutorial' ? 'Submitted View' : 'Tutorial Mode'}
@@ -951,7 +950,7 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
 
           {(currentMode === 'development' || isTutorialMode) &&
             (!isStudentWork || hasReport || currentSubmission?.fullReport || currentSubmission?.tutorialApproved) && (
-            <button
+              <button
                 onClick={toggleCheckingMode}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold font-body transition-colors shadow-sm border ${isCheckingActive
                   ? 'bg-status-green text-white border-green-600'
@@ -962,19 +961,19 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                 {hasReport || currentSubmission?.fullReport || currentSubmission?.tutorialApproved
                   ? 'Checking Report'
                   : 'Checking Mode'}
-            </button>
-          )}
+              </button>
+            )}
         </div>
       </div>
 
-      {/* Workspace Info Bar */} 
+      {/* Workspace Info Bar */}
       {isStudentWork && (
         <div className="bg-white border-b border-black/5 px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[11px] font-medium text-gray-500 z-30">
           <span className="flex items-center gap-1.5">
             <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Class</span>
-            <span className="text-ink font-bold">{model?.className || assignmentDetails?.class?.name || '—'}</span>
+            <span className="text-ink font-bold">{model?.className || assignmentDetails?.class?.name || ' '}</span>
           </span>
-          { (model?.classCode || assignmentDetails?.class?.code) && (
+          {(model?.classCode || assignmentDetails?.class?.code) && (
             <span className="flex items-center gap-1.5">
               <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Batch</span>
               <span className="text-ink font-bold">{model?.classCode || assignmentDetails?.class?.code}</span>
@@ -986,11 +985,10 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
           </span>
           <span className="flex items-center gap-1.5">
             <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Status</span>
-            <span className={`font-bold capitalize ${
-              submissionStatusLabel === 'Graded' ? 'text-status-green' :
-              submissionStatusLabel === 'Submitted' ? 'text-accent' :
-              submissionStatusLabel === 'Draft' ? 'text-amber-600' : 'text-gray-400'
-            }`}>{submissionStatusLabel}</span>
+            <span className={`font-bold capitalize ${submissionStatusLabel === 'Graded' ? 'text-status-green' :
+                submissionStatusLabel === 'Submitted' ? 'text-accent' :
+                  submissionStatusLabel === 'Draft' ? 'text-amber-600' : 'text-gray-400'
+              }`}>{submissionStatusLabel}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="font-extrabold font-heading uppercase tracking-widest text-gray-400">Stage</span>
@@ -1008,21 +1006,18 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
               return (
                 <React.Fragment key={stage.id}>
                   {idx > 0 && (
-                    <div className={`flex-1 h-0.5 mx-1 ${
-                      stageStatus === 'locked' ? 'bg-gray-200' : 'bg-accent/30'
-                    }`} />
+                    <div className={`flex-1 h-0.5 mx-1 ${stageStatus === 'locked' ? 'bg-gray-200' : 'bg-accent/30'
+                      }`} />
                   )}
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold font-heading uppercase tracking-widest whitespace-nowrap transition-all ${
-                    stageStatus === 'active'
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold font-heading uppercase tracking-widest whitespace-nowrap transition-all ${stageStatus === 'active'
                       ? 'bg-accent/10 text-accent border border-accent/20 shadow-sm'
                       : stageStatus === 'completed'
                         ? 'bg-status-green/10 text-status-green border border-emerald-100'
                         : 'bg-white/50 text-gray-300 border border-transparent'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      stageStatus === 'active' ? 'bg-accent animate-pulse' :
-                      stageStatus === 'completed' ? 'bg-status-green' : 'bg-gray-300'
-                    }`} />
+                    }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${stageStatus === 'active' ? 'bg-accent animate-pulse' :
+                        stageStatus === 'completed' ? 'bg-status-green' : 'bg-gray-300'
+                      }`} />
                     {stage.label}
                   </div>
                 </React.Fragment>
@@ -1059,73 +1054,72 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
         </div>
       )}
 
-      {/* 3. Horizontal Tab Bar (development only — tutorial uses guided sidebar) */}
+      {/* 3. Horizontal Tab Bar (development only   tutorial uses guided sidebar) */}
       {!enforceTutorialProgression && (
-      <div className="bg-white border-b border-black/5 px-6 pt-3 flex gap-4 overflow-x-auto custom-scrollbar sticky z-30" style={{ top: '73px' }}>
-         {sections.map(section => (
+        <div className="bg-white border-b border-black/5 px-6 pt-3 flex gap-4 overflow-x-auto custom-scrollbar sticky z-30" style={{ top: '73px' }}>
+          {sections.map(section => (
             <button
               key={section.id}
               onClick={() => handleSectionTabChange(section.id)}
               disabled={section.isLocked}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-bold font-body transition-all border-b-2 whitespace-nowrap ${
-                activeSection === section.id
-                ? 'border-accent text-accent bg-accent/5'
-                : 'border-transparent text-muted hover:bg-surface-3 hover:text-ink'
-              } ${section.isLocked ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-bold font-body transition-all border-b-2 whitespace-nowrap ${activeSection === section.id
+                  ? 'border-accent text-accent bg-accent/5'
+                  : 'border-transparent text-muted hover:bg-surface-3 hover:text-ink'
+                } ${section.isLocked ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
             >
               <section.icon size={16} className={activeSection === section.id ? 'text-accent' : 'text-gray-400'} />
               {section.label}
             </button>
-         ))}
-      </div>
+          ))}
+        </div>
       )}
 
       {/* 4. Instructions & Resources */}
       {isStudentWork && model && (
-         <div className="px-6 py-4 bg-surface-3 border-b border-black/5">
-            <div className="max-w-[1600px] mx-auto w-full flex flex-col md:flex-row gap-6">
-               <div className="flex-1">
-                 <h3 className="text-[10px] font-extrabold font-heading text-muted uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                    <FileText size={12} /> Instructions
-                 </h3>
-                 <div className="bg-white rounded-lg p-4 text-sm text-gray-700 leading-relaxed max-h-40 overflow-y-auto border border-black/5 shadow-sm font-medium custom-scrollbar">
-                    {model.textContent ? (
-                      <div className="whitespace-pre-wrap">{model.textContent}</div>
-                    ) : model.instructions ? (
-                      <div className="whitespace-pre-wrap">{model.instructions}</div>
-                    ) : (
-                      <p className="italic text-gray-400">Please refer to the description or attached resources for instructions.</p>
-                    )}
-                 </div>
-               </div>
-               
-               {model.assignmentFileUrl && (
-                 <div className="w-full md:w-80 shrink-0">
-                   <h3 className="text-[10px] font-extrabold font-heading text-muted uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                      <Database size={12} /> Resource
-                   </h3>
-                   <div className="flex items-center justify-between p-3 bg-white border border-black/5 rounded-lg hover:border-accent/30 transition-all shadow-sm group">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 bg-accent/10 text-accent rounded-lg flex items-center justify-center shrink-0">
-                          <File size={16} />
-                        </div>
-                        <span className="text-xs font-bold font-body text-gray-700 truncate">
-                          {model.assignmentFileName || 'Resource File'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button onClick={() => setPreviewFile({ url: model.assignmentFileUrl, name: model.assignmentFileName || 'Resource File', type: model.assignmentFileType })} className="p-1.5 hover:bg-surface-3 rounded-md text-muted transition-colors">
-                          <Eye size={14} />
-                        </button>
-                        <a href={resolveResourceUrl(model.assignmentFileUrl)} download={model.assignmentFileName || 'Resource'} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-surface-3 rounded-md text-muted transition-colors">
-                          <Download size={14} />
-                        </a>
-                      </div>
-                   </div>
-                 </div>
-               )}
+        <div className="px-6 py-4 bg-surface-3 border-b border-black/5">
+          <div className="max-w-[1600px] mx-auto w-full flex flex-col md:flex-row gap-6">
+            <div className="flex-1">
+              <h3 className="text-[10px] font-extrabold font-heading text-muted uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <FileText size={12} /> Instructions
+              </h3>
+              <div className="bg-white rounded-lg p-4 text-sm text-gray-700 leading-relaxed max-h-40 overflow-y-auto border border-black/5 shadow-sm font-medium custom-scrollbar">
+                {model.textContent ? (
+                  <div className="whitespace-pre-wrap">{model.textContent}</div>
+                ) : model.instructions ? (
+                  <div className="whitespace-pre-wrap">{model.instructions}</div>
+                ) : (
+                  <p className="italic text-gray-400">Please refer to the description or attached resources for instructions.</p>
+                )}
+              </div>
             </div>
-         </div>
+
+            {model.assignmentFileUrl && (
+              <div className="w-full md:w-80 shrink-0">
+                <h3 className="text-[10px] font-extrabold font-heading text-muted uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <Database size={12} /> Resource
+                </h3>
+                <div className="flex items-center justify-between p-3 bg-white border border-black/5 rounded-lg hover:border-accent/30 transition-all shadow-sm group">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 bg-accent/10 text-accent rounded-lg flex items-center justify-center shrink-0">
+                      <File size={16} />
+                    </div>
+                    <span className="text-xs font-bold font-body text-gray-700 truncate">
+                      {model.assignmentFileName || 'Resource File'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <button onClick={() => setPreviewFile({ url: model.assignmentFileUrl, name: model.assignmentFileName || 'Resource File', type: model.assignmentFileType })} className="p-1.5 hover:bg-surface-3 rounded-md text-muted transition-colors">
+                      <Eye size={14} />
+                    </button>
+                    <a href={resolveResourceUrl(model.assignmentFileUrl)} download={model.assignmentFileName || 'Resource'} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-surface-3 rounded-md text-muted transition-colors">
+                      <Download size={14} />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* 5. Main Active Content */}
@@ -1306,13 +1300,13 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
             successToast(`Step exported successfully as ${format.toUpperCase()}.`);
 
             try {
-                await submissionService.recordExport(model.id, {
-                  format: result?.format || format,
-                  section: stepId,
-                  durationMs: result?.durationMs,
-                }, result?.blob || null);
+              await submissionService.recordExport(model.id, {
+                format: result?.format || format,
+                section: stepId,
+                durationMs: result?.durationMs,
+              }, result?.blob || null);
             } catch (recordErr) {
-                console.warn('[Export] Could not record export:', recordErr?.message);
+              console.warn('[Export] Could not record export:', recordErr?.message);
             }
           } catch (error) {
             console.error('Single step export failed:', error);
@@ -1368,129 +1362,129 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
         </div>
       )}
       {isCombinedExporting && (
-          <div
-            id="full-model-export-renderer"
-            className="fixed pointer-events-none"
-            style={{ width: '1400px', height: 'auto', left: 0, top: 0, zIndex: -100, opacity: 0.01, overflow: 'visible' }}
-          >
-            <div className="w-full flex flex-col gap-20 p-20 bg-white">
-              {/* Step 1: Use Case Diagram & Report */}
-              <div className="flex flex-col gap-8" data-export-section="usecase">
-                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">1. Use Case Diagram</h1>
-                <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
-                  <UseCaseDiagramEditor
-                    assignmentId={model.id}
-                    initialData={model.diagram}
-                    isReadOnly={true}
-                  />
-                </div>
-                <div className="w-full">
-                  <CheckingModePanel
-                    activeSection="usecase"
-                    reportOverride={currentSubmission?.fullReport}
-                    modelOverride={model}
-                  />
-                </div>
+        <div
+          id="full-model-export-renderer"
+          className="fixed pointer-events-none"
+          style={{ width: '1400px', height: 'auto', left: 0, top: 0, zIndex: -100, opacity: 0.01, overflow: 'visible' }}
+        >
+          <div className="w-full flex flex-col gap-20 p-20 bg-white">
+            {/* Step 1: Use Case Diagram & Report */}
+            <div className="flex flex-col gap-8" data-export-section="usecase">
+              <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">1. Use Case Diagram</h1>
+              <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
+                <UseCaseDiagramEditor
+                  assignmentId={model.id}
+                  initialData={model.diagram}
+                  isReadOnly={true}
+                />
               </div>
-
-              {/* Step 2: Use Case Descriptions & Reports */}
-              <div className="flex flex-col gap-12" data-export-section="descriptions">
-                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">2. Use Case Descriptions</h1>
-                {model?.descriptions && Object.entries(model.descriptions).map(([id, desc]) => (
-                  <div key={id} className="flex flex-col gap-6 p-8 border-2 border-slate-100 rounded-3xl">
-                    <h2 className="text-2xl font-black text-slate-800 italic">2.1 Use Case: {desc.useCaseName}</h2>
-                    <div className="w-full">
-                      <UseCaseDescriptionEditor
-                        assignmentId={model.id}
-                        isReadOnly={true}
-                        isCheckingActive={false}
-                        useCaseId={id}
-                      />
-                    </div>
-                    <div className="w-full mt-4">
-                      <CheckingModePanel
-                        activeSection="description"
-                        useCaseId={id}
-                        reportOverride={currentSubmission?.fullReport}
-                        modelOverride={model}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Step 3: SSDs & Reports */}
-              <div className="flex flex-col gap-12" data-export-section="ssds">
-                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">3. System Sequence Diagrams</h1>
-                {model?.descriptions && Object.keys(model.descriptions).map(id => (
-                  <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
-                    <h2 className="text-2xl font-black text-slate-800 italic">3.1 SSD: {model.descriptions[id]?.useCaseName}</h2>
-                    <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
-                      <SSDDiagramEditor
-                        assignmentId={model.id}
-                        isReadOnly={true}
-                        isCheckingActive={false}
-                        modelOverride={model}
-                        useCaseId={id}
-                      />
-                    </div>
-                    <div className="w-full">
-                      <CheckingModePanel
-                        activeSection="ssd"
-                        useCaseId={id}
-                        reportOverride={currentSubmission?.fullReport}
-                        modelOverride={model}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Step 4: Class Diagram & Report */}
-              <div className="flex flex-col gap-12" data-export-section="class-diagram">
-                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">4. Class Diagram</h1>
-                <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '800px' }}>
-                  <ClassDiagramEditor
-                    assignmentId={model.id}
-                    initialData={model.classDiagram}
-                    isReadOnly={true}
-                  />
-                </div>
-                <div className="w-full">
-                  <CheckingModePanel
-                    activeSection="class-diagram"
-                    reportOverride={currentSubmission?.fullReport}
-                    modelOverride={model}
-                  />
-                </div>
-              </div>
-
-              {/* Step 5: Sequence Diagrams & Reports */}
-              <div className="flex flex-col gap-12" data-export-section="sequence-diagrams">
-                <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">5. Sequence Diagrams</h1>
-                {model?.descriptions && Object.keys(model.descriptions).map(id => (
-                  <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
-                    <h2 className="text-2xl font-black text-slate-800 italic">5.1 Sequence: {model.descriptions[id]?.useCaseName}</h2>
-                    <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '700px' }}>
-                      <SequenceDiagramEditor
-                        assignmentId={model.id}
-                        isReadOnly={true}
-                        modelOverride={model}
-                        useCaseId={id}
-                      />
-                    </div>
-                    <div className="w-full">
-                      <CheckingModePanel
-                        activeSection="sequence-diagram"
-                        reportOverride={currentSubmission?.fullReport}
-                        modelOverride={model}
-                      />
-                    </div>
-                  </div>
-                ))}
+              <div className="w-full">
+                <CheckingModePanel
+                  activeSection="usecase"
+                  reportOverride={currentSubmission?.fullReport}
+                  modelOverride={model}
+                />
               </div>
             </div>
+
+            {/* Step 2: Use Case Descriptions & Reports */}
+            <div className="flex flex-col gap-12" data-export-section="descriptions">
+              <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">2. Use Case Descriptions</h1>
+              {model?.descriptions && Object.entries(model.descriptions).map(([id, desc]) => (
+                <div key={id} className="flex flex-col gap-6 p-8 border-2 border-slate-100 rounded-3xl">
+                  <h2 className="text-2xl font-black text-slate-800 italic">2.1 Use Case: {desc.useCaseName}</h2>
+                  <div className="w-full">
+                    <UseCaseDescriptionEditor
+                      assignmentId={model.id}
+                      isReadOnly={true}
+                      isCheckingActive={false}
+                      useCaseId={id}
+                    />
+                  </div>
+                  <div className="w-full mt-4">
+                    <CheckingModePanel
+                      activeSection="description"
+                      useCaseId={id}
+                      reportOverride={currentSubmission?.fullReport}
+                      modelOverride={model}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Step 3: SSDs & Reports */}
+            <div className="flex flex-col gap-12" data-export-section="ssds">
+              <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">3. System Sequence Diagrams</h1>
+              {model?.descriptions && Object.keys(model.descriptions).map(id => (
+                <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
+                  <h2 className="text-2xl font-black text-slate-800 italic">3.1 SSD: {model.descriptions[id]?.useCaseName}</h2>
+                  <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
+                    <SSDDiagramEditor
+                      assignmentId={model.id}
+                      isReadOnly={true}
+                      isCheckingActive={false}
+                      modelOverride={model}
+                      useCaseId={id}
+                    />
+                  </div>
+                  <div className="w-full">
+                    <CheckingModePanel
+                      activeSection="ssd"
+                      useCaseId={id}
+                      reportOverride={currentSubmission?.fullReport}
+                      modelOverride={model}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Step 4: Class Diagram & Report */}
+            <div className="flex flex-col gap-12" data-export-section="class-diagram">
+              <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">4. Class Diagram</h1>
+              <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '800px' }}>
+                <ClassDiagramEditor
+                  assignmentId={model.id}
+                  initialData={model.classDiagram}
+                  isReadOnly={true}
+                />
+              </div>
+              <div className="w-full">
+                <CheckingModePanel
+                  activeSection="class-diagram"
+                  reportOverride={currentSubmission?.fullReport}
+                  modelOverride={model}
+                />
+              </div>
+            </div>
+
+            {/* Step 5: Sequence Diagrams & Reports */}
+            <div className="flex flex-col gap-12" data-export-section="sequence-diagrams">
+              <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">5. Sequence Diagrams</h1>
+              {model?.descriptions && Object.keys(model.descriptions).map(id => (
+                <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
+                  <h2 className="text-2xl font-black text-slate-800 italic">5.1 Sequence: {model.descriptions[id]?.useCaseName}</h2>
+                  <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '700px' }}>
+                    <SequenceDiagramEditor
+                      assignmentId={model.id}
+                      isReadOnly={true}
+                      modelOverride={model}
+                      useCaseId={id}
+                    />
+                  </div>
+                  <div className="w-full">
+                    <CheckingModePanel
+                      activeSection="sequence-diagram"
+                      reportOverride={currentSubmission?.fullReport}
+                      modelOverride={model}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+        </div>
       )}
     </div>
   );

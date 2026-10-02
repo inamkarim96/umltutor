@@ -57,8 +57,8 @@ const ClassDetail = () => {
 
     const targetClass = className
         ? classes.find(c =>
-              c.name?.toLowerCase().replace(/\s+/g, '-') === className.toLowerCase()
-          )
+            c.name?.toLowerCase().replace(/\s+/g, '-') === className.toLowerCase()
+        )
         : undefined;
     const classId = targetClass?.id;
     const classAssignments = classId ? assignmentsMap.filter(a => a.classId === classId) : [];
@@ -265,7 +265,7 @@ const ClassDetail = () => {
                     </div>
                 </div>
 
-                {/* Tab Navigation — Segmented Style (consistent with Student Dashboard) */}
+                {/* Tab Navigation   Segmented Style (consistent with Student Dashboard) */}
             </div>
             <div className="w-full bg-white border-y border-black/5 overflow-x-auto sticky top-0 z-20 shadow-card shadow-gray-50/50">
                 <div className="p-4 flex items-center gap-3 overflow-x-auto">
@@ -285,7 +285,7 @@ const ClassDetail = () => {
                                 className={`flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold font-heading text-sm whitespace-nowrap ${isActive
                                     ? 'bg-accent text-white border-accent shadow-hover shadow-accent/30'
                                     : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                                }`}
+                                    }`}
                                 style={{
                                     borderWidth: '1.5px',
                                     transition: 'all 0.15s ease',

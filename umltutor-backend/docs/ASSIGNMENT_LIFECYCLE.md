@@ -11,8 +11,8 @@ end is in `umltutor-frontend/`, the back end in `umltutor-backend/`.
 
 Two roles use the system:
 
-- **teacher** — creates classes and assignments, checks submissions, grades.
-- **student** — joins classes, draws the UML model, submits, reads the report.
+- **teacher**   creates classes and assignments, checks submissions, grades.
+- **student**   joins classes, draws the UML model, submits, reads the report.
 
 Routes enforce who may call them. For example, only a teacher may run the
 automated check:
@@ -46,7 +46,7 @@ The teacher posts an assignment to the class. The front-end form is
 The assignment carries:
 
 - title, release date, due date (deadline), maximum score, and an
-  **assignment type** — either free text (`TEXT`) or an uploaded file (`FILE`);
+  **assignment type**   either free text (`TEXT`) or an uploaded file (`FILE`);
 - the assignment's text content, which is the **requirement text** the
   case-study check later reads;
 - an optional attached reference file.
@@ -60,7 +60,7 @@ The assignment carries:
   (`umltutor-backend/src/controllers/assignmentController.js:14`), which maps
   the `assignmentType` / `textContent` / `maxScore` fields into the record.
 - Service: `createAssignmentDefinition`
-  (`umltutor-backend/src/services/assignmentService.js:90`) — stores the
+  (`umltutor-backend/src/services/assignmentService.js:90`)   stores the
   assignment and **notifies every enrolled student** that a new assignment was
   posted.
 
@@ -139,14 +139,14 @@ Inside the check:
 2. The assignment's requirement text is resolved and parsed on demand
    (`requirementService.getRequirementModelForSubmission`,
    `umltutor-backend/src/services/requirementService.js:40`).
-3. The validation engine runs in six phases — diagram, description, SSD, class
-   diagram, sequence diagram, cross-diagram consistency — plus the dynamic
+3. The validation engine runs in six phases   diagram, description, SSD, class
+   diagram, sequence diagram, cross-diagram consistency   plus the dynamic
    case-study consistency check (`CheckingEngine.checkModel`,
    `umltutor-backend/src/services/checkingEngine.js:22`).
 4. New issues are merged with any existing report issues for the same scope
    (per-section re-checks update only their own findings).
-5. The report — issues, per-section summary (error/warning/info counts) and the
-   case-study block — is stored in the submission's **evaluation record**
+5. The report   issues, per-section summary (error/warning/info counts) and the
+   case-study block   is stored in the submission's **evaluation record**
    (`update` branch, `umltutor-backend/src/services/submissionService.js:563-587`),
    and the submission is set back to `submitted`.
 
@@ -159,7 +159,7 @@ The student can then read the report via the status endpoint with
 
 The review page offers:
 
-- **Post Grade & Feedback** — a final score (0–100 or a quick letter grade) plus
+- **Post Grade & Feedback**   a final score (0–100 or a quick letter grade) plus
   written remarks. The back end stores the score and remarks in the evaluation
   record, sets the submission status to `graded`, and notifies the student.
 
@@ -170,7 +170,7 @@ The review page offers:
 
 Scoring notes:
 
-- A letter grade such as `A` never crashes the maths — the score is coerced to
+- A letter grade such as `A` never crashes the maths   the score is coerced to
   a safe number and simply left unchanged when it is not numeric
   (`_coerceScore`, `umltutor-backend/src/services/submissionService.js:157`);
 - saving a draft evaluation keeps the submission at `submitted`; saving a final

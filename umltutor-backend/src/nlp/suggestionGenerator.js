@@ -9,7 +9,7 @@ const {
   evaluateFunctionMatch,
 } = require('./similarity');
 
-// Words that are generic system descriptors — they should never form the
+// Words that are generic system descriptors   they should never form the
 // backbone of a suggested system name.
 const GENERIC_SYS_WORDS = new Set([
   'system', 'systems', 'software', 'application', 'applications', 'platform',

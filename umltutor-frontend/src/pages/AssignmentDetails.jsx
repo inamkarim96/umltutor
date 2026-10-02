@@ -46,7 +46,7 @@ import StudentCheckingReport from '../components/shared/StudentCheckingReport';
 import PageShell from '../components/dashboard/PageShell';
 
 const AssignmentDetails = () => {
-    // Custom router — useParams() returns {} without <Route> wrappers. Parse from URL.
+    // Custom router   useParams() returns {} without <Route> wrappers. Parse from URL.
     const titleSlug = window.location.pathname
         .split('/')
         .find((segment, i, arr) => arr[i - 1] === 'assignments' && segment !== 'submitted' && segment !== 'pending' && segment !== 'reviewed' && segment.length > 0);
@@ -227,7 +227,7 @@ const AssignmentDetails = () => {
 
     const formattedTime = assignment.deadline
         ? new Date(assignment.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : '—';
+        : ' ';
 
     // Countdown / status relative time
     const getDeadlineRel = () => {
@@ -247,11 +247,11 @@ const AssignmentDetails = () => {
     const effectiveClassId = classIdFromQuery || assignment?.classId;
     const effectiveClass = effectiveClassId ? classes?.find(c => c.id === parseInt(effectiveClassId)) : targetClass;
     const classSlug = effectiveClass?.name?.toLowerCase().replace(/\s+/g, '-');
-    
-    const backPath = effectiveClassId 
+
+    const backPath = effectiveClassId
         ? (role === 'TEACHER' ? `/teacher/classes/${classSlug}` : `/student/classes/${classSlug}`)
         : (role === 'TEACHER' ? '/teacher/assignments' : '/student/assignments');
-    
+
     const breadcrumbs = [
         { label: 'Assignments', path: backPath },
         ...(effectiveClass ? [{ label: effectiveClass.name, path: role === 'TEACHER' ? `/teacher/classes/${classSlug}` : `/student/classes/${classSlug}` }] : []),
@@ -535,7 +535,7 @@ const AssignmentDetails = () => {
                                                                 </td>
                                                                 <td>
                                                                     <span style={{ fontSize: '12px', color: 'var(--ink-2)' }}>
-                                                                        {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '—'}
+                                                                        {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : ' '}
                                                                     </span>
                                                                 </td>
                                                                 <td>
@@ -544,7 +544,7 @@ const AssignmentDetails = () => {
                                                                             {sub.score}%
                                                                         </span>
                                                                     ) : (
-                                                                        <span style={{ fontSize: '12px', color: 'var(--ink-3)' }}>—</span>
+                                                                        <span style={{ fontSize: '12px', color: 'var(--ink-3)' }}> </span>
                                                                     )}
                                                                 </td>
                                                                 <td style={{ textAlign: 'right' }}>

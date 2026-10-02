@@ -29,14 +29,14 @@ The rule catalogue holds more than 140 rule definitions, most of which are
 active; a handful are switched off. Every rule covers one of the five modelling
 artifacts a student produces:
 
-- **Use case diagram** — how the system boundary, actors, use cases and their
+- **Use case diagram**   how the system boundary, actors, use cases and their
   relationships are drawn and named.
-- **Use case description** — how well the written description of a use case is
+- **Use case description**   how well the written description of a use case is
   filled in and written.
-- **System sequence diagram (SSD)** — the lifelines and messages, and whether
+- **System sequence diagram (SSD)**   the lifelines and messages, and whether
   they match the description.
-- **Class diagram** — the classes, their attributes, methods and relationships.
-- **Sequence diagram** — the lifelines, operations, activations and message
+- **Class diagram**   the classes, their attributes, methods and relationships.
+- **Sequence diagram**   the lifelines, operations, activations and message
   ordering.
 
 There is also a group of rules that checks whether the different diagrams agree
@@ -45,11 +45,11 @@ the class diagram).
 
 Related files in `src/rules/`:
 
-- `ruleRegistry.js` — the full catalogue of rule definitions and helpers for
+- `ruleRegistry.js`   the full catalogue of rule definitions and helpers for
   looking rules up by code, diagram type, or category.
-- `ruleConfig.js` — settings that let an operator switch rules on or off and
+- `ruleConfig.js`   settings that let an operator switch rules on or off and
   change their severity or threshold without editing code.
-- `rulePipeline.js` — coordinates the order in which rules run. It groups the
+- `rulePipeline.js`   coordinates the order in which rules run. It groups the
   work into phases so that a serious early mistake stops later, pointless checks.
   It also removes "noise": when one original mistake causes many knock-on errors,
   only the real cause is shown to the student.
@@ -69,21 +69,21 @@ the report that the front end displays.
 All the text work in the back end is done locally. There are no calls to
 external AI services, and results are always the same for the same input.
 
-- `similarity.js` — compares words and phrases to tell how close two names or
+- `similarity.js`   compares words and phrases to tell how close two names or
   sentences are, and finds the best match from a group of options.
-- `sentenceUtils.js` — helpers for judging whether a sentence is well formed,
+- `sentenceUtils.js`   helpers for judging whether a sentence is well formed,
   spotting action steps, and reading method signatures and class attributes.
-- `semanticService.js` — makes sure that messages, operations and methods are
+- `semanticService.js`   makes sure that messages, operations and methods are
   compared using the same rules across all validation phases.
-- `constants.js` — shared word lists (action words, filler words, placeholder
+- `constants.js`   shared word lists (action words, filler words, placeholder
   names, synonyms) and the similarity cut-off values used everywhere.
-- `promptRequirementParser.js` — reads the free-text requirements of an
+- `promptRequirementParser.js`   reads the free-text requirements of an
   assignment and turns them into a structured summary of who the actors are,
   which capabilities they perform and how complete the text is.
-- `requirementClassifier.js` — sorts each sentence of the requirement text by
+- `requirementClassifier.js`   sorts each sentence of the requirement text by
   what kind of information it contains. Only sentences that describe a real
   action can become expected use cases; everything else is set aside.
-- `suggestionGenerator.js` — turns the findings of the case-study check into
+- `suggestionGenerator.js`   turns the findings of the case-study check into
   concrete, assignment-specific advice, such as what the system might be called
   or which roles are missing.
 
@@ -95,7 +95,7 @@ and instead explains that it cannot run the check properly.
 
 This is the teacher-facing feature. A student draws a use case diagram, and the
 back end checks that diagram against the assignment's own written text. There is
-no fixed, hardcoded assignment model — the text is read and understood fresh on
+no fixed, hardcoded assignment model   the text is read and understood fresh on
 every check.
 
 How it behaves:
@@ -123,7 +123,7 @@ verdict) that the front end renders directly. The overall verdict is one of
 ## 5. The Suggestion Engine (`src/services/suggestionEngine.js`)
 
 A separate, simpler suggestion engine turns validation findings into repair
-advice for diagram elements — for example, a sensible name for an operation or
+advice for diagram elements   for example, a sensible name for an operation or
 the right class to place a method on. It is used alongside the assignment-aware
 suggestions described above.
 
@@ -144,28 +144,28 @@ that stays correct across different database schema versions.
 Together with `assignmentService.js` it covers the full assignment journey:
 assignment creation, student saves and submits, the run-check that generates
 the report, grading, tutorial-mode requests, exports and analytics. The whole
-flow — who does what at each stage, with file references as proof — is
+flow   who does what at each stage, with file references as proof   is
 documented in [ASSIGNMENT_LIFECYCLE.md](ASSIGNMENT_LIFECYCLE.md).
 
 ## 7. Communication and Data Handling
 
-- **Caching** — `utils/redis.js` and `utils/serviceCache.js` provide a two-level
+- **Caching**   `utils/redis.js` and `utils/serviceCache.js` provide a two-level
   cache (memory plus Redis). If Redis is unavailable, the memory layer keeps the
   application working on its own.
-- **Notifications** — `services/notificationService.js` queues notifications and
+- **Notifications**   `services/notificationService.js` queues notifications and
   sends them in batches; the submission module triggers them on events.
-- **Files** — `utils/fileUpload.js` handles uploaded files with an optional
+- **Files**   `utils/fileUpload.js` handles uploaded files with an optional
   cloud CDN. Class resources and assignment/submission files are checked and
   cleaned up.
-- **Logging** — `utils/logger.js` records activity in daily log files.
+- **Logging**   `utils/logger.js` records activity in daily log files.
 
 ## 8. Controllers, Routes and Repositories
 
-- `src/controllers/` — thin handlers that take an incoming request, call a
+- `src/controllers/`   thin handlers that take an incoming request, call a
   service, and send back a response in a standard format.
-- `src/routes/` — defines the web endpoints for authentication, classes,
+- `src/routes/`   defines the web endpoints for authentication, classes,
   assignments, submissions, checking, notifications, students and resources.
-- `src/repositories/` — thin data-access layers that keep database calls
+- `src/repositories/`   thin data-access layers that keep database calls
   separate from business logic.
 
 ## 9. Web Endpoints
