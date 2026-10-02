@@ -43,6 +43,30 @@ export const markAllNotificationsAsRead = createAsyncThunk(
   }
 );
 
+export const deleteNotification = createAsyncThunk(
+  'notifications/delete',
+  async (id, { rejectWithValue, dispatch }) => {
+    try {
+      await notificationAPI.deleteNotification(id);
+      dispatch(removeNotification(id));
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to delete notification');
+    }
+  }
+);
+
+export const clearAllNotificationsAsync = createAsyncThunk(
+  'notifications/clearAll',
+  async (_, { rejectWithValue }) => {
+    try {
+      await notificationAPI.clearAllNotifications();
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to clear all notifications');
+    }
+  }
+);
+
 const initialState = {
   notifications: [],
   isLoading: false,

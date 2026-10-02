@@ -49,7 +49,7 @@ class NotificationService {
   /**
    * Create a notification for a user
    */
-  async createNotification({ userId, title, message, type, relatedId }) {
+  async createNotification({ userId, title, message, type, relatedId, relatedType, relatedEntity }) {
     try {
       const created = await notificationRepository.create({
         userId: Number(userId),
@@ -57,6 +57,8 @@ class NotificationService {
         message,
         type,
         relatedId: relatedId?.toString(),
+        relatedType: relatedType?.toString(),
+        relatedEntity: relatedEntity?.toString(),
         isRead: false
       });
       await serviceCache.invalidate(notificationCacheKey(userId));
@@ -70,7 +72,7 @@ class NotificationService {
   /**
    * Create notifications for multiple users - optimized with batch insert
    */
-  async notifyMultipleUsers(userIds, { title, message, type, relatedId }) {
+  async notifyMultipleUsers(userIds, { title, message, type, relatedId, relatedType, relatedEntity }) {
     try {
       const data = userIds.map(userId => ({
         userId: Number(userId),
@@ -78,6 +80,8 @@ class NotificationService {
         message,
         type,
         relatedId: relatedId?.toString(),
+        relatedType: relatedType?.toString(),
+        relatedEntity: relatedEntity?.toString(),
         isRead: false
       }));
 
@@ -146,6 +150,35 @@ class NotificationService {
   }
 
   /**
+   * Delete a notification
+   */
+  async deleteNotification(notificationId, userId) {
+    const nid = Number(notificationId);
+    const uid = Number(userId);
+
+    // Delete only if both id AND userId match (ownership check built-in)
+    const result = await notificationRepository.delete({ id: nid, userId: uid });
+
+    if (!result) {
+      const error = new Error('Notification not found');
+      error.status = 404;
+      throw error;
+    }
+
+    await serviceCache.invalidate(notificationCacheKey(userId));
+    return result;
+  }
+
+  /**
+   * Clear all notifications for a user
+   */
+  async clearAllNotifications(userId) {
+    const result = await notificationRepository.deleteMany({ userId: Number(userId) });
+    await serviceCache.invalidate(notificationCacheKey(userId));
+    return result;
+  }
+
+  /**
    * Check for upcoming deadlines - optimized with batch notifications
    */
   async checkUpcomingDeadlines() {
@@ -178,7 +211,9 @@ class NotificationService {
             title: 'Deadline Approaching',
             message: `The assignment "${assignment.title}" is due in less than 24 hours.`,
             type: 'DEADLINE_REMINDER',
-            relatedId: assignment.id
+            relatedId: assignment.id,
+            relatedType: 'ASSIGNMENT',
+            relatedEntity: assignment.title
           });
         });
       }

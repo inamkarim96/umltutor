@@ -289,10 +289,15 @@
 .app-root {
   position: relative;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-root-content {
   position: relative;
   z-index: 2;
   min-height: 100vh;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }

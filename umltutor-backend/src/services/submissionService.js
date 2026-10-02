@@ -306,6 +306,8 @@ class SubmissionService {
           message: `A student updated "${assignment.title}".`,
           type: 'SUBMISSION_UPDATED',
           relatedId: submission.id.toString(),
+          relatedType: 'SUBMISSION',
+          relatedEntity: assignment.title
         };
       }
 
@@ -678,7 +680,9 @@ class SubmissionService {
           title: 'Assignment Graded',
           message: `Your assignment "${submission.assignment?.title}" has been reviewed.`,
           type: 'ASSIGNMENT_GRADED',
-          relatedId: submission.assignmentId.toString()
+          relatedId: submission.assignmentId.toString(),
+          relatedType: 'ASSIGNMENT',
+          relatedEntity: submission.assignment?.title
         });
       } catch (err) {
         console.error('Failed to send notification:', err);
@@ -1086,6 +1090,8 @@ class SubmissionService {
         message: `A student requested Tutorial Mode for "${submission.assignment.title}".`,
         type: 'TUTORIAL_REQUESTED',
         relatedId: String(submission.id),
+        relatedType: 'SUBMISSION',
+        relatedEntity: submission.assignment.title
       }).catch(() => { });
     }
 
@@ -1128,6 +1134,8 @@ class SubmissionService {
       message: `Your Tutorial Mode request for "${submission.assignment.title}" was approved.`,
       type: 'TUTORIAL_APPROVED',
       relatedId: String(submission.id),
+      relatedType: 'SUBMISSION',
+      relatedEntity: submission.assignment.title
     }).catch(() => { });
 
     return {
@@ -1177,6 +1185,8 @@ class SubmissionService {
         : `Your Tutorial Mode request for "${submission.assignment.title}" was declined.`,
       type: 'TUTORIAL_REJECTED',
       relatedId: String(submission.id),
+      relatedType: 'SUBMISSION',
+      relatedEntity: submission.assignment.title
     }).catch(() => { });
 
     return {

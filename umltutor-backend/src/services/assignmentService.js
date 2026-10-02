@@ -176,7 +176,9 @@ class AssignmentService {
           title: 'New Assignment',
           message: `A new assignment "${data.title}" has been posted.`,
           type: 'ASSIGNMENT_CREATED',
-          relatedId: assignment.id.toString()
+          relatedId: assignment.id.toString(),
+          relatedType: 'ASSIGNMENT',
+          relatedEntity: data.title
         });
       }
     }
@@ -459,6 +461,15 @@ class AssignmentService {
 
       return payload;
     }, 45_000);
+  }
+async getAssignmentTitleById(assignmentId) {
+    const assignment = await assignmentRepository.findFirst(
+      { 
+        where: { id: Number(assignmentId) },
+        select: { title: true }
+      }
+    );
+    return assignment;
   }
 }
 

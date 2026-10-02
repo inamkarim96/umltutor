@@ -18,6 +18,7 @@ import PendingAssignments from './pages/student/PendingAssignments';
 import SubmittedAssignments from './pages/student/SubmittedAssignments';
 import StudentPractice from './pages/student/StudentPractice';
 import StudentSettings from './pages/student/StudentSettings';
+import StudentNotifications from './pages/student/StudentNotifications';
 import WorkspacePage from './pages/WorkspacePage';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import ClassesManagement from './pages/teacher/ClassesManagement';
@@ -79,6 +80,7 @@ const ROUTES = [
   { pattern: '/teacher/submissions/:assignmentName/:userName/:submissionId', page: 'teacher-submission-detail' },
   { pattern: '/teacher/messages/:studentId', page: 'teacher-messages' },
   { pattern: '/teacher/settings', page: 'teacher-settings' },
+  { pattern: '/teacher/notifications', page: 'teacher-notifications' },
   { pattern: '/student', page: 'student-dashboard' },
   { pattern: '/student/dashboard', page: 'student-dashboard' },
   { pattern: '/student/classes', page: 'student-classes' },
@@ -92,6 +94,7 @@ const ROUTES = [
   { pattern: '/student/reviewed', page: 'student-reviewed' },
   { pattern: '/student/assignments/reviewed', page: 'student-reviewed' },
   { pattern: '/student/settings', page: 'student-settings' },
+  { pattern: '/student/notifications', page: 'student-notifications' },
   { pattern: '/student/assignments/:titleSlug', page: 'student-assignment-detail' },
   { pattern: '/student/submissions/:submissionId/report', page: 'student-submission-report' },
   { pattern: '/student/assignments/:titleSlug/work', page: 'workspace' },
@@ -157,6 +160,7 @@ function AppContent() {
       case 'student-submitted': return <SubmittedAssignments />;
       case 'student-reviewed': return <SubmittedAssignments />;
       case 'student-settings': return <StudentSettings />;
+      case 'student-notifications': return <StudentNotifications />;
       case 'student-assignment-detail': return <AssignmentDetails />;
       case 'student-submission-report': return <SubmissionDetail />;
       case 'teacher-dashboard': return <TeacherDashboard />;
@@ -170,6 +174,7 @@ function AppContent() {
       case 'teacher-submission-detail': return <SubmissionDetail />;
       case 'teacher-messages': return <AllSubmissions />;
       case 'teacher-settings': return <StudentSettings />;
+      case 'teacher-notifications': return <StudentNotifications />;
       case 'workspace': return <Suspense fallback={<PageLoader />}><WorkspacePage mode="development" /></Suspense>;
       default: return <NotFound />;
     }

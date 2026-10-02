@@ -37,5 +37,6 @@ router.get('/assignments/:id', cacheGet, assignmentController.getStudentAssignme
 router.get('/notifications', cacheGet, routeMiddleware.authorize('STUDENT'), notificationController.getNotifications);
 router.patch('/notifications/:id/read', routeMiddleware.authorize('STUDENT'), notificationController.markAsRead);
 router.post('/notifications/read-all', routeMiddleware.authorize('STUDENT'), notificationController.markAllAsRead);
+router.delete('/notifications/:id', routeMiddleware.authorize('STUDENT'), notificationController.deleteNotification);
 
 exports.default = router;

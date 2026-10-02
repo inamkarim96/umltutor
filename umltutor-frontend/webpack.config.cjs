@@ -70,5 +70,12 @@ module.exports = {
         headers: {
             "Cross-Origin-Opener-Policy": "unsafe-none",
         },
+        proxy: [
+            {
+                context: ['/api'],
+                target: 'http://localhost:3000',
+                changeOrigin: true,
+            },
+        ],
     },
 };

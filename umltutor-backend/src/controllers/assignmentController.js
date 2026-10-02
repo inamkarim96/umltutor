@@ -209,3 +209,16 @@ const startAssignment = async (req, res, next) => {
         next(error);
     }
 }; exports.startAssignment = startAssignment;
+
+const getAssignmentTitle = async (req, res, next) => {
+    try {
+        const assignmentId = req.params.id;
+        const assignment = await assignmentService.getAssignmentTitleById(assignmentId);
+        if (!assignment) {
+            return res.status(404).json({ success: false, error: { message: 'Assignment not found' } });
+        }
+        res.json({ success: true, data: { title: assignment.title } });
+    } catch (error) {
+        next(error);
+    }
+}; exports.getAssignmentTitle = getAssignmentTitle;

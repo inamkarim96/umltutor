@@ -23,6 +23,8 @@ const notificationRepository = {
                 message: true,
                 type: true,
                 relatedId: true,
+                relatedType: true,
+                relatedEntity: true,
                 isRead: true,
                 createdAt: true,
             },
@@ -43,6 +45,10 @@ const notificationRepository = {
 
     async delete(where) {
         return prisma.notification.delete({ where });
+    },
+
+    async deleteMany(where) {
+        return prisma.notification.deleteMany({ where });
     }
 };
 

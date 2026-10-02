@@ -145,7 +145,9 @@ class ClassService {
           title: 'New Student Joined',
           message: `A new student has joined your class "${classItem.name}" using the class code.`,
           type: 'CLASS_ENROLLMENT',
-          relatedId: classItem.id.toString()
+          relatedId: classItem.id.toString(),
+          relatedType: 'CLASS',
+          relatedEntity: classItem.name
         }
       })
     ]);

@@ -125,6 +125,15 @@ export const notificationAPI = {
     return result;
   },
 
+  clearAllNotifications: async () => {
+    const result = await apiClient.delete('/api/notifications');
+    // Invalidate relevant caches
+    clearInflight('notifications:*');
+    clearInflight('notifications:unread');
+    clearInflight('notifications:count');
+    return result;
+  },
+
   // Polling control
   startPolling,
   stopPolling,
