@@ -23,7 +23,10 @@
 }
 
 @media (max-width: 768px) {
-    .sdb-hero-section { padding: 16px 16px 0; }
+    .sdb-hero-section { padding: 12px 12px 0; }
+}
+@media (max-width: 480px) {
+    .sdb-hero-section { padding: 8px 8px 0; }
 }
 
 .sdb-hero-card {
@@ -36,7 +39,10 @@
 }
 
 @media (max-width: 768px) {
-    .sdb-hero-card { padding: 28px 24px; border-radius: 18px; }
+    .sdb-hero-card { padding: 24px 20px; border-radius: 18px; }
+}
+@media (max-width: 480px) {
+    .sdb-hero-card { padding: 18px 14px; border-radius: 14px; }
 }
 
 /* Animated blobs */
@@ -89,7 +95,10 @@
 }
 
 @media (max-width: 900px) {
-    .sdb-hero-grid { flex-direction: column; align-items: flex-start; gap: 28px; }
+    .sdb-hero-grid { flex-direction: column; align-items: flex-start; gap: 20px; }
+}
+@media (max-width: 480px) {
+    .sdb-hero-grid { gap: 16px; }
 }
 
 .sdb-hero-left {
@@ -313,10 +322,13 @@
 }
 
 @media (max-width: 900px) {
-    .sdb-stats-strip { grid-template-columns: repeat(2, 1fr); padding: 16px 16px 0; }
+    .sdb-stats-strip { grid-template-columns: repeat(2, 1fr); padding: 14px 12px 0; }
 }
 @media (max-width: 480px) {
-    .sdb-stats-strip { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sdb-stats-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 10px 8px 0; }
+    .sdb-stat-card { padding: 14px; border-radius: 14px; }
+    .sdb-stat-card-value { font-size: 26px; }
+    .sdb-stat-card-icon { width: 36px; height: 36px; border-radius: 10px; }
 }
 
 /* Stat Card */
@@ -458,8 +470,19 @@
     align-items: start;
 }
 
+/* No sidebar → single column, content fills full width */
+.sdb-dashboard-grid:has(> .sdb-main-content:only-child) {
+    grid-template-columns: 1fr;
+}
+
 @media (max-width: 1100px) {
     .sdb-dashboard-grid { grid-template-columns: 1fr; padding: 16px 16px 32px; }
+}
+@media (max-width: 640px) {
+    .sdb-dashboard-grid { padding: 12px 10px 28px; gap: 16px; }
+}
+@media (max-width: 480px) {
+    .sdb-dashboard-grid { padding: 10px 8px 24px; gap: 12px; }
 }
 
 .sdb-main-content {
@@ -469,10 +492,28 @@
     min-width: 0;
 }
 
+/* Card column: 2-column grid on wide screens, 1-column on mobile */
 .sdb-col {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
+    align-items: start;
+}
+
+/* Last card (Recent Grades) always spans full width */
+.sdb-col > *:last-child:not(:first-child):not(:nth-child(2)) {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 860px) {
+    .sdb-col { grid-template-columns: 1fr; }
+    .sdb-col > *:last-child { grid-column: auto; }
+}
+@media (max-width: 640px) {
+    .sdb-col { gap: 14px; }
+}
+@media (max-width: 480px) {
+    .sdb-col { gap: 10px; }
 }
 
 .sdb-sidebar {
@@ -603,6 +644,23 @@
 
 .sdb-card-body { padding: 20px 24px; }
 
+@media (max-width: 640px) {
+    .sdb-card { border-radius: 16px; }
+    .sdb-card-header { padding: 14px 16px; }
+    .sdb-card-body { padding: 14px 16px; }
+    .sdb-card-title { font-size: 14px; }
+    .sdb-card-sub { font-size: 11px; }
+    .sdb-card-action-btn { font-size: 11px; padding: 6px 10px; }
+    .sdb-card-header-icon { width: 30px; height: 30px; border-radius: 8px; }
+}
+@media (max-width: 480px) {
+    .sdb-card { border-radius: 12px; }
+    .sdb-card-header { padding: 12px 14px; flex-wrap: wrap; gap: 10px; }
+    .sdb-card-body { padding: 12px 14px; }
+    /* Stack action button below title on tiny screens */
+    .sdb-card-header-left { gap: 10px; }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    ASSIGNMENT ROWS
 ═══════════════════════════════════════════════════════════════ */
@@ -690,6 +748,7 @@
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -721,6 +780,18 @@
     transition: all 0.2s;
 }
 .sdb-asgn-row:hover .sdb-asgn-arrow { opacity: 1; color: var(--accent); transform: translateX(3px); }
+
+@media (max-width: 640px) {
+    .sdb-asgn-row { padding: 12px; gap: 10px; border-radius: 12px; }
+    .sdb-asgn-icon-wrap { width: 36px; height: 36px; border-radius: 10px; }
+    .sdb-asgn-title { font-size: 13px; }
+    .sdb-asgn-arrow { display: none; }
+}
+@media (max-width: 480px) {
+    .sdb-asgn-row { padding: 10px; gap: 8px; }
+    .sdb-asgn-icon-wrap { width: 32px; height: 32px; border-radius: 8px; }
+    .sdb-asgn-desc { display: none; }
+}
 
 /* ── Deadline Chips ── */
 .sdb-deadline-chip {
@@ -841,6 +912,17 @@
 }
 .sdb-class-row:hover .sdb-class-arrow { opacity: 1; color: var(--accent); transform: translateX(3px); }
 
+@media (max-width: 640px) {
+    .sdb-class-row { padding: 10px 12px; gap: 10px; border-radius: 12px; }
+    .sdb-class-avatar { width: 36px; height: 36px; font-size: 16px; border-radius: 10px; }
+    .sdb-class-name { font-size: 13px; }
+    .sdb-class-badge { display: none; }
+    .sdb-class-arrow { display: none; }
+}
+@media (max-width: 480px) {
+    .sdb-class-meta span:last-child { display: none; }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    GRADE ROWS
 ═══════════════════════════════════════════════════════════════ */
@@ -893,6 +975,15 @@
     font-size: 11px;
     color: var(--green);
     font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    .sdb-grade-row { padding: 10px 12px; gap: 10px; border-radius: 10px; }
+    .sdb-grade-score-pill { width: 50px; height: 46px; font-size: 15px; border-radius: 10px; }
+    .sdb-grade-title { font-size: 13px; }
+}
+@media (max-width: 480px) {
+    .sdb-grade-score-pill { width: 44px; height: 40px; font-size: 13px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1053,6 +1144,11 @@
     max-height: 90vh;
     overflow-y: auto;
     animation: sdb-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 480px) {
+    .sdb-modal-backdrop { padding: 0; align-items: flex-end; }
+    .sdb-modal { border-radius: 20px 20px 0 0; max-height: 80vh; max-width: 100%; }
 }
 
 @keyframes sdb-slide-up {

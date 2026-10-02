@@ -94,7 +94,7 @@ const LandingPage = () => {
         </p>
 
         <div className="hero-actions">
-          <Link to="/signup" className="btn-secondary">
+          <Link to="/signup" className="btn-primary">
             Start Learning Free
           </Link>
           <Link to="/login" className="btn-secondary">
@@ -558,7 +558,7 @@ const LandingPage = () => {
         <div className="cta-inner">
           <h2 className="cta-title">Ready to Master UML?</h2>
           <p className="cta-sub">Join students already learning with AI-powered guidance. Free to start, no setup required.</p>
-          <Link to="/signup" className="btn-primary">
+          <Link to="/signup" className="btn-white">
             Start Learning Free
             <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
           </Link>

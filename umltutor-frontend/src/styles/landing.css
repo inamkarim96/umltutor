@@ -47,7 +47,7 @@
         .nav-link:hover{color:var(--ink);background:var(--surface-2)}
         .nav-cta{
           background:var(--accent);
-          color:var(--surface);
+          color:#ffffff !important;
           font-size:14px;font-weight:600;
           padding:10px 22px;
           border-radius:var(--r-sm);
@@ -134,44 +134,57 @@
           flex-wrap:wrap;justify-content:center;
           opacity:0;animation:fadeUp .9s .65s ease forwards;
         }
+        .landing-page-container .btn-primary,
         .btn-primary{
           display:inline-flex;align-items:center;gap:8px;
-          background:var(--accent);color:var(--surface);
-          font-family:var(--font-b);font-size:16px;font-weight:600;
+          background:var(--accent) !important;
+          color:#ffffff !important;
+          font-family:var(--font-b);font-size:16px;font-weight:700;
           padding:16px 32px;
           border-radius:var(--r-md);
           text-decoration:none;
           transition:transform .25s,box-shadow .25s,background .25s;
           box-shadow:0 4px 20px rgba(80,70,229,0.35);
-          border:none;
+          border:2px solid var(--accent) !important;
           position:relative;overflow:hidden;
+          cursor:pointer;
         }
+        .landing-page-container .btn-primary::before,
         .btn-primary::before{
           content:'';position:absolute;inset:0;
-          background:rgba(255,255,255,0.12);
+          background:rgba(255,255,255,0.14);
           transform:translateX(-100%);
           transition:transform .4s ease;
         }
+        .landing-page-container .btn-primary:hover::before,
         .btn-primary:hover::before{transform:translateX(0)}
+        .landing-page-container .btn-primary:hover,
         .btn-primary:hover{
           transform:translateY(-2px);
           box-shadow:0 8px 32px rgba(80,70,229,0.45);
-          background:var(--accent-light);
+          background:var(--accent-light) !important;
+          border-color:var(--accent-light) !important;
+          color:#ffffff !important;
         }
-        .btn-primary svg{width:18px;height:18px;stroke:var(--surface);stroke-width:2;fill:none;transition:transform .2s}
+        .landing-page-container .btn-primary svg,
+        .btn-primary svg{width:18px;height:18px;stroke:#ffffff !important;stroke-width:2.5;fill:none;transition:transform .2s}
+        .landing-page-container .btn-primary:hover svg,
         .btn-primary:hover svg{transform:translateX(3px)}
         .btn-secondary{
           display:inline-flex;align-items:center;gap:8px;
-          background:transparent;
-          color:var(--ink);
-          font-family:var(--font-b);font-size:16px;font-weight:500;
+          background:rgba(255,255,255,0.85);
+          color:var(--accent);
+          font-family:var(--font-b);font-size:16px;font-weight:600;
           padding:15px 28px;
           border-radius:var(--r-md);
           text-decoration:none;
-          border:1.5px solid var(--border-strong);
-          transition:background .2s,border-color .2s,transform .2s;
+          border:2px solid var(--accent);
+          transition:background .2s,border-color .2s,transform .2s,color .2s;
+          cursor:pointer;
         }
-        .btn-secondary:hover{background:var(--surface-2);border-color:var(--accent);transform:translateY(-1px)}
+        .btn-secondary:hover{background:var(--accent);color:#ffffff;border-color:var(--accent);transform:translateY(-1px)}
+        .btn-secondary svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;transition:transform .2s}
+        .btn-secondary:hover svg{transform:translateX(3px)}
 
         .hero-scroll-hint{
           position:absolute;bottom:36px;left:50%;transform:translateX(-50%);
@@ -699,6 +712,19 @@
         }
         .workflow-cta .btn-primary{
           display:inline-flex;
+          background:var(--accent) !important;
+          color:#ffffff !important;
+          border:2px solid var(--accent) !important;
+          box-shadow:0 4px 20px rgba(80,70,229,0.35) !important;
+        }
+        .workflow-cta .btn-primary:hover{
+          background:var(--accent-light) !important;
+          border-color:var(--accent-light) !important;
+          color:#ffffff !important;
+          box-shadow:0 8px 32px rgba(80,70,229,0.45) !important;
+        }
+        .workflow-cta .btn-primary svg{
+          stroke:#ffffff !important;
         }
 
         @media(max-width:900px){
