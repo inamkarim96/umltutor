@@ -144,8 +144,12 @@ function AppContent() {
   const isTeacher = page.startsWith('teacher-');
   const navConfig = isTeacher ? teacherNavConfig : studentNavConfig;
   const role = isTeacher ? 'TEACHER' : 'STUDENT';
+  const isProtectedRoute = needsLayout || page === 'workspace' || page === 'dashboard-redirect';
 
   function renderPage() {
+    if (!authState.isAuthenticated && isProtectedRoute) {
+      return <LoginPage />;
+    }
     switch (page) {
       case 'landing': return <LandingPage />;
       case 'login': return <LoginPage />;

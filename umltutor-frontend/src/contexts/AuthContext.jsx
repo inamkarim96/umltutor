@@ -167,6 +167,9 @@ export const AuthProvider = ({ children }) => {
         else if (authState.needsProfileCompletion && location.pathname !== '/register') {
             navigate('/register', { replace: true });
         }
+        else if (!authState.isAuthenticated && !isOnPublicPage) {
+            navigate('/login', { replace: true });
+        }
     }, [authState.isAuthenticated, authState.needsProfileCompletion, authState.user?.id, authState.redirectPath, authState.user?.role, navigate, isLoading, location.pathname]);
 
     const login = async (email, password) => {

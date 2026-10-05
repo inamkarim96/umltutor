@@ -6,22 +6,39 @@ const API_BASE_URL = process.env.API_BASE_URL || '';
 
 let cachedToken = null;
 let tokenExpiresAt = 0;
+let lastAuthFailureToast = 0;
 
 async function getAuthToken() {
+    // Wait for Firebase to restore session from IndexedDB if not yet initialized
+    if (!auth.currentUser && typeof auth.authStateReady === 'function') {
+        try {
+            await auth.authStateReady();
+        } catch (_) {
+            // Proceed to fallback if authStateReady fails
+        }
+    }
+
     const currentUser = auth.currentUser;
-    if (!currentUser) {
-        return localStorage.getItem('token');
+    if (currentUser) {
+        const now = Date.now();
+        if (cachedToken && now < tokenExpiresAt) {
+            return cachedToken;
+        }
+        try {
+            // false = use cached token when still valid (~1h); avoids refresh latency per request
+            const token = await currentUser.getIdToken(false);
+            if (token) {
+                cachedToken = token;
+                tokenExpiresAt = now + 55 * 60 * 1000;
+                localStorage.setItem('token', token);
+                return token;
+            }
+        } catch (err) {
+            console.warn('[apiClient] Failed to refresh Firebase token from currentUser:', err);
+        }
     }
-    const now = Date.now();
-    if (cachedToken && now < tokenExpiresAt) {
-        return cachedToken;
-    }
-    // false = use cached token when still valid (~1h); avoids refresh latency per request
-    const token = await currentUser.getIdToken(false);
-    cachedToken = token;
-    tokenExpiresAt = now + 55 * 60 * 1000;
-    localStorage.setItem('token', token);
-    return token;
+
+    return localStorage.getItem('token') || null;
 }
 
 export function clearAuthTokenCache() {
@@ -40,17 +57,34 @@ const apiClient = axios.create({
 });
 
 // Request Interceptor: Attach a FRESH Firebase Auth Token on every request.
-// auth.currentUser.getIdToken() automatically refreshes the token if it has expired,
-// solving the 401 errors that occur after 1 hour.
 apiClient.interceptors.request.use(
     async (config) => {
+        const url = config?.url || '';
+        const isPublicAuthEndpoint =
+            url.includes('/api/auth/register') ||
+            url.includes('/api/auth/login') ||
+            url.includes('/api/auth/logout') ||
+            url.includes('/api/health');
+
+        if (isPublicAuthEndpoint || config?.skipAuth) {
+            return config;
+        }
+
         try {
             const token = await getAuthToken();
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
+            } else {
+                // If there's no token for a protected endpoint, cancel the request before sending
+                // to prevent repeated 401 "No token provided" errors from backend.
+                return Promise.reject(new axios.CanceledError('Request cancelled: user is not authenticated.'));
             }
         } catch (err) {
+            if (axios.isCancel(err) || err?.name === 'CanceledError') {
+                return Promise.reject(err);
+            }
             console.warn('Failed to get Firebase token for request:', err);
+            return Promise.reject(new axios.CanceledError('Request cancelled: token retrieval failed.'));
         }
         return config;
     },
@@ -80,6 +114,11 @@ apiClient.interceptors.response.use(
         return response.data;
     },
     (error) => {
+        // Silently reject cancelled requests (e.g. unauthenticated early aborts)
+        if (axios.isCancel(error) || error?.name === 'CanceledError') {
+            return Promise.reject(error);
+        }
+
         if (error.response) {
             const status = error.response.status;
             const data = error.response.data;
@@ -102,12 +141,17 @@ apiClient.interceptors.response.use(
                     });
                 } else if (!isAuthEndpoint) {
                     clearAuthTokenCache();
-                    console.warn('Unauthorized access - session may have expired');
-                    eventBus.emit(GLOBAL_EVENTS.AUTH_FAILURE);
-                    eventBus.emit(GLOBAL_EVENTS.SHOW_TOAST, {
-                        message: 'Session expired or token invalid. Please log in again.',
-                        type: 'error'
-                    });
+                    const now = Date.now();
+                    // Throttle 401 alerts to at most once per 5 seconds
+                    if (now - lastAuthFailureToast > 5000) {
+                        lastAuthFailureToast = now;
+                        console.warn('Unauthorized access - session may have expired');
+                        eventBus.emit(GLOBAL_EVENTS.AUTH_FAILURE);
+                        eventBus.emit(GLOBAL_EVENTS.SHOW_TOAST, {
+                            message: 'Session expired or token invalid. Please log in again.',
+                            type: 'error'
+                        });
+                    }
                 }
             } else if (status >= 500) {
                 if (!error.config?.skipErrorToast) {

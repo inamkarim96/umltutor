@@ -65,6 +65,9 @@ export const useUMLModel = (assignmentId) => {
                 setError(null);
             }
         } catch (err) {
+            if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+                return;
+            }
             const status = err.status ?? err.response?.status;
 
             if (status === 404 || assignmentId === 'guest-default') {
