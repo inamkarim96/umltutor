@@ -523,7 +523,7 @@ class CheckingEngine {
 
     static validateDiagram(diagram, issues, analysis) {
         if (!analysis.nodes.length) {
-            issues.push({ type: 'diagram', severity: 'error', location: 'diagram', code: 'DIAGRAM_EMPTY', message: 'Diagram is missing nodes.' });
+            issues.push({ type: 'diagram', severity: 'error', location: 'diagram', code: 'DIAGRAM_EMPTY', message: 'Diagram does not exist in workspace.' });
             return;
         }
 
@@ -2865,7 +2865,7 @@ class CheckingEngine {
                 type: 'class-diagram',
                 severity: 'error',
                 code: 'CLASS_DIAGRAM_EMPTY',
-                message: 'Class Diagram is empty.',
+                message: 'Diagram does not exist in workspace.',
                 location: 'class-diagram',
                 context: { suggestion: 'Add classes that represent domain entities from your use cases.' }
             });

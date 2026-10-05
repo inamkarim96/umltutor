@@ -860,11 +860,13 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
                       const studentName = model?.studentName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '') || (user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '') || user?.name || user?.fullName || currentSubmission?.studentName || '';
                       const teacherName = model?.teacherName || assignmentDetails?.teacher_name || assignmentDetails?.teacherName || assignmentDetails?.teacher?.name || assignmentDetails?.createdBy?.name || '';
                       const className = model?.className || assignmentDetails?.class_name || assignmentDetails?.className || assignmentDetails?.class?.name || assignmentDetails?.course || '';
+                      const instructions = model?.textContent || model?.instructions || assignmentDetails?.textContent || assignmentDetails?.requirementText || assignmentDetails?.description || currentSubmission?.assignment?.textContent || currentSubmission?.assignment?.instructions || '';
                       const result = await exportToFile('combined', exportReport, {
                         studentName: studentName.trim() || user?.username || user?.email || '',
                         teacherName: teacherName.trim(),
                         className: className.trim(),
                         assignmentTitle: model.title || assignmentDetails?.title || '',
+                        instructions: instructions.trim(),
                         mode: currentMode,
                         reviewerName: currentSubmission?.reviewedBy?.name || currentSubmission?.reviewedBy?.username || ''
                       });
@@ -1416,9 +1418,9 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
             {/* Step 3: SSDs & Reports */}
             <div className="flex flex-col gap-12" data-export-section="ssds">
               <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">3. System Sequence Diagrams</h1>
-              {model?.descriptions && Object.keys(model.descriptions).map(id => (
-                <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
-                  <h2 className="text-2xl font-black text-slate-800 italic">3.1 SSD: {model.descriptions[id]?.useCaseName}</h2>
+              {model?.descriptions && Object.keys(model.descriptions).map((id, idx) => (
+                <div key={id} data-export-ssd-id={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
+                  <h2 className="text-2xl font-black text-slate-800 italic">3.{idx + 1} SSD: {model.descriptions[id]?.useCaseName}</h2>
                   <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '600px' }}>
                     <SSDDiagramEditor
                       assignmentId={model.id}
@@ -1462,9 +1464,9 @@ const ModeAwareEditor = ({ isReadOnly = false, assignmentId: assignmentIdProp, o
             {/* Step 5: Sequence Diagrams & Reports */}
             <div className="flex flex-col gap-12" data-export-section="sequence-diagrams">
               <h1 className="text-4xl font-black text-indigo-600 uppercase tracking-tight">5. Sequence Diagrams</h1>
-              {model?.descriptions && Object.keys(model.descriptions).map(id => (
-                <div key={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
-                  <h2 className="text-2xl font-black text-slate-800 italic">5.1 Sequence: {model.descriptions[id]?.useCaseName}</h2>
+              {model?.descriptions && Object.keys(model.descriptions).map((id, idx) => (
+                <div key={id} data-export-sequence-id={id} className="flex flex-col gap-8 p-10 border-2 border-slate-100 rounded-3xl">
+                  <h2 className="text-2xl font-black text-slate-800 italic">5.{idx + 1} Sequence: {model.descriptions[id]?.useCaseName}</h2>
                   <div className="w-full border rounded-2xl overflow-hidden bg-slate-50" style={{ height: '700px' }}>
                     <SequenceDiagramEditor
                       assignmentId={model.id}

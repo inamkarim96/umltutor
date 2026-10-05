@@ -287,6 +287,42 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
             });
         };
 
+        // Helper: Check if a diagram actually contains nodes/elements in workspace
+        const hasDiagramElements = (secKey) => {
+            if (!activeModel) return false;
+            if (secKey === 'usecase') {
+                return Array.isArray(activeModel.diagram?.nodes) && activeModel.diagram.nodes.length > 0;
+            }
+            if (secKey === 'class-diagram') {
+                return Array.isArray(activeModel.classDiagram?.nodes) && activeModel.classDiagram.nodes.length > 0;
+            }
+            if (secKey === 'ssds') {
+                if (!activeModel.ssds || typeof activeModel.ssds !== 'object') return false;
+                const entries = Object.values(activeModel.ssds);
+                if (entries.length === 0) return false;
+                return entries.some(ssd => {
+                    if (!ssd) return false;
+                    const nodes = ssd.nodes || ssd.diagramData?.nodes || [];
+                    const lifelines = ssd.lifelines || ssd.semanticData?.lifelines || [];
+                    const edges = ssd.edges || ssd.messages || ssd.semanticData?.messages || [];
+                    return nodes.length > 0 || lifelines.length > 0 || edges.length > 0;
+                });
+            }
+            if (secKey === 'sequence-diagrams') {
+                if (!activeModel.sequenceDiagrams || typeof activeModel.sequenceDiagrams !== 'object') return false;
+                const entries = Object.values(activeModel.sequenceDiagrams);
+                if (entries.length === 0) return false;
+                return entries.some(seq => {
+                    if (!seq) return false;
+                    const nodes = seq.nodes || seq.diagramData?.nodes || [];
+                    const lifelines = seq.lifelines || seq.semanticData?.lifelines || [];
+                    const edges = seq.edges || seq.messages || seq.semanticData?.messages || [];
+                    return nodes.length > 0 || lifelines.length > 0 || edges.length > 0;
+                });
+            }
+            return true;
+        };
+
         // Helper: Render Evaluation Feedback Table for a specific item (e.g. Description 2.1, SSD 3.1)
         const renderSpecificEvaluationTable = (tableTitle, issuesList, startY) => {
             let y = startY;
@@ -348,7 +384,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
         const renderEvaluationTable = (secKey, startY) => {
             const secIssues = getIssuesForSection(secKey);
             const cleanTitle = sectionTitles[secKey] || secKey;
-            return renderSpecificEvaluationTable(`${cleanTitle} - Diagnostics`, secIssues, startY);
+            return renderSpecificEvaluationTable(cleanTitle, secIssues, startY);
         };
 
         // Helper: Render Case-Study Consistency Check (embedded within Phase 1: Use Case Diagram checking)
@@ -748,7 +784,7 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
         };
 
         // ═════════════════════════════════════════════════════════════════════
-        // PAGE 1: COVER & EXECUTIVE EVALUATION SUMMARY
+        // PAGE 1: COVER & ASSIGNMENT INSTRUCTIONS
         // ═════════════════════════════════════════════════════════════════════
         pdf.setFillColor(...PRIMARY);
         pdf.rect(0, 0, pageWidth, 42, 'F');
@@ -778,38 +814,48 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
         pdf.text(`Mode: ${mode === 'tutorial' ? 'Guided Tutorial Mode' : 'Development Mode'}`, 120, 73);
         if (userInfo.teacherName) pdf.text(`Instructor: ${userInfo.teacherName}`, 120, 81);
 
-        // Executive Evaluation Summary Card
-        let totalScore = report?.score ?? report?.totalScore ?? report?.summary?.totalScore ?? null;
-        let remarks = report?.remarks ?? report?.summary?.remarks ?? null;
-        let allIssues = Array.isArray(report?.issues) ? report.issues : [];
+        // Assignment Instructions Card (replaces Executive Evaluation Summary)
+        const teacherInstructions = (userInfo.instructions || activeModel?.textContent || activeModel?.instructions || '').trim();
 
-        pdf.setFillColor(238, 242, 255);
-        pdf.setDrawColor(...PRIMARY);
-        pdf.roundedRect(20, 110, pageWidth - 40, 55, 3, 3, 'FD');
+        const cardX = 20;
+        const cardY = 108;
+        const cardW = pageWidth - 40;
+        const maxCardH = pageHeight - cardY - 20;
+
+        pdf.setFillColor(...BG_LIGHT);
+        pdf.setDrawColor(...BORDER_COLOR);
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        const maxTextW = cardW - 16;
+
+        let splitInst = [];
+        if (teacherInstructions) {
+            splitInst = pdf.splitTextToSize(teacherInstructions, maxTextW);
+        } else {
+            splitInst = ['No instructions provided for this assignment.'];
+        }
+
+        const lineSpacing = 4.8;
+        const maxLinesCanFit = Math.floor((maxCardH - 24) / lineSpacing);
+        const linesToRender = splitInst.slice(0, maxLinesCanFit);
+        if (splitInst.length > maxLinesCanFit) {
+            linesToRender[linesToRender.length - 1] = linesToRender[linesToRender.length - 1] + ' ... [truncated]';
+        }
+        const textH = linesToRender.length * lineSpacing;
+        const cardH = Math.max(45, Math.min(maxCardH, textH + 24));
+
+        pdf.roundedRect(cardX, cardY, cardW, cardH, 3, 3, 'FD');
 
         pdf.setTextColor(...PRIMARY);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(13);
-        pdf.text('EXECUTIVE EVALUATION SUMMARY', 28, 124);
-
-        pdf.setTextColor(...TEXT_DARK);
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        if (totalScore !== null) {
-            pdf.text(`Overall Score: ${totalScore} / 100`, 28, 134);
-        } else {
-            pdf.text('Evaluation Status: Automated Quality Check Completed', 28, 134);
-        }
+        pdf.setFontSize(11);
+        pdf.text('ASSIGNMENT INSTRUCTIONS', cardX + 8, cardY + 11);
 
         pdf.setFont('helvetica', 'normal');
-        if (remarks) {
-            const splitRemarks = pdf.splitTextToSize(`Instructor / Checker Feedback: ${remarks}`, pageWidth - 65);
-            pdf.text(splitRemarks, 28, 143);
-        } else {
-            pdf.text('Automated evaluation executed across all 5 UML design steps.', 28, 143);
-        }
-
-        pdf.text(`Total Diagnostic Rules Inspected: ${allIssues.length} items logged`, 28, 155);
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(...TEXT_DARK);
+        pdf.text(linesToRender, cardX + 8, cardY + 18);
 
         // ═════════════════════════════════════════════════════════════════════
         // CAPTURE DIAGRAMS & DESCRIPTIONS
@@ -830,7 +876,6 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
         // ── Pre-resolve all diagram DOM elements in one pass (no per-section query loops) ──
         const sectionSelectors = {
             'usecase': '[data-editor-section="usecase"] .react-flow',
-            'ssds': '[data-editor-section="ssd"] .react-flow',
             'class-diagram': '[data-editor-section="class-diagram"] .react-flow',
             'sequence-diagrams': '[data-editor-section="sequence-diagram"] .react-flow',
         };
@@ -840,7 +885,28 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 document.querySelector(sel) || null;
         }
 
-        // ── Capture all diagram canvases in parallel (non-blocking) ──
+        // ── Capture individual SSD canvases (one per use case) ──
+        const ssdCaptureResults = {}; // keyed by use-case ID
+        if (activeModel?.ssds && typeof activeModel.ssds === 'object') {
+            const ssdIds = Object.keys(activeModel.ssds);
+            await Promise.all(ssdIds.map(async (id) => {
+                // Try export renderer first, then live DOM
+                const exportEl = renderer
+                    ? renderer.querySelector(`[data-export-ssd-id="${id}"] .react-flow`)
+                    : null;
+                const liveEl = document.querySelector(`[data-editor-section="ssd"] [data-usecase-id="${id}"] .react-flow`) ||
+                    document.querySelector(`[data-testid="ssd-canvas"][data-usecase-id="${id}"]`);
+                const el = exportEl || liveEl;
+                if (!el) { ssdCaptureResults[id] = null; return; }
+                try {
+                    ssdCaptureResults[id] = await captureReactFlowCanvas(el, 1.4);
+                } catch {
+                    ssdCaptureResults[id] = null;
+                }
+            }));
+        }
+
+        // ── Capture all other diagram canvases in parallel (non-blocking) ──
         const captureResults = {};
         await Promise.all(
             Object.entries(resolvedEls).map(async ([key, el]) => {
@@ -874,10 +940,8 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                     pdf.setTextColor(...TEXT_MUTED);
                     pdf.text('No use case descriptions defined yet.', 20, y);
                     y += 15;
-                    renderSpecificEvaluationTable('Use Case Descriptions - Diagnostics', allDescIssues, y);
+                    renderSpecificEvaluationTable('Use Case Descriptions', allDescIssues, y);
                 } else {
-                    const mappedIssueIndices = new Set();
-
                     descEntries.forEach(([id, desc], dIdx) => {
                         const descNum = `2.${dIdx + 1}`;
                         const descName = (desc.useCaseName || '').toLowerCase().trim();
@@ -934,35 +998,144 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                         y += boxHeight + 6;
 
                         // Match issues belonging to this description
-                        const specificIssues = allDescIssues.filter((issue, idx) => {
+                        const specificIssues = allDescIssues.filter((issue) => {
                             const msg = (issue.message || '').toLowerCase();
-                            const matches = (descName && msg.includes(descName)) ||
+                            return (descName && msg.includes(descName)) ||
                                 msg.includes(descNum.toLowerCase()) ||
                                 msg.includes(`description ${descNum}`);
-                            if (matches) mappedIssueIndices.add(idx);
-                            return matches;
                         });
 
-                        y = renderSpecificEvaluationTable(`Use Case ${descNum} (${desc.useCaseName || 'Untitled'}) - Diagnostics`, specificIssues, y);
+                        y = renderSpecificEvaluationTable(`Use Case ${descNum}: ${desc.useCaseName || 'Untitled'}`, specificIssues, y);
                         y += 10;
                     });
-
-                    // Render any unmapped description issues
-                    const remainingIssues = allDescIssues.filter((_, idx) => !mappedIssueIndices.has(idx));
-                    if (remainingIssues.length > 0) {
-                        renderSpecificEvaluationTable('General Descriptions - Diagnostics', remainingIssues, y);
-                    }
                 }
 
                 continue;
             }
+
+            // ── SSD section: handled entirely by per-SSD loop below (skip generic canvas block) ──
+            if (sectionKey === 'ssds') {
+                const descs = activeModel?.descriptions || {};
+                const descEntries = Object.entries(descs);
+                const allSsdIssues = getIssuesForSection('ssds');
+                const hasSsds = hasDiagramElements('ssds');
+
+                if (descEntries.length === 0 || !hasSsds) {
+                    // Show error on the page already added
+                    pdf.setFillColor(254, 242, 242);
+                    pdf.setDrawColor(239, 68, 68);
+                    pdf.roundedRect(15, 30, pageWidth - 30, 22, 2, 2, 'FD');
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(239, 68, 68);
+                    pdf.setFontSize(10);
+                    pdf.text('[ERROR] Diagram does not exist in workspace.', 20, 39);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setTextColor(...TEXT_DARK);
+                    pdf.setFontSize(8.5);
+                    pdf.text('No System Sequence Diagram elements found in the workspace.', 20, 46);
+                } else {
+                    descEntries.forEach(([id, desc], dIdx) => {
+                        const ssdNum = `3.${dIdx + 1}`;
+                        const descName = (desc.useCaseName || '').toLowerCase().trim();
+
+                        // Add a new page for each SSD after the first
+                        if (dIdx > 0) {
+                            pdf.addPage();
+                            renderSectionHeader('3. System Sequence Diagrams');
+                        }
+
+                        // Sub-title for this SSD
+                        const subTitleY = 30;
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(11);
+                        pdf.setTextColor(...PRIMARY);
+                        pdf.text(`SSD ${ssdNum}: ${desc.useCaseName || 'Untitled'}`, 20, subTitleY);
+
+                        const ssdCanvas = ssdCaptureResults[id] || null;
+                        let ySsd = subTitleY + 10;
+
+                        if (ssdCanvas && ssdCanvas.width > 0 && ssdCanvas.height > 0) {
+                            const maxW = pageWidth - 40;
+                            const maxH = 110;
+                            let imgW = maxW;
+                            let imgH = (ssdCanvas.height * imgW) / ssdCanvas.width;
+                            if (imgH > maxH) { imgH = maxH; imgW = (ssdCanvas.width * imgH) / ssdCanvas.height; }
+                            const posX = (pageWidth - imgW) / 2;
+                            pdf.setFillColor(255, 255, 255);
+                            pdf.setDrawColor(...BORDER_COLOR);
+                            pdf.roundedRect(posX - 2, ySsd, imgW + 4, imgH + 4, 2, 2, 'FD');
+                            pdf.addImage(ssdCanvas.toDataURL('image/jpeg', 0.78), 'JPEG', posX, ySsd + 2, imgW, imgH);
+                            ySsd += imgH + 10;
+                        } else {
+                            const ssdData = activeModel?.ssds?.[id];
+                            const hasData = ssdData && (
+                                (ssdData.nodes?.length > 0) ||
+                                (ssdData.lifelines?.length > 0) ||
+                                (ssdData.diagramData?.nodes?.length > 0) ||
+                                (ssdData.semanticData?.lifelines?.length > 0)
+                            );
+                            pdf.setFillColor(254, 242, 242);
+                            pdf.setDrawColor(239, 68, 68);
+                            pdf.roundedRect(15, ySsd, pageWidth - 30, 18, 2, 2, 'FD');
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setTextColor(239, 68, 68);
+                            pdf.setFontSize(9);
+                            pdf.text(
+                                hasData
+                                    ? `[ERROR] SSD ${ssdNum} canvas could not be captured.`
+                                    : `[ERROR] SSD ${ssdNum} does not exist in workspace.`,
+                                20, ySsd + 8
+                            );
+                            pdf.setFont('helvetica', 'normal');
+                            pdf.setTextColor(...TEXT_DARK);
+                            pdf.setFontSize(8);
+                            pdf.text(
+                                hasData
+                                    ? 'The diagram has data but could not be rendered to image.'
+                                    : 'No diagram elements found for this use case.',
+                                20, ySsd + 14
+                            );
+                            ySsd += 24;
+                        }
+
+                        const specificSsdIssues = allSsdIssues.filter((issue) => {
+                            const msg = (issue.message || '').toLowerCase();
+                            return msg.includes(`ssd ${ssdNum}`) ||
+                                msg.includes(`ssd 3.${dIdx + 1}`) ||
+                                (descName && msg.includes(descName));
+                        });
+                        renderSpecificEvaluationTable(`SSD ${ssdNum}: ${desc.useCaseName || 'Untitled'}`, specificSsdIssues, ySsd);
+                    });
+                }
+                continue;
+            }
+
+            // Check if diagram actually exists in the workspace
+            const diagramExists = hasDiagramElements(sectionKey);
 
             // Use pre-captured canvas from parallel batch
             const canvas = captureResults[sectionKey] ?? null;
 
             let yAfterDiagram = 30;
 
-            if (canvas && canvas.width > 0 && canvas.height > 0) {
+            if (!diagramExists) {
+                // Prominent error box if diagram does not exist in workspace
+                pdf.setFillColor(254, 242, 242);
+                pdf.setDrawColor(239, 68, 68);
+                pdf.roundedRect(15, 30, pageWidth - 30, 22, 2, 2, 'FD');
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(239, 68, 68);
+                pdf.setFontSize(10);
+                pdf.text('[ERROR] Diagram does not exist in workspace.', 20, 39);
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(...TEXT_DARK);
+                pdf.setFontSize(8.5);
+                pdf.text('No diagram elements or models found for this section in the workspace.', 20, 46);
+
+                yAfterDiagram = 58;
+            } else if (canvas && canvas.width > 0 && canvas.height > 0) {
                 const imgData = canvas.toDataURL('image/jpeg', 0.78); // 0.78 is imperceptible vs 0.88 in PDF at ~70dpi
 
                 // Calculate width and height to fit nicely in 170mm x 125mm max box
@@ -986,45 +1159,46 @@ export const exportCombinedModel = async (activeModel, mode, report, userInfo = 
                 pdf.addImage(imgData, 'JPEG', posX, 30, imgW, imgH);
                 yAfterDiagram = 30 + imgH + 12;
             } else {
-                pdf.setFont('helvetica', 'italic');
-                pdf.setTextColor(...TEXT_MUTED);
+                pdf.setFillColor(254, 242, 242);
+                pdf.setDrawColor(239, 68, 68);
+                pdf.roundedRect(15, 30, pageWidth - 30, 22, 2, 2, 'FD');
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(239, 68, 68);
                 pdf.setFontSize(10);
-                pdf.text('Diagram workspace is currently empty for this section.', 20, 35);
-                yAfterDiagram = 50;
+                pdf.text('[ERROR] Diagram does not exist in workspace.', 20, 39);
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(...TEXT_DARK);
+                pdf.setFontSize(8.5);
+                pdf.text('No diagram elements or models found for this section in the workspace.', 20, 46);
+
+                yAfterDiagram = 58;
             }
 
-            if (sectionKey === 'ssds') {
-                const allSsdIssues = getIssuesForSection('ssds');
-                const descs = activeModel?.descriptions || {};
-                const descEntries = Object.entries(descs);
+            if (sectionKey === 'sequence-diagrams') {
+                if (diagramExists) {
+                    const allSeqIssues = getIssuesForSection('sequence-diagrams');
+                    const descs = activeModel?.descriptions || {};
+                    const descEntries = Object.entries(descs);
 
-                if (descEntries.length > 0) {
-                    const mappedSsdIndices = new Set();
-                    let ySsd = yAfterDiagram;
+                    if (descEntries.length > 0) {
+                        let ySeq = yAfterDiagram;
+                        descEntries.forEach(([id, desc], dIdx) => {
+                            const seqNum = `5.${dIdx + 1}`;
+                            const descName = (desc.useCaseName || '').toLowerCase().trim();
 
-                    descEntries.forEach(([id, desc], dIdx) => {
-                        const ssdNum = `3.${dIdx + 1}`;
-                        const descName = (desc.useCaseName || '').toLowerCase().trim();
+                            const specificSeqIssues = allSeqIssues.filter((issue) => {
+                                const msg = (issue.message || '').toLowerCase();
+                                return msg.includes(`sequence diagram 5.${dIdx + 1}`) ||
+                                    msg.includes(`sequence diagram for "${descName}"`) ||
+                                    (descName && msg.includes(descName));
+                            });
 
-                        const specificSsdIssues = allSsdIssues.filter((issue, idx) => {
-                            const msg = (issue.message || '').toLowerCase();
-                            const matches = msg.includes(`ssd ${ssdNum}`) ||
-                                msg.includes(`ssd 3.${dIdx + 1}`) ||
-                                (descName && msg.includes(descName));
-                            if (matches) mappedSsdIndices.add(idx);
-                            return matches;
+                            ySeq = renderSpecificEvaluationTable(`Sequence Diagram ${seqNum}: ${desc.useCaseName || 'Untitled'}`, specificSeqIssues, ySeq);
+                            ySeq += 8;
                         });
-
-                        ySsd = renderSpecificEvaluationTable(`SSD ${ssdNum} (${desc.useCaseName || 'Untitled'}) - Diagnostics`, specificSsdIssues, ySsd);
-                        ySsd += 8;
-                    });
-
-                    const remainingSsdIssues = allSsdIssues.filter((_, idx) => !mappedSsdIndices.has(idx));
-                    if (remainingSsdIssues.length > 0) {
-                        renderSpecificEvaluationTable('General SSD - Diagnostics', remainingSsdIssues, ySsd);
                     }
-                } else {
-                    renderEvaluationTable(sectionKey, yAfterDiagram);
                 }
             } else {
                 const yAfterEval = renderEvaluationTable(sectionKey, yAfterDiagram);

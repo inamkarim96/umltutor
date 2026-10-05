@@ -227,7 +227,7 @@ const CheckingModePanel = ({
                     code: 'NO_NODES',
                     severity: 'error',
                     location: 'diagram',
-                    message: 'Use Case Diagram not found.'
+                    message: 'Diagram does not exist in workspace.'
                 });
                 // Continue or return? If we return, we must finalize report
                 report.issues = issues;
@@ -818,7 +818,7 @@ const CheckingModePanel = ({
                     code: 'NO_SSDS',
                     severity: 'error',
                     location: 'ssd',
-                    message: 'No System Sequence Diagrams found.',
+                    message: 'Diagram does not exist in workspace.',
                     context: {}
                 });
                 report.score -= 20;
@@ -982,7 +982,7 @@ const CheckingModePanel = ({
                     code: 'CLASS_DIAGRAM_EMPTY',
                     severity: 'error',
                     location: 'class-diagram',
-                    message: 'Class Diagram is empty.',
+                    message: 'Diagram does not exist in workspace.',
                 });
                 report.score = 0;
             } else {
@@ -1025,7 +1025,7 @@ const CheckingModePanel = ({
                     code: 'NO_SEQUENCE_DIAGRAMS',
                     severity: 'error',
                     location: 'sequence-diagram',
-                    message: 'No Sequence Diagrams found.',
+                    message: 'Diagram does not exist in workspace.',
                 });
                 report.score -= 20;
             }
