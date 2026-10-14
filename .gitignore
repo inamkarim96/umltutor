@@ -70,3 +70,5 @@ Screenshot*.png
 *.pdf
 poster/
 create_pptx.py
+*.txt
+
