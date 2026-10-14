@@ -346,7 +346,7 @@ const LandingPage = () => {
                 <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" /></svg>
               </div>
               <div className="feature-title">Cross-Diagram Consistency</div>
-              <div className="feature-desc">The engine validates: Description ↔ Diagram alignment, SSD ↔ Description flows, Class ↔ SSD operations, and Sequence ↔ Class ownership — 12 distinct validation phases in one run.</div>
+              <div className="feature-desc">The engine validates: Description ↔ Diagram alignment, SSD ↔ Description flows, Class ↔ SSD operations, and Sequence ↔ Class ownership 12 distinct validation phases in one run.</div>
             </div>
 
             <div className="feature-card accent-border-amber">
@@ -507,7 +507,7 @@ const LandingPage = () => {
                 <div className="workflow-content">
                   <div className="workflow-step-num">Step 03</div>
                   <div className="workflow-title">Validate with AI</div>
-                  <div className="workflow-desc">Run the 12-phase checking engine to find consistency errors, incomplete descriptions, mismatched class operations, and more — before submitting.</div>
+                  <div className="workflow-desc">Run the 12-phase checking engine to find consistency errors, incomplete descriptions, mismatched class operations, and more before submitting.</div>
                 </div>
               </div>
               <div className="workflow-step">
@@ -531,7 +531,7 @@ const LandingPage = () => {
           <div className="reveal" style={{ maxWidth: '600px', marginBottom: '16px' }}>
             <span className="section-label">About UMLTutor</span>
             <h2 className="section-title">Built for the Classroom</h2>
-            <p className="section-sub">UMLTutor bridges the gap between theoretical UML knowledge and practical application, giving students a hands-on AI-assisted environment to create, manage, and validate complete UML models within a structured assignment workflow — no external tools required.</p>
+            <p className="section-sub">UMLTutor bridges the gap between theoretical UML knowledge and practical application, giving students a hands-on AI-assisted environment to create, manage, and validate complete UML models within a structured assignment workflow no external tools required.</p>
           </div>
           <div className="team-grid reveal reveal-delay-1">
             <div className="team-card">

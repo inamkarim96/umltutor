@@ -3,7 +3,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
+poster/
 # Environment variables
 .env
 .env.local
@@ -63,3 +63,10 @@ playwright-report/
 umltutor-backend/src/tests/
 umltutor-frontend/sd-browser-test/
 tests/
+# Poster, presentation, and demo media assets
+qau-logo.jpg
+Screenshot*.png
+*.pptx
+*.pdf
+poster/
+create_pptx.py
